@@ -77,101 +77,69 @@ public class CustomerNotificationService implements ICustomerNotificationService
             CashTransactionDTO cashTransactionDTO, List<CashTransactionDetailDTO> cashTransactionDetailDTOList) {
         TransactionDetails transactionDetail;
 
-        transactionDetail = new TransactionDetails();
-        transactionDetail.setTransactionId(cashTransactionDetailDTOList.get(0).getTransactionId());
-        transactionDetail.setParameterName("IsFlexibleAccount");
-        transactionDetail.setParameterValue(cashTransactionDetailDTOList.get(0)
-                .getCashTransactionStoredRequest().getCheckedFlexibleAccount().toString());
+        transactionDetail = createTransactionDetail(cashTransactionDetailDTOList.get(0).getTransactionId(),
+                "IsFlexibleAccount",
+                cashTransactionDetailDTOList.get(0).getCashTransactionStoredRequest().getCheckedFlexibleAccount()
+                        .toString());
         transactionDetailsList.add(transactionDetail);
 
-        transactionDetail = new TransactionDetails();
-        transactionDetail.setTransactionId(cashTransactionDetailDTOList.get(0).getTransactionId());
-        transactionDetail.setParameterName("customerName");
-        transactionDetail.setParameterValue(null);
+        transactionDetail = createTransactionDetail(cashTransactionDetailDTOList.get(0).getTransactionId(),
+                "customerName", null);
         transactionDetailsList.add(transactionDetail);
 
-        transactionDetail = new TransactionDetails();
-        transactionDetail.setTransactionId(cashTransactionDetailDTOList.get(0).getTransactionId());
-        transactionDetail.setParameterName("accountCurrency");
-        transactionDetail.setParameterValue(cashTransactionDetailDTOList.get(0).getAccountCurrency());
+        transactionDetail = createTransactionDetail(cashTransactionDetailDTOList.get(0).getTransactionId(),
+                "accountCurrency", cashTransactionDetailDTOList.get(0).getAccountCurrency());
         transactionDetailsList.add(transactionDetail);
 
-        transactionDetail = new TransactionDetails();
-        transactionDetail.setTransactionId(cashTransactionDetailDTOList.get(0).getTransactionId());
-        transactionDetail.setParameterName("iban");
-        transactionDetail.setParameterValue(null); // Account service will provide this
+        transactionDetail = createTransactionDetail(cashTransactionDetailDTOList.get(0).getTransactionId(), "iban",
+                null); // Account service will provide this
         transactionDetailsList.add(transactionDetail);
 
-        transactionDetail = new TransactionDetails();
-        transactionDetail.setTransactionId(cashTransactionDetailDTOList.get(0).getTransactionId());
-        transactionDetail.setParameterName("transactionDate");
-        transactionDetail.setParameterValue(cashTransactionDTO.getCreateDate().toString());
+        transactionDetail = createTransactionDetail(cashTransactionDetailDTOList.get(0).getTransactionId(),
+                "transactionDate", cashTransactionDTO.getCreateDate().toString());
         transactionDetailsList.add(transactionDetail);
 
-        transactionDetail = new TransactionDetails();
-        transactionDetail.setTransactionId(cashTransactionDetailDTOList.get(0).getTransactionId());
-        transactionDetail.setParameterName("transactionTime"); // Likely in HH:mm format
-        transactionDetail.setParameterValue(null);
+        transactionDetail = createTransactionDetail(cashTransactionDetailDTOList.get(0).getTransactionId(),
+                "transactionTime", null); // Likely in HH:mm format
         transactionDetailsList.add(transactionDetail);
 
-        transactionDetail = new TransactionDetails();
-        transactionDetail.setTransactionId(cashTransactionDetailDTOList.get(0).getTransactionId());
-        transactionDetail.setParameterName("branchCode");
-        transactionDetail.setParameterValue(cashTransactionDTO.getBranchCode());
+        transactionDetail = createTransactionDetail(cashTransactionDetailDTOList.get(0).getTransactionId(),
+                "branchCode", cashTransactionDTO.getBranchCode());
         transactionDetailsList.add(transactionDetail);
+    }
+
+    private TransactionDetails createTransactionDetail(String transactionId, String parameterName,
+            String parameterValue) {
+        TransactionDetails transactionDetail = new TransactionDetails();
+        transactionDetail.setTransactionId(transactionId);
+        transactionDetail.setParameterName(parameterName);
+        transactionDetail.setParameterValue(parameterValue);
+        return transactionDetail;
     }
 
     private AmountCalculationResult calculateAmountTextAndIsKgvIncluded(
             List<CashTransactionDetailDTO> cashTransactionDetailDTOList) {
         String amountText = "";
         Boolean isKgvIncluded = Boolean.FALSE;
-        BigDecimal totalAmount = BigDecimal.ZERO;
+        BigDecimal totalAmount = calculateTotalAmount(cashTransactionDetailDTOList);
+        CashTransactionDetailDTO firstDetailDTO = cashTransactionDetailDTOList.get(0);
 
-        for (CashTransactionDetailDTO detailDTO : cashTransactionDetailDTOList) {
-            totalAmount = totalAmount.add(detailDTO.getAmount());
-        }
+        if (shouldCalculateAmountText(firstDetailDTO)) {
+            BigDecimal commissionAmount = calculateCommissionAmount(cashTransactionDetailDTOList);
 
-        if (cashTransactionDetailDTOList.get(0).getCommissionAmount().compareTo(BigDecimal.ZERO) > 0) {
-            if (!Boolean.TRUE.equals(cashTransactionDetailDTOList.get(0)
-                    .getCashTransactionStoredRequest().getTakeCommissionFromTransactionAmount())) {
-                BigDecimal commissionAmount = BigDecimal.ZERO;
-                for (CashTransactionDetailDTO detailDTO : cashTransactionDetailDTOList) {
-                    if (detailDTO.getCommissionAmount() != null) {
-                        commissionAmount = commissionAmount.add(detailDTO.getCommissionAmount());
-                    }
-                }
+            if (isCurrencyEqualToAccountCurrency(firstDetailDTO)) {
+                amountText = calculateAmountTextForEqualCurrency(totalAmount, commissionAmount, firstDetailDTO);
+            } else if (hasKmvAmountGreaterThanZero(firstDetailDTO)) {
+                isKgvIncluded = Boolean.TRUE;
+                amountText = calculateAmountTextForKmvAmount(totalAmount, firstDetailDTO);
+            } else {
+                amountText = calculateDefaultAmountText(totalAmount, firstDetailDTO);
 
-                if (cashTransactionDetailDTOList.get(0).getCurrency()
-                        .equals(cashTransactionDetailDTOList.get(0).getAccountCurrency())) {
-                    amountText = formatCurrency(totalAmount, "#,##") + " "
-                            + cashTransactionDetailDTOList.get(0).getCurrency();
-                    amountText = amountText + " "
-                            + formatCurrency(commissionAmount, "#,##")
-                            + cashTransactionDetailDTOList.get(0).getCurrency();
-                } else if (cashTransactionDetailDTOList.get(0).getKmvAmount() != null
-                        && cashTransactionDetailDTOList.get(0).getKmvAmount()
-                                .compareTo(BigDecimal.ZERO) > 0) {
+                if (isCurrencyEqualToAccountCurrency(firstDetailDTO)) {
+                    amountText += " " + firstDetailDTO.getAccountCurrency();
+                } else if (hasKmvAmountGreaterThanZero(firstDetailDTO)) {
                     isKgvIncluded = Boolean.TRUE;
-                    amountText = totalAmount + " " + cashTransactionDetailDTOList.get(0).getCurrency()
-                            + NotificationConstants.NOTIFICATION_EQUIVALENT
-                            + cashTransactionDetailDTOList.get(0).getKmvAmount()
-                            + cashTransactionDetailDTOList.get(0).getCurrency();
-                } else {
-                    amountText = formatCurrency(totalAmount, "#,##");
-                    if (cashTransactionDetailDTOList.get(0).getCurrency()
-                            .equals(cashTransactionDetailDTOList.get(0).getAccountCurrency())) {
-                        amountText = amountText + " "
-                                + cashTransactionDetailDTOList.get(0).getAccountCurrency();
-                    } else if (cashTransactionDetailDTOList.get(0).getKmvAmount() != null
-                            && cashTransactionDetailDTOList.get(0).getKmvAmount()
-                                    .compareTo(BigDecimal.ZERO) > 0) {
-                        isKgvIncluded = Boolean.TRUE;
-                        amountText = amountText + " "
-                                + cashTransactionDetailDTOList.get(0).getCurrency()
-                                + NotificationConstants.NOTIFICATION_EQUIVALENT
-                                + cashTransactionDetailDTOList.get(0).getKmvAmount()
-                                + cashTransactionDetailDTOList.get(0).getCurrency();
-                    }
+                    amountText = calculateAmountTextForKmvAmount(totalAmount, firstDetailDTO);
                 }
             }
         }
@@ -179,11 +147,66 @@ public class CustomerNotificationService implements ICustomerNotificationService
         return new AmountCalculationResult(amountText, isKgvIncluded);
     }
 
+    private boolean shouldCalculateAmountText(CashTransactionDetailDTO detailDTO) {
+        return hasCommissionAmount(detailDTO) && isCommissionNotTakenFromTransactionAmount(detailDTO);
+    }
+
+    private BigDecimal calculateTotalAmount(List<CashTransactionDetailDTO> cashTransactionDetailDTOList) {
+        BigDecimal totalAmount = BigDecimal.ZERO;
+        for (CashTransactionDetailDTO detailDTO : cashTransactionDetailDTOList) {
+            totalAmount = totalAmount.add(detailDTO.getAmount());
+        }
+        return totalAmount;
+    }
+
+    private BigDecimal calculateCommissionAmount(List<CashTransactionDetailDTO> cashTransactionDetailDTOList) {
+        BigDecimal commissionAmount = BigDecimal.ZERO;
+        for (CashTransactionDetailDTO detailDTO : cashTransactionDetailDTOList) {
+            if (detailDTO.getCommissionAmount() != null) {
+                commissionAmount = commissionAmount.add(detailDTO.getCommissionAmount());
+            }
+        }
+        return commissionAmount;
+    }
+
+    private String calculateAmountTextForEqualCurrency(BigDecimal totalAmount, BigDecimal commissionAmount,
+            CashTransactionDetailDTO detailDTO) {
+        String amountText = formatCurrency(totalAmount, "#,##") + " " + detailDTO.getCurrency();
+        amountText += " " + formatCurrency(commissionAmount, "#,##") + detailDTO.getCurrency();
+        return amountText;
+    }
+
+    private String calculateAmountTextForKmvAmount(BigDecimal totalAmount, CashTransactionDetailDTO detailDTO) {
+        return totalAmount + " " + detailDTO.getCurrency() + NotificationConstants.NOTIFICATION_EQUIVALENT
+                + detailDTO.getKmvAmount() + detailDTO.getCurrency();
+    }
+
+    private String calculateDefaultAmountText(BigDecimal totalAmount, CashTransactionDetailDTO detailDTO) {
+        return formatCurrency(totalAmount, "#,##");
+    }
+
+    private boolean hasCommissionAmount(CashTransactionDetailDTO detailDTO) {
+        return detailDTO.getCommissionAmount() != null && detailDTO.getCommissionAmount().compareTo(BigDecimal.ZERO) > 0;
+    }
+
+    private boolean isCommissionNotTakenFromTransactionAmount(CashTransactionDetailDTO detailDTO) {
+        return !Boolean.TRUE
+                .equals(detailDTO.getCashTransactionStoredRequest().getTakeCommissionFromTransactionAmount());
+    }
+
+    private boolean isCurrencyEqualToAccountCurrency(CashTransactionDetailDTO detailDTO) {
+        return detailDTO.getCurrency().equals(detailDTO.getAccountCurrency());
+    }
+
+    private boolean hasKmvAmountGreaterThanZero(CashTransactionDetailDTO detailDTO) {
+        return detailDTO.getKmvAmount() != null && detailDTO.getKmvAmount().compareTo(BigDecimal.ZERO) > 0;
+    }
+
     private TransactionHeader getTransactionHeaders(CashTransactionDTO cashTransactionDTO,
             List<CashTransactionDetailDTO> cashTransactionDetailDTOList) {
         TransactionHeader transactionHeader = new TransactionHeader();
-        transactionHeader.setClientNo(cashTransactionDetailDTOList.get(0)
-                .getCashTransactionStoredRequest().getClientInfo().getClientNo());
+        transactionHeader.setClientNo(cashTransactionDetailDTOList.get(0).getCashTransactionStoredRequest()
+                .getClientInfo().getClientNo());
         transactionHeader.setCreatedBy(cashTransactionDTO.getCreatedBy());
         transactionHeader.setCreateDate(cashTransactionDTO.getCreateDate());
         transactionHeader.setUpdateDate(cashTransactionDTO.getUpdateDate());
