@@ -1,0 +1,219 @@
+@Service
+public class CustomerNotificationService implements ICustomerNotificationService {
+    private AccountClient accountClient;
+
+    @Autowired
+    public CustomerNotificationService(AccountClient accountClient) {
+        this.accountClient = accountClient;
+    }
+
+    @Override
+    public CustomerNotificationDTO getParametersForParcek(CashTransactionDTO cashTransactionDTO,
+            List<CashTransactionDetailDTO> cashTransactionDetailDTOList) {
+        CustomerNotificationDTO customerNotificationDTO = new CustomerNotificationDTO();
+
+        ResponseBalanceInfo balanceInfo = null;
+        try {
+            ResponseEntity<ResponseBalanceInfo> responseBalanceInfo = accountClient
+                    .getBalanceInfo(cashTransactionDetailDTOList.get(0).getAccountNo(), Boolean.FALSE);
+            if (responseBalanceInfo != null && responseBalanceInfo.getBody() != null) {
+                balanceInfo = responseBalanceInfo.getBody();
+            }
+        } catch (MicroException e) {
+            // Handle exception
+        }
+
+        List<TransactionDetails> transactionDetailsList = getTransactionDetail(cashTransactionDTO,
+                cashTransactionDetailDTOList, balanceInfo);
+        TransactionHeader transactionHeader = getTransactionHeaders(cashTransactionDTO, cashTransactionDetailDTOList);
+        customerNotificationDTO.setTransactionHeader(transactionHeader);
+        customerNotificationDTO.setTransactionDetails(transactionDetailsList);
+
+        return customerNotificationDTO;
+    }
+
+    private List<TransactionDetails> getTransactionDetail(CashTransactionDTO cashTransactionDTO,
+            List<CashTransactionDetailDTO> cashTransactionDetailDTOList, ResponseBalanceInfo balanceInfo) {
+        List<TransactionDetails> transactionDetailsList = new ArrayList<>();
+
+        // Add fixed transaction details
+        addFixedTransactionDetails(transactionDetailsList, cashTransactionDTO, cashTransactionDetailDTOList);
+
+        // Calculate amountText and isKgvIncluded
+        AmountCalculationResult amountResult = calculateAmountTextAndIsKgvIncluded(cashTransactionDetailDTOList);
+
+        // Add amountText
+        TransactionDetails transactionDetail = new TransactionDetails();
+        transactionDetail.setTransactionId(cashTransactionDetailDTOList.get(0).getTransactionId());
+        transactionDetail.setParameterName("amountText");
+        transactionDetail.setParameterValue(amountResult.getAmountText());
+        transactionDetailsList.add(transactionDetail);
+
+        // Add availableBalance
+        transactionDetail = new TransactionDetails();
+        transactionDetail.setTransactionId(cashTransactionDetailDTOList.get(0).getTransactionId());
+        transactionDetail.setParameterName("availableBalance");
+        transactionDetail.setParameterValue(balanceInfo.getBalanceDTO().getAvailableBalance());
+        transactionDetailsList.add(transactionDetail);
+
+        // Add totalBalance
+        transactionDetail = new TransactionDetails();
+        transactionDetail.setTransactionId(cashTransactionDetailDTOList.get(0).getTransactionId());
+        transactionDetail.setParameterName("totalBalance");
+        transactionDetail.setParameterValue(balanceInfo.getBalanceDTO().getOverdraftBalance().toString());
+        transactionDetailsList.add(transactionDetail);
+
+        // Add IsTaxIncluded
+        transactionDetail = new TransactionDetails();
+        transactionDetail.setTransactionId(cashTransactionDetailDTOList.get(0).getTransactionId());
+        transactionDetail.setParameterName("IsTaxIncluded");
+        transactionDetail.setParameterValue(amountResult.getIsKgvIncluded().toString());
+        transactionDetailsList.add(transactionDetail);
+
+        return transactionDetailsList;
+    }
+
+    private void addFixedTransactionDetails(List<TransactionDetails> transactionDetailsList,
+            CashTransactionDTO cashTransactionDTO, List<CashTransactionDetailDTO> cashTransactionDetailDTOList) {
+        TransactionDetails transactionDetail;
+
+        transactionDetail = new TransactionDetails();
+        transactionDetail.setTransactionId(cashTransactionDetailDTOList.get(0).getTransactionId());
+        transactionDetail.setParameterName("IsFlexibleAccount");
+        transactionDetail.setParameterValue(cashTransactionDetailDTOList.get(0)
+                .getCashTransactionStoredRequest().getCheckedFlexibleAccount().toString());
+        transactionDetailsList.add(transactionDetail);
+
+        transactionDetail = new TransactionDetails();
+        transactionDetail.setTransactionId(cashTransactionDetailDTOList.get(0).getTransactionId());
+        transactionDetail.setParameterName("customerName");
+        transactionDetail.setParameterValue(null);
+        transactionDetailsList.add(transactionDetail);
+
+        transactionDetail = new TransactionDetails();
+        transactionDetail.setTransactionId(cashTransactionDetailDTOList.get(0).getTransactionId());
+        transactionDetail.setParameterName("accountCurrency");
+        transactionDetail.setParameterValue(cashTransactionDetailDTOList.get(0).getAccountCurrency());
+        transactionDetailsList.add(transactionDetail);
+
+        transactionDetail = new TransactionDetails();
+        transactionDetail.setTransactionId(cashTransactionDetailDTOList.get(0).getTransactionId());
+        transactionDetail.setParameterName("iban");
+        transactionDetail.setParameterValue(null); // Account service will provide this
+        transactionDetailsList.add(transactionDetail);
+
+        transactionDetail = new TransactionDetails();
+        transactionDetail.setTransactionId(cashTransactionDetailDTOList.get(0).getTransactionId());
+        transactionDetail.setParameterName("transactionDate");
+        transactionDetail.setParameterValue(cashTransactionDTO.getCreateDate().toString());
+        transactionDetailsList.add(transactionDetail);
+
+        transactionDetail = new TransactionDetails();
+        transactionDetail.setTransactionId(cashTransactionDetailDTOList.get(0).getTransactionId());
+        transactionDetail.setParameterName("transactionTime"); // Likely in HH:mm format
+        transactionDetail.setParameterValue(null);
+        transactionDetailsList.add(transactionDetail);
+
+        transactionDetail = new TransactionDetails();
+        transactionDetail.setTransactionId(cashTransactionDetailDTOList.get(0).getTransactionId());
+        transactionDetail.setParameterName("branchCode");
+        transactionDetail.setParameterValue(cashTransactionDTO.getBranchCode());
+        transactionDetailsList.add(transactionDetail);
+    }
+
+    private AmountCalculationResult calculateAmountTextAndIsKgvIncluded(
+            List<CashTransactionDetailDTO> cashTransactionDetailDTOList) {
+        String amountText = "";
+        Boolean isKgvIncluded = Boolean.FALSE;
+        BigDecimal totalAmount = BigDecimal.ZERO;
+
+        for (CashTransactionDetailDTO detailDTO : cashTransactionDetailDTOList) {
+            totalAmount = totalAmount.add(detailDTO.getAmount());
+        }
+
+        if (cashTransactionDetailDTOList.get(0).getCommissionAmount().compareTo(BigDecimal.ZERO) > 0) {
+            if (!Boolean.TRUE.equals(cashTransactionDetailDTOList.get(0)
+                    .getCashTransactionStoredRequest().getTakeCommissionFromTransactionAmount())) {
+                BigDecimal commissionAmount = BigDecimal.ZERO;
+                for (CashTransactionDetailDTO detailDTO : cashTransactionDetailDTOList) {
+                    if (detailDTO.getCommissionAmount() != null) {
+                        commissionAmount = commissionAmount.add(detailDTO.getCommissionAmount());
+                    }
+                }
+
+                if (cashTransactionDetailDTOList.get(0).getCurrency()
+                        .equals(cashTransactionDetailDTOList.get(0).getAccountCurrency())) {
+                    amountText = formatCurrency(totalAmount, "#,##") + " "
+                            + cashTransactionDetailDTOList.get(0).getCurrency();
+                    amountText = amountText + " "
+                            + formatCurrency(commissionAmount, "#,##")
+                            + cashTransactionDetailDTOList.get(0).getCurrency();
+                } else if (cashTransactionDetailDTOList.get(0).getKmvAmount() != null
+                        && cashTransactionDetailDTOList.get(0).getKmvAmount()
+                                .compareTo(BigDecimal.ZERO) > 0) {
+                    isKgvIncluded = Boolean.TRUE;
+                    amountText = totalAmount + " " + cashTransactionDetailDTOList.get(0).getCurrency()
+                            + NotificationConstants.NOTIFICATION_EQUIVALENT
+                            + cashTransactionDetailDTOList.get(0).getKmvAmount()
+                            + cashTransactionDetailDTOList.get(0).getCurrency();
+                } else {
+                    amountText = formatCurrency(totalAmount, "#,##");
+                    if (cashTransactionDetailDTOList.get(0).getCurrency()
+                            .equals(cashTransactionDetailDTOList.get(0).getAccountCurrency())) {
+                        amountText = amountText + " "
+                                + cashTransactionDetailDTOList.get(0).getAccountCurrency();
+                    } else if (cashTransactionDetailDTOList.get(0).getKmvAmount() != null
+                            && cashTransactionDetailDTOList.get(0).getKmvAmount()
+                                    .compareTo(BigDecimal.ZERO) > 0) {
+                        isKgvIncluded = Boolean.TRUE;
+                        amountText = amountText + " "
+                                + cashTransactionDetailDTOList.get(0).getCurrency()
+                                + NotificationConstants.NOTIFICATION_EQUIVALENT
+                                + cashTransactionDetailDTOList.get(0).getKmvAmount()
+                                + cashTransactionDetailDTOList.get(0).getCurrency();
+                    }
+                }
+            }
+        }
+
+        return new AmountCalculationResult(amountText, isKgvIncluded);
+    }
+
+    private TransactionHeader getTransactionHeaders(CashTransactionDTO cashTransactionDTO,
+            List<CashTransactionDetailDTO> cashTransactionDetailDTOList) {
+        TransactionHeader transactionHeader = new TransactionHeader();
+        transactionHeader.setClientNo(cashTransactionDetailDTOList.get(0)
+                .getCashTransactionStoredRequest().getClientInfo().getClientNo());
+        transactionHeader.setCreatedBy(cashTransactionDTO.getCreatedBy());
+        transactionHeader.setCreateDate(cashTransactionDTO.getCreateDate());
+        transactionHeader.setUpdateDate(cashTransactionDTO.getUpdateDate());
+        transactionHeader.setUpdatedBy(cashTransactionDTO.getUpdatedBy());
+        transactionHeader.setJobCode(NotificationConstants.PARCEK_NOTIFICATION_SHORTNAME);
+        return transactionHeader;
+    }
+
+    private String formatCurrency(BigDecimal number, String format) {
+        Locale currentLocale = new Locale("en", "US");
+        DecimalFormatSymbols unusualSymbols = new DecimalFormatSymbols(currentLocale);
+        DecimalFormat formatter = new DecimalFormat(format, unusualSymbols);
+        return formatter.format(number).replace(".", "#").replace(",", ".").replace("#", ",");
+    }
+
+    private static class AmountCalculationResult {
+        private String amountText;
+        private Boolean isKgvIncluded;
+
+        public AmountCalculationResult(String amountText, Boolean isKgvIncluded) {
+            this.amountText = amountText;
+            this.isKgvIncluded = isKgvIncluded;
+        }
+
+        public String getAmountText() {
+            return amountText;
+        }
+
+        public Boolean getIsKgvIncluded() {
+            return isKgvIncluded;
+        }
+    }
+}
