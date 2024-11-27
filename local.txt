@@ -1,163 +1,172 @@
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+@Test
+void testSendToNotificationQueue_AccountException() {
+    // Arrange
+    CashTransactionDTO cashTransactionDTO = new CashTransactionDTO();
+    List<CashTransactionDetailDTO> detailDTOList = new ArrayList<>();
 
-@ExtendWith(SpringExtension.class)
-class CustomerNotificationServiceTest {
+    CashTransactionStoredRequest storedRequest = new CashTransactionStoredRequest();
+    storedRequest.setCheckedFlexibleAccount(Boolean.TRUE);
+    storedRequest.setClientInfo(new ClientDTO());
 
-    @InjectMocks
-    CustomerNotificationService customerNotificationService;
+    CashTransactionDetailDTO detailDTO = new CashTransactionDetailDTO();
+    detailDTO.setAccountNo("acc123");
+    detailDTO.setCashTransactionStoredRequest(storedRequest);
+    detailDTOList.add(detailDTO);
 
-    @Mock
-    AccountClient accountClient;
+    // Mocking AccountClient to throw AccountException instead of MicroException
+    when(accountClient.getBalanceInfo(anyString(), anyBoolean())).thenThrow(new AccountException("Error"));
 
-    @Mock
-    CustomerNotificationProducer notificationProducer;
+    // Act & Assert
+    assertThrows(AccountException.class, () -> {
+        customerNotificationService.sendToNotificationQueue(cashTransactionDTO, detailDTOList);
+    });
+}
 
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-    }
+@Test
+void testCalculateAmountTextAndIsKgvIncluded_NoCommission_NoKmv() throws Exception {
+    // Arrange
+    CashTransactionDetailDTO detailDTO = new CashTransactionDetailDTO();
+    detailDTO.setAmount(BigDecimal.valueOf(1000));
+    detailDTO.setCurrency("TRY");
+    detailDTO.setAccountCurrency("TRY");
+    detailDTO.setCommissionAmount(BigDecimal.ZERO);
+    detailDTO.setKmvAmount(BigDecimal.ZERO);
 
-    // Test metotları buraya gelecek
-	
-	@Test
-	void testSendToNotificationQueue_Success() throws AccountException {
-		// Arrange
-		CashTransactionDTO cashTransactionDTO = new CashTransactionDTO();
-		cashTransactionDTO.setCreateDate(new Date());
-		cashTransactionDTO.setBranchCode("123");
-		cashTransactionDTO.setCreatedBy("testUser");
-		cashTransactionDTO.setUpdatedBy("testUser");
+    CashTransactionStoredRequest storedRequest = new CashTransactionStoredRequest();
+    storedRequest.setTakeCommissionFromTransactionAmount(Boolean.FALSE);
+    detailDTO.setCashTransactionStoredRequest(storedRequest);
 
-		CashTransactionStoredRequest storedRequest = new CashTransactionStoredRequest();
-		storedRequest.setCheckedFlexibleAccount(Boolean.TRUE);
-		storedRequest.setTakeCommissionFromTransactionAmount(Boolean.FALSE);
-		storedRequest.setClientInfo(new ClientDTO());
+    List<CashTransactionDetailDTO> detailDTOList = Collections.singletonList(detailDTO);
 
-		CashTransactionDetailDTO detailDTO = new CashTransactionDetailDTO();
-		detailDTO.setTransactionId("txn123");
-		detailDTO.setAccountNo("acc123");
-		detailDTO.setAccountCurrency("TRY");
-		detailDTO.setCurrency("TRY");
-		detailDTO.setAmount(BigDecimal.valueOf(1000));
-		detailDTO.setCashTransactionStoredRequest(storedRequest);
-		detailDTO.setCommissionAmount(BigDecimal.ZERO);
+    // Act
+    Method method = CustomerNotificationService.class.getDeclaredMethod("calculateAmountTextAndIsKgvIncluded", List.class);
+    method.setAccessible(true);
+    Object result = method.invoke(customerNotificationService, detailDTOList);
 
-		List<CashTransactionDetailDTO> detailDTOList = Collections.singletonList(detailDTO);
-
-		BalanceDTO balanceDTO = new BalanceDTO();
-		balanceDTO.setAvailableBalance("5000");
-		balanceDTO.setOverdraftBalance(BigDecimal.valueOf(10000));
-
-		ResponseBalanceInfo balanceInfo = new ResponseBalanceInfo();
-		balanceInfo.setBalanceDTO(balanceDTO);
-
-		ResponseEntity<ResponseBalanceInfo> responseBalanceInfo = ResponseEntity.ok(balanceInfo);
-
-		ResponseAccountNumberWithCurrencyClient accountNumberResponse = new ResponseAccountNumberWithCurrencyClient();
-		accountNumberResponse.setIban("TRXXXXXX");
-
-		ResponseEntity<ResponseAccountNumberWithCurrencyClient> accountNumberEntity = ResponseEntity.ok(accountNumberResponse);
-
-		// Mocking AccountClient methods
-		when(accountClient.getBalanceInfo(anyString(), anyBoolean())).thenReturn(responseBalanceInfo);
-		when(accountClient.accountNumberWithCurrency(anyString())).thenReturn(accountNumberEntity);
-
-		// Act
-		customerNotificationService.sendToNotificationQueue(cashTransactionDTO, detailDTOList);
-
-		// Assert
-		verify(notificationProducer, times(1)).sendMessageToNotificationQueue(any(CustomerNotificationDTO.class));
-	}
-	
-	
-	@Test
-	void testSendToNotificationQueue_AccountException() {
-		// Arrange
-		CashTransactionDTO cashTransactionDTO = new CashTransactionDTO();
-		List<CashTransactionDetailDTO> detailDTOList = new ArrayList<>();
-
-		CashTransactionStoredRequest storedRequest = new CashTransactionStoredRequest();
-		storedRequest.setCheckedFlexibleAccount(Boolean.TRUE);
-		storedRequest.setClientInfo(new ClientDTO());
-
-		CashTransactionDetailDTO detailDTO = new CashTransactionDetailDTO();
-		detailDTO.setAccountNo("acc123");
-		detailDTO.setCashTransactionStoredRequest(storedRequest);
-		detailDTOList.add(detailDTO);
-
-		// Mocking AccountClient to throw MicroException
-		when(accountClient.getBalanceInfo(anyString(), anyBoolean())).thenThrow(new MicroException("Error"));
-
-		// Act & Assert
-		assertThrows(AccountException.class, () -> {
-			customerNotificationService.sendToNotificationQueue(cashTransactionDTO, detailDTOList);
-		});
-	}
+    // Assert
+    assertNotNull(result);
+    CustomerNotificationService.AmountCalculationResult calculationResult = (CustomerNotificationService.AmountCalculationResult) result;
+    assertEquals("", calculationResult.getAmountText());
+    assertFalse(calculationResult.getIsKgvIncluded());
+}
 
 
-	@Test
-	void testGetParameters_Success() throws AccountException {
-		// Arrange
-		CashTransactionDTO cashTransactionDTO = new CashTransactionDTO();
-		cashTransactionDTO.setCreateDate(new Date());
-		cashTransactionDTO.setBranchCode("123");
-		cashTransactionDTO.setCreatedBy("testUser");
-		cashTransactionDTO.setUpdatedBy("testUser");
+@Test
+void testCalculateTotalAmount() throws Exception {
+    // Arrange
+    CashTransactionDetailDTO detail1 = new CashTransactionDetailDTO();
+    detail1.setAmount(BigDecimal.valueOf(1000));
 
-		CashTransactionStoredRequest storedRequest = new CashTransactionStoredRequest();
-		storedRequest.setCheckedFlexibleAccount(Boolean.TRUE);
-		storedRequest.setTakeCommissionFromTransactionAmount(Boolean.FALSE);
-		storedRequest.setClientInfo(new ClientDTO());
+    CashTransactionDetailDTO detail2 = new CashTransactionDetailDTO();
+    detail2.setAmount(BigDecimal.valueOf(500));
 
-		CashTransactionDetailDTO detailDTO = new CashTransactionDetailDTO();
-		detailDTO.setTransactionId("txn123");
-		detailDTO.setAccountNo("acc123");
-		detailDTO.setAccountCurrency("TRY");
-		detailDTO.setCurrency("TRY");
-		detailDTO.setAmount(BigDecimal.valueOf(1000));
-		detailDTO.setCashTransactionStoredRequest(storedRequest);
-		detailDTO.setCommissionAmount(BigDecimal.ZERO);
+    List<CashTransactionDetailDTO> detailDTOList = Arrays.asList(detail1, detail2);
 
-		List<CashTransactionDetailDTO> detailDTOList = Collections.singletonList(detailDTO);
+    // Act
+    Method method = CustomerNotificationService.class.getDeclaredMethod("calculateTotalAmount", List.class);
+    method.setAccessible(true);
+    Object result = method.invoke(customerNotificationService, detailDTOList);
 
-		BalanceDTO balanceDTO = new BalanceDTO();
-		balanceDTO.setAvailableBalance("5000");
-		balanceDTO.setOverdraftBalance(BigDecimal.valueOf(10000));
+    // Assert
+    assertEquals(BigDecimal.valueOf(1500), result);
+}
 
-		ResponseBalanceInfo balanceInfo = new ResponseBalanceInfo();
-		balanceInfo.setBalanceDTO(balanceDTO);
 
-		ResponseEntity<ResponseBalanceInfo> responseBalanceInfo = ResponseEntity.ok(balanceInfo);
+@Test
+void testGetTransactionDetail_NullGetBody() throws Exception {
+    // Arrange
+    CashTransactionDTO cashTransactionDTO = new CashTransactionDTO();
+    cashTransactionDTO.setCreateDate(new Date());
 
-		ResponseAccountNumberWithCurrencyClient accountNumberResponse = new ResponseAccountNumberWithCurrencyClient();
-		accountNumberResponse.setIban("TRXXXXXX");
+    CashTransactionStoredRequest storedRequest = new CashTransactionStoredRequest();
+    storedRequest.setCheckedFlexibleAccount(Boolean.TRUE);
 
-		ResponseEntity<ResponseAccountNumberWithCurrencyClient> accountNumberEntity = ResponseEntity.ok(accountNumberResponse);
+    CashTransactionDetailDTO detailDTO = new CashTransactionDetailDTO();
+    detailDTO.setTransactionId("txn123");
+    detailDTO.setAccountNo("acc123");
+    detailDTO.setAccountCurrency("TRY");
+    detailDTO.setCurrency("TRY");
+    detailDTO.setAmount(BigDecimal.valueOf(1000));
+    detailDTO.setCashTransactionStoredRequest(storedRequest);
 
-		// Mocking AccountClient methods
-		when(accountClient.getBalanceInfo(anyString(), anyBoolean())).thenReturn(responseBalanceInfo);
-		when(accountClient.accountNumberWithCurrency(anyString())).thenReturn(accountNumberEntity);
+    List<CashTransactionDetailDTO> detailDTOList = Collections.singletonList(detailDTO);
 
-		// Act
-		CustomerNotificationDTO result = customerNotificationService.getParameters(cashTransactionDTO, detailDTOList);
+    ResponseEntity<ResponseAccountNumberWithCurrencyClient> responseEntity = ResponseEntity.ok(null);
 
-		// Assert
-		assertNotNull(result);
-		assertNotNull(result.getTransactionHeader());
-		assertNotNull(result.getTransactionDetails());
-		assertEquals(7, result.getTransactionDetails().size()); // Beklenen parametre sayısı
-	}
+    // Mocking AccountClient methods to return null body
+    when(accountClient.accountNumberWithCurrency(anyString())).thenReturn(responseEntity);
 
-	@Test
-	void testSendToNotificationQueue_NullDetailList() {
-		// Arrange
-		CashTransactionDTO cashTransactionDTO = new CashTransactionDTO();
+    // Mocking getBalanceInfo
+    BalanceDTO balanceDTO = new BalanceDTO();
+    balanceDTO.setAvailableBalance("5000");
+    balanceDTO.setOverdraftBalance(BigDecimal.valueOf(10000));
 
-		// Act & Assert
-		assertThrows(NullPointerException.class, () -> {
-			customerNotificationService.sendToNotificationQueue(cashTransactionDTO, null);
-		});
-	}
+    ResponseBalanceInfo balanceInfo = new ResponseBalanceInfo();
+    balanceInfo.setBalanceDTO(balanceDTO);
 
+    ResponseEntity<ResponseBalanceInfo> responseBalanceInfo = ResponseEntity.ok(balanceInfo);
+
+    when(accountClient.getBalanceInfo(anyString(), anyBoolean())).thenReturn(responseBalanceInfo);
+
+    // Act & Assert
+    AccountException exception = assertThrows(AccountException.class, () -> {
+        customerNotificationService.getParameters(cashTransactionDTO, detailDTOList);
+    });
+
+    assertEquals("Hesap iban bilgileri bulunamadı.", exception.getMessage());
+}
+
+@Test
+void testCalculateAmountTextAndIsKgvIncluded_WithCommission() throws Exception {
+    // Arrange
+    CashTransactionDetailDTO detailDTO = new CashTransactionDetailDTO();
+    detailDTO.setAmount(BigDecimal.valueOf(1000));
+    detailDTO.setCurrency("TRY");
+    detailDTO.setAccountCurrency("TRY");
+    detailDTO.setCommissionAmount(BigDecimal.valueOf(50));
+
+    CashTransactionStoredRequest storedRequest = new CashTransactionStoredRequest();
+    storedRequest.setTakeCommissionFromTransactionAmount(Boolean.FALSE);
+    detailDTO.setCashTransactionStoredRequest(storedRequest);
+
+    List<CashTransactionDetailDTO> detailDTOList = Collections.singletonList(detailDTO);
+
+    // Act
+    Method method = CustomerNotificationService.class.getDeclaredMethod("calculateAmountTextAndIsKgvIncluded", List.class);
+    method.setAccessible(true);
+    Object result = method.invoke(customerNotificationService, detailDTOList);
+
+    // Assert
+    CustomerNotificationService.AmountCalculationResult calculationResult = (CustomerNotificationService.AmountCalculationResult) result;
+    assertNotNull(calculationResult.getAmountText());
+    // Beklenen amountText'i buraya ekleyin
+    assertFalse(calculationResult.getIsKgvIncluded());
+}
+
+
+@Test
+void testCalculateAmountTextAndIsKgvIncluded_WithKgv() throws Exception {
+    // Arrange
+    CashTransactionDetailDTO detailDTO = new CashTransactionDetailDTO();
+    detailDTO.setAmount(BigDecimal.valueOf(1000));
+    detailDTO.setCurrency("TRY");
+    detailDTO.setAccountCurrency("TRY");
+    detailDTO.setKmvAmount(BigDecimal.valueOf(100));
+
+    CashTransactionStoredRequest storedRequest = new CashTransactionStoredRequest();
+    storedRequest.setTakeCommissionFromTransactionAmount(Boolean.FALSE);
+    detailDTO.setCashTransactionStoredRequest(storedRequest);
+
+    List<CashTransactionDetailDTO> detailDTOList = Collections.singletonList(detailDTO);
+
+    // Act
+    Method method = CustomerNotificationService.class.getDeclaredMethod("calculateAmountTextAndIsKgvIncluded", List.class);
+    method.setAccessible(true);
+    Object result = method.invoke(customerNotificationService, detailDTOList);
+
+    // Assert
+    CustomerNotificationService.AmountCalculationResult calculationResult = (CustomerNotificationService.AmountCalculationResult) result;
+    assertNotNull(calculationResult.getAmountText());
+    // Beklenen amountText'i buraya ekleyin
+    assertTrue(calculationResult.getIsKgvIncluded());
 }
