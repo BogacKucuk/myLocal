@@ -1,267 +1,242 @@
+@Getter
+@Setter
+public class CashTransactionDTO {
 
-@Service
-public class CustomerNotificationService implements ICustomerNotificationService {
-    private AccountClient accountClient;
-    private CustomerNotificationProducer notificationProducer;
+    private Long   id;
+    private String processCode;
+    private Long   customerNo;
+    private String branchCode;
+    private String status;
+    private Date   createDate;
+    private String createdBy;
+    private Date   updateDate;
+    private String updatedBy;
+    
+}
+
+@Getter
+@Setter
+public class CashTransactionDetailDTO {
+
+    private Long                         id;
+    private Long                         cashTransactionId;
+    private BigDecimal                   amount;
+    private String                       currency;
+    private String                       transactionId;
+    private Long                         contractNo;
+    private BigDecimal                   accountAmount;
+    private BigDecimal                   amountTl;
+    private String                       accountName;
+    private String                       accountNo;
+    private String                       accountCurrency;
+    private String                       accountType;
+    private String                       accountBranchCode;
+    private BigDecimal                   commissionAmount;
+    private BigDecimal                   commissionAmountTl;
+    private BigDecimal                   kmvAmount;
+    private BigDecimal                   exchangeRate;
+    private BigDecimal                   accountExchangeRate;
+    private String                       transactionDescription;
+    private String                       accountingDescription;
+    private String                       transactionMaker;
+    private Long                         transactionMakerCustomerNo;
+    private String                       orderOwnershipFlag;
+    private String                       rentPaymentFlag;
+    private Integer                      customerTypeCode;
+    private String                       customerSbuType;
+    private Integer                      statisticCode;
+    private Date                         createDate;
+    private Date                         updateDate;
+    private BigDecimal                   parity;
+
+    private CashTransactionStoredRequest cashTransactionStoredRequest;
+
+}
+
+@Getter
+@Setter
+public class CashTransactionStoredRequest {
+
+    private ResponseCommissionInformation responseCommissionInformation;
+    private List<Long>                    vaultProvisionIdList;
+    private Boolean                       takeCommissionFromTransactionAmount;
+    private ClientDTO                     clientInfo;
+    private Integer                       legalStatus;
+    private MoneyDepositModalDetailDTO    rentPaymentModalDetail;
+    private MoneyDepositModalDetailDTO    otherPersonModalDetail;
+    private BigDecimal                    kgvAmountTl;
+    private Boolean                       takeTaxFromAccount;
+    private Boolean                       masakApprovalNeeded;
+    private Boolean                       existsOnlyLimitApproval;
+    private Boolean                       existsApproval;
+    private String                        mainReceiptId;
+    private Boolean                       checkedFlexibleAccount;
+    private Boolean                       flexibleAccountVisible;
+    private Long                          clientTicketId;
+}
+
+@Component
+public class CustomerNotificationProducer {
+
+    private final KafkaTemplate<String, String> kafkaTemplate;
+    private final String notificationTopic;
 
     @Autowired
-    public CustomerNotificationService(AccountClient accountClient, CustomerNotificationProducer notificationProducer) {
-        this.accountClient = accountClient;
-        this.notificationProducer = notificationProducer;
+    public CustomerNotificationProducer(
+            @Qualifier("customerNotificationKafkaTemplate") KafkaTemplate<String, String> kafkaTemplate,
+            @Value("${kafka.customerNotification.address}") String notificationTopic,
+            @Value("${kafka.customerNotification.postfix}") String notificationTopicPostfix) {
+        this.kafkaTemplate = kafkaTemplate;
+        this.notificationTopic = notificationTopic + notificationTopicPostfix;
     }
 
-    @Override
-    public void sendToNotificationQueue(CashTransactionDTO cashTransactionDTO, List<CashTransactionDetailDTO> cashTransactionDetailDTOList) throws AccountException {
-        CustomerNotificationDTO customerNotificationDTO = getParameters(cashTransactionDTO, cashTransactionDetailDTOList);
-        notificationProducer.sendMessageToNotificationQueue(customerNotificationDTO);
-    }
-
-    public CustomerNotificationDTO getParameters(CashTransactionDTO cashTransactionDTO, List<CashTransactionDetailDTO> cashTransactionDetailDTOList) throws AccountException {
-        CustomerNotificationDTO customerNotificationDTO = new CustomerNotificationDTO();
-
-        ResponseBalanceInfo balanceInfo = null;
-
-        try {
-            ResponseEntity<ResponseBalanceInfo> responseBalanceInfo = accountClient.getBalanceInfo(cashTransactionDetailDTOList.get(0).getAccountNo(), Boolean.FALSE);
-            if (responseBalanceInfo != null && responseBalanceInfo.getBody() != null) {
-                balanceInfo = responseBalanceInfo.getBody();
-            }
+    public void sendMessageToNotificationQueue(Object messageObject) {
+        if (messageObject == null) {
+            throw new IllegalArgumentException("Notification message null olamaz");
         }
-        catch (MicroException e) {
-            throw new AccountException("Hesap bilgileri bulunamadı.");
-        }
+        String message = ObjectUtils.convertObjectToJSON(messageObject);
+        kafkaTemplate.send(notificationTopic, message);
+    }
+}
 
-        List<TransactionDetails> transactionDetailsList = getTransactionDetail(cashTransactionDTO, cashTransactionDetailDTOList, balanceInfo);
-        TransactionHeader transactionHeader = getTransactionHeaders(cashTransactionDTO, cashTransactionDetailDTOList);
-        customerNotificationDTO.setTransactionHeader(transactionHeader);
-        customerNotificationDTO.setTransactionDetails(transactionDetailsList);
 
-        return customerNotificationDTO;
+@FeignClient(name = "COREBANKING.ACCOUNT.account", configuration = { MicroErrorDecoder.class })
+public interface AccountClient {
+
+
+    @GetMapping(path = "/acc/findbyaccountccy/{accountNumberWithCurrency}")
+    ResponseEntity<ResponseAccountNumberWithCurrencyClient> accountNumberWithCurrency(@PathVariable("accountNumberWithCurrency") @Validated String accountNumberWithCurrency);
+
+    @GetMapping(path = "/balance/balanceinfo")
+    public ResponseEntity<ResponseBalanceInfo> getBalanceInfo(@RequestParam String accountNumber, @RequestParam Boolean lockRequired) throws MicroException;
+
+}
+
+@Getter
+@Setter
+public class ResponseAccountNumberWithCurrencyClient {
+	 private String accountNoWithCurrency;
+	    private String accountNo;
+	    private int clientNo;
+	    private int accountDate;
+	    private String accountType;
+	    private String accessInd;
+	    private String advice;
+	    private String blockCode;
+	    private int blockLimit;
+	    private String branch;
+	    private String branchAc;
+	    private String brnBlock;
+	    private String brnOd;
+	    private String cType;
+	    private String ccyCopy;
+	    private String ccyx;
+	    private String chInd;
+	    private String channel;
+	    private int closeDate;
+	    private int crBaseId;
+	    private String department;
+	    private int drBaseId;
+	    private String fccaRule;
+	    private String glaccCr;
+	    private String glaccDr;
+	    private String gmBloke;
+	    private String iban;
+	    private int luc;
+	    private String maint;
+	    private int masterNo;
+	    private int openDate;
+	    private int reviewDate;
+	    private String screen;
+	    private String sgkind;
+	    private int sharedAccNo;
+	    private int softlock;
+	    private int statusCode;
+	    private String taxInd;
+	    private String toFrom;
+	    private String usageAuth;
+	    private String userCls;
+	    private String userOpn;
+	    private String usercode;
+	    private String ykbhesap;
+	    private String workingTimedAccount;
+	    private String accountName;
+	    private String accountHintName;
+	    private Object limitStartDate;
+	    private Object reviewDateStr;
+}
+
+@Getter
+@Setter
+public class ResponseBalanceInfo {
+    private BalanceDTO balanceDTO;
+}
+
+@Getter
+@Setter
+public class BalanceDTO {
+    private BigDecimal balance;
+    private BigDecimal transferAmount;
+    private Boolean isBalanceAvailableForTransfer;
+    private BigDecimal bookBalance;
+    private BigDecimal valueBalance;
+    private BigDecimal blockedAmount;
+    private BigDecimal overDraftLimit;
+    private BigDecimal fundBalance;
+    private String accountType;
+    private String availableBalance;
+    private BigDecimal overdraftBalance;
+    private String currency;
+    private String accountNumberKwCaac;
+    private BigDecimal blockedOverdraft;
+    private BigDecimal availableOverDraft;
+    private BigDecimal workingTimedBalance;
+}
+
+@Getter
+@Setter
+public class TransactionDetails {
+    private String transactionId;
+    private String parameterName;
+    private String parameterValue;
+}
+
+public class AccountException extends MicroException {
+    private static final long serialVersionUID = -3585253702308801485L;
+
+    public AccountException() {
+        super(serialVersionUID);
     }
 
-    private List<TransactionDetails> getTransactionDetail(CashTransactionDTO cashTransactionDTO, List<CashTransactionDetailDTO> cashTransactionDetailDTOList, ResponseBalanceInfo balanceInfo) throws AccountException {
-        List<TransactionDetails> transactionDetailsList = new ArrayList<>();
-
-        String iban = "";
-        try {
-            ResponseEntity<ResponseAccountNumberWithCurrencyClient> accountNumberWithCurrency = accountClient.accountNumberWithCurrency(cashTransactionDetailDTOList.get(0).getAccountNo());
-            if (accountNumberWithCurrency != null) {
-                iban = accountNumberWithCurrency.getBody().getIban();
-            }
-        }
-        catch (Exception e) {
-            throw new AccountException("Hesap iban bilgileri bulunamadı.");
-        }
-
-        // Add fixed transaction details
-        addFixedTransactionDetails(transactionDetailsList, cashTransactionDTO, cashTransactionDetailDTOList, iban);
-
-        // Calculate amountText and isKgvIncluded
-        AmountCalculationResult amountResult = calculateAmountTextAndIsKgvIncluded(cashTransactionDetailDTOList);
-
-        // Add amountText
-        TransactionDetails transactionDetail = new TransactionDetails();
-        transactionDetail.setTransactionId(cashTransactionDetailDTOList.get(0).getTransactionId());
-        transactionDetail.setParameterName("amountText");
-        transactionDetail.setParameterValue(amountResult.getAmountText());
-        transactionDetailsList.add(transactionDetail);
-
-        // Add availableBalance
-        transactionDetail = new TransactionDetails();
-        transactionDetail.setTransactionId(cashTransactionDetailDTOList.get(0).getTransactionId());
-        transactionDetail.setParameterName("availableBalance");
-        transactionDetail.setParameterValue(balanceInfo.getBalanceDTO().getAvailableBalance());
-        transactionDetailsList.add(transactionDetail);
-
-        // Add totalBalance
-        transactionDetail = new TransactionDetails();
-        transactionDetail.setTransactionId(cashTransactionDetailDTOList.get(0).getTransactionId());
-        transactionDetail.setParameterName("totalBalance");
-        transactionDetail.setParameterValue(balanceInfo.getBalanceDTO().getOverdraftBalance().toString());
-        transactionDetailsList.add(transactionDetail);
-
-        // Add IsTaxIncluded
-        transactionDetail = new TransactionDetails();
-        transactionDetail.setTransactionId(cashTransactionDetailDTOList.get(0).getTransactionId());
-        transactionDetail.setParameterName("IsTaxIncluded");
-        transactionDetail.setParameterValue(amountResult.getIsKgvIncluded().toString());
-        transactionDetailsList.add(transactionDetail);
-
-        return transactionDetailsList;
+    public AccountException(String message) {
+        super(serialVersionUID, message);
     }
 
-    private void addFixedTransactionDetails(List<TransactionDetails> transactionDetailsList,
-                                            CashTransactionDTO cashTransactionDTO,
-                                            List<CashTransactionDetailDTO> cashTransactionDetailDTOList,
-                                            String iban) {
-        TransactionDetails transactionDetail;
-
-        transactionDetail = createTransactionDetail(cashTransactionDetailDTOList.get(0).getTransactionId(),
-                "IsFlexibleAccount",
-                cashTransactionDetailDTOList.get(0).getCashTransactionStoredRequest().getCheckedFlexibleAccount()
-                        .toString());
-        transactionDetailsList.add(transactionDetail);
-
-        transactionDetail = createTransactionDetail(cashTransactionDetailDTOList.get(0).getTransactionId(),
-                "customerName", null);
-        transactionDetailsList.add(transactionDetail);
-
-        transactionDetail = createTransactionDetail(cashTransactionDetailDTOList.get(0).getTransactionId(),
-                "accountCurrency", cashTransactionDetailDTOList.get(0).getAccountCurrency());
-        transactionDetailsList.add(transactionDetail);
-
-        transactionDetail = createTransactionDetail(cashTransactionDetailDTOList.get(0).getTransactionId(), "iban", iban);
-        transactionDetailsList.add(transactionDetail);
-
-        transactionDetail = createTransactionDetail(cashTransactionDetailDTOList.get(0).getTransactionId(),
-                "transactionDate", cashTransactionDTO.getCreateDate().toString());
-        transactionDetailsList.add(transactionDetail);
-
-        transactionDetail = createTransactionDetail(cashTransactionDetailDTOList.get(0).getTransactionId(),
-                "transactionTime", formatDate(cashTransactionDTO.getCreateDate()));
-        transactionDetailsList.add(transactionDetail);
-
-        transactionDetail = createTransactionDetail(cashTransactionDetailDTOList.get(0).getTransactionId(),
-                "branchCode", cashTransactionDTO.getBranchCode());
-        transactionDetailsList.add(transactionDetail);
+    public AccountException(String message, Exception e) {
+        super(serialVersionUID, message, e);
     }
 
-    private TransactionDetails createTransactionDetail(String transactionId, String parameterName,
-                                                       String parameterValue) {
-        TransactionDetails transactionDetail = new TransactionDetails();
-        transactionDetail.setTransactionId(transactionId);
-        transactionDetail.setParameterName(parameterName);
-        transactionDetail.setParameterValue(parameterValue);
-        return transactionDetail;
+    public AccountException(ExceptionData data, Exception exception) {
+        super(data, exception);
     }
 
-    private AmountCalculationResult calculateAmountTextAndIsKgvIncluded(List<CashTransactionDetailDTO> cashTransactionDetailDTOList) {
-        String amountText = "";
-        Boolean isKgvIncluded = Boolean.FALSE;
-        BigDecimal totalAmount = calculateTotalAmount(cashTransactionDetailDTOList);
-        CashTransactionDetailDTO firstDetailDTO = cashTransactionDetailDTOList.get(0);
-
-        if (shouldCalculateAmountText(firstDetailDTO)) {
-            BigDecimal commissionAmount = calculateCommissionAmount(cashTransactionDetailDTOList);
-
-            if (isCurrencyEqualToAccountCurrency(firstDetailDTO)) {
-                amountText = calculateAmountTextForEqualCurrency(totalAmount, commissionAmount, firstDetailDTO);
-            }
-            else if (hasKmvAmountGreaterThanZero(firstDetailDTO)) {
-                isKgvIncluded = Boolean.TRUE;
-                amountText = calculateAmountTextForKmvAmount(totalAmount, firstDetailDTO);
-            }
-            else {
-                amountText = calculateDefaultAmountText(totalAmount, firstDetailDTO);
-
-                if (isCurrencyEqualToAccountCurrency(firstDetailDTO)) {
-                    amountText += " " + firstDetailDTO.getAccountCurrency();
-                }
-                else if (hasKmvAmountGreaterThanZero(firstDetailDTO)) {
-                    isKgvIncluded = Boolean.TRUE;
-                    amountText = calculateAmountTextForKmvAmount(totalAmount, firstDetailDTO);
-                }
-            }
-        }
-
-        return new AmountCalculationResult(amountText, isKgvIncluded);
+    public AccountException(ExceptionData data, Map<String, String> parameters) {
+        super(data, parameters);
     }
 
-    private boolean shouldCalculateAmountText(CashTransactionDetailDTO detailDTO) {
-        return hasCommissionAmount(detailDTO) && isCommissionNotTakenFromTransactionAmount(detailDTO);
+    public AccountException(ExceptionData data) {
+        super(data);
     }
 
-    private BigDecimal calculateTotalAmount(List<CashTransactionDetailDTO> cashTransactionDetailDTOList) {
-        BigDecimal totalAmount = BigDecimal.ZERO;
-        for (CashTransactionDetailDTO detailDTO : cashTransactionDetailDTOList) {
-            totalAmount = totalAmount.add(detailDTO.getAmount());
-        }
-        return totalAmount;
+    public AccountException(Long errorCode, String errorMessage, Exception exception) {
+        super(errorCode, errorMessage, exception);
     }
 
-    private BigDecimal calculateCommissionAmount(List<CashTransactionDetailDTO> cashTransactionDetailDTOList) {
-        BigDecimal commissionAmount = BigDecimal.ZERO;
-        for (CashTransactionDetailDTO detailDTO : cashTransactionDetailDTOList) {
-            if (detailDTO.getCommissionAmount() != null) {
-                commissionAmount = commissionAmount.add(detailDTO.getCommissionAmount());
-            }
-        }
-        return commissionAmount;
+    public AccountException(Long errorCode, String errorMessage) {
+        super(errorCode, errorMessage);
     }
 
-    private String calculateAmountTextForEqualCurrency(BigDecimal totalAmount, BigDecimal commissionAmount,
-                                                       CashTransactionDetailDTO detailDTO) {
-        String amountText = formatCurrency(totalAmount, "#,##") + " " + detailDTO.getCurrency();
-        amountText += " " + formatCurrency(commissionAmount, "#,##") + detailDTO.getCurrency();
-        return amountText;
-    }
-
-    private String calculateAmountTextForKmvAmount(BigDecimal totalAmount, CashTransactionDetailDTO detailDTO) {
-        return totalAmount + " " + detailDTO.getCurrency() + NotificationConstants.NOTIFICATION_EQUIVALENT
-                + detailDTO.getKmvAmount() + detailDTO.getCurrency();
-    }
-
-    private String calculateDefaultAmountText(BigDecimal totalAmount, CashTransactionDetailDTO detailDTO) {
-        return formatCurrency(totalAmount, "#,##");
-    }
-
-    private boolean hasCommissionAmount(CashTransactionDetailDTO detailDTO) {
-        return detailDTO.getCommissionAmount() != null && detailDTO.getCommissionAmount().compareTo(BigDecimal.ZERO) > 0;
-    }
-
-    private boolean isCommissionNotTakenFromTransactionAmount(CashTransactionDetailDTO detailDTO) {
-        return !Boolean.TRUE
-                .equals(detailDTO.getCashTransactionStoredRequest().getTakeCommissionFromTransactionAmount());
-    }
-
-    private boolean isCurrencyEqualToAccountCurrency(CashTransactionDetailDTO detailDTO) {
-        return detailDTO.getCurrency().equals(detailDTO.getAccountCurrency());
-    }
-
-    private boolean hasKmvAmountGreaterThanZero(CashTransactionDetailDTO detailDTO) {
-        return detailDTO.getKmvAmount() != null && detailDTO.getKmvAmount().compareTo(BigDecimal.ZERO) > 0;
-    }
-
-    private TransactionHeader getTransactionHeaders(CashTransactionDTO cashTransactionDTO,
-                                                    List<CashTransactionDetailDTO> cashTransactionDetailDTOList) {
-        TransactionHeader transactionHeader = new TransactionHeader();
-        transactionHeader.setClientNo(cashTransactionDetailDTOList.get(0).getCashTransactionStoredRequest()
-                .getClientInfo().getClientNo());
-        transactionHeader.setCreatedBy(cashTransactionDTO.getCreatedBy());
-        transactionHeader.setCreateDate(cashTransactionDTO.getCreateDate());
-        transactionHeader.setUpdateDate(cashTransactionDTO.getUpdateDate());
-        transactionHeader.setUpdatedBy(cashTransactionDTO.getUpdatedBy());
-        transactionHeader.setJobCode(NotificationConstants.PARCEK_NOTIFICATION_SHORTNAME);
-        return transactionHeader;
-    }
-
-    private String formatCurrency(BigDecimal number, String format) {
-        Locale currentLocale = new Locale("en", "US");
-        DecimalFormatSymbols unusualSymbols = new DecimalFormatSymbols(currentLocale);
-        DecimalFormat formatter = new DecimalFormat(format, unusualSymbols);
-        return formatter.format(number).replace(".", "#").replace(",", ".").replace("#", ",");
-    }
-
-    private String formatDate (Date date) {
-        SimpleDateFormat formatter = new SimpleDateFormat("HH:mm");
-        return formatter.format(date);
-    }
-
-    private static class AmountCalculationResult {
-        private String amountText;
-        private Boolean isKgvIncluded;
-
-        public AmountCalculationResult(String amountText, Boolean isKgvIncluded) {
-            this.amountText = amountText;
-            this.isKgvIncluded = isKgvIncluded;
-        }
-
-        public String getAmountText() {
-            return amountText;
-        }
-
-        public Boolean getIsKgvIncluded() {
-            return isKgvIncluded;
-        }
+    public AccountException(Long errorCode) {
+        super(errorCode);
     }
 }
