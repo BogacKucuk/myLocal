@@ -1,30 +1,59 @@
+package com.ykb.corebanking.vault.money.deposit.withdraw.service.impl;
+
+import com.ykb.architecture.micro.error.exception.MicroException;
+import com.ykb.corebanking.vault.money.deposit.withdraw.constant.NotificationConstants;
+import com.ykb.corebanking.vault.money.deposit.withdraw.dto.*;
+import com.ykb.corebanking.vault.money.deposit.withdraw.exception.AccountException;
+import com.ykb.corebanking.vault.money.deposit.withdraw.kafka.producer.CustomerNotificationProducer;
+import com.ykb.corebanking.vault.money.deposit.withdraw.micro.clients.AccountClient;
+import com.ykb.corebanking.vault.money.deposit.withdraw.micro.clients.response.ResponseAccountNumberWithCurrencyClient;
+import com.ykb.corebanking.vault.money.deposit.withdraw.service.ICustomerNotificationService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+import java.text.DecimalFormat;
+import java.text.DecimalFormatSymbols;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+import java.util.Locale;
+
 @Service
 public class CustomerNotificationService implements ICustomerNotificationService {
     private AccountClient accountClient;
+    private CustomerNotificationProducer notificationProducer;
 
     @Autowired
-    public CustomerNotificationService(AccountClient accountClient) {
+    public CustomerNotificationService(AccountClient accountClient, CustomerNotificationProducer notificationProducer) {
         this.accountClient = accountClient;
+        this.notificationProducer = notificationProducer;
     }
 
     @Override
-    public CustomerNotificationDTO getParametersForParcek(CashTransactionDTO cashTransactionDTO,
-            List<CashTransactionDetailDTO> cashTransactionDetailDTOList) {
+    public void sendToNotificationQueue(CashTransactionDTO cashTransactionDTO, List<CashTransactionDetailDTO> cashTransactionDetailDTOList) throws AccountException {
+        CustomerNotificationDTO customerNotificationDTO = getParameters(cashTransactionDTO, cashTransactionDetailDTOList);
+        notificationProducer.sendMessageToNotificationQueue(customerNotificationDTO);
+    }
+
+    public CustomerNotificationDTO getParameters(CashTransactionDTO cashTransactionDTO, List<CashTransactionDetailDTO> cashTransactionDetailDTOList) throws AccountException {
         CustomerNotificationDTO customerNotificationDTO = new CustomerNotificationDTO();
 
         ResponseBalanceInfo balanceInfo = null;
+
         try {
-            ResponseEntity<ResponseBalanceInfo> responseBalanceInfo = accountClient
-                    .getBalanceInfo(cashTransactionDetailDTOList.get(0).getAccountNo(), Boolean.FALSE);
+            ResponseEntity<ResponseBalanceInfo> responseBalanceInfo = accountClient.getBalanceInfo(cashTransactionDetailDTOList.get(0).getAccountNo(), Boolean.FALSE);
             if (responseBalanceInfo != null && responseBalanceInfo.getBody() != null) {
                 balanceInfo = responseBalanceInfo.getBody();
             }
-        } catch (MicroException e) {
-            // Handle exception
+        }
+        catch (MicroException e) {
+            throw new AccountException("Hesap bilgileri bulunamadı.");
         }
 
-        List<TransactionDetails> transactionDetailsList = getTransactionDetail(cashTransactionDTO,
-                cashTransactionDetailDTOList, balanceInfo);
+        List<TransactionDetails> transactionDetailsList = getTransactionDetail(cashTransactionDTO, cashTransactionDetailDTOList, balanceInfo);
         TransactionHeader transactionHeader = getTransactionHeaders(cashTransactionDTO, cashTransactionDetailDTOList);
         customerNotificationDTO.setTransactionHeader(transactionHeader);
         customerNotificationDTO.setTransactionDetails(transactionDetailsList);
@@ -32,12 +61,22 @@ public class CustomerNotificationService implements ICustomerNotificationService
         return customerNotificationDTO;
     }
 
-    private List<TransactionDetails> getTransactionDetail(CashTransactionDTO cashTransactionDTO,
-            List<CashTransactionDetailDTO> cashTransactionDetailDTOList, ResponseBalanceInfo balanceInfo) {
+    private List<TransactionDetails> getTransactionDetail(CashTransactionDTO cashTransactionDTO, List<CashTransactionDetailDTO> cashTransactionDetailDTOList, ResponseBalanceInfo balanceInfo) throws AccountException {
         List<TransactionDetails> transactionDetailsList = new ArrayList<>();
 
+        String iban = "";
+        try {
+            ResponseEntity<ResponseAccountNumberWithCurrencyClient> accountNumberWithCurrency = accountClient.accountNumberWithCurrency(cashTransactionDetailDTOList.get(0).getAccountNo());
+            if (accountNumberWithCurrency != null) {
+                iban = accountNumberWithCurrency.getBody().getIban();
+            }
+        }
+        catch (Exception e) {
+            throw new AccountException("Hesap iban bilgileri bulunamadı.");
+        }
+
         // Add fixed transaction details
-        addFixedTransactionDetails(transactionDetailsList, cashTransactionDTO, cashTransactionDetailDTOList);
+        addFixedTransactionDetails(transactionDetailsList, cashTransactionDTO, cashTransactionDetailDTOList, iban);
 
         // Calculate amountText and isKgvIncluded
         AmountCalculationResult amountResult = calculateAmountTextAndIsKgvIncluded(cashTransactionDetailDTOList);
@@ -74,7 +113,9 @@ public class CustomerNotificationService implements ICustomerNotificationService
     }
 
     private void addFixedTransactionDetails(List<TransactionDetails> transactionDetailsList,
-            CashTransactionDTO cashTransactionDTO, List<CashTransactionDetailDTO> cashTransactionDetailDTOList) {
+                                            CashTransactionDTO cashTransactionDTO,
+                                            List<CashTransactionDetailDTO> cashTransactionDetailDTOList,
+                                            String iban) {
         TransactionDetails transactionDetail;
 
         transactionDetail = createTransactionDetail(cashTransactionDetailDTOList.get(0).getTransactionId(),
@@ -91,8 +132,7 @@ public class CustomerNotificationService implements ICustomerNotificationService
                 "accountCurrency", cashTransactionDetailDTOList.get(0).getAccountCurrency());
         transactionDetailsList.add(transactionDetail);
 
-        transactionDetail = createTransactionDetail(cashTransactionDetailDTOList.get(0).getTransactionId(), "iban",
-                null); // Account service will provide this
+        transactionDetail = createTransactionDetail(cashTransactionDetailDTOList.get(0).getTransactionId(), "iban", iban);
         transactionDetailsList.add(transactionDetail);
 
         transactionDetail = createTransactionDetail(cashTransactionDetailDTOList.get(0).getTransactionId(),
@@ -100,7 +140,7 @@ public class CustomerNotificationService implements ICustomerNotificationService
         transactionDetailsList.add(transactionDetail);
 
         transactionDetail = createTransactionDetail(cashTransactionDetailDTOList.get(0).getTransactionId(),
-                "transactionTime", null); // Likely in HH:mm format
+                "transactionTime", formatDate(cashTransactionDTO.getCreateDate()));
         transactionDetailsList.add(transactionDetail);
 
         transactionDetail = createTransactionDetail(cashTransactionDetailDTOList.get(0).getTransactionId(),
@@ -109,7 +149,7 @@ public class CustomerNotificationService implements ICustomerNotificationService
     }
 
     private TransactionDetails createTransactionDetail(String transactionId, String parameterName,
-            String parameterValue) {
+                                                       String parameterValue) {
         TransactionDetails transactionDetail = new TransactionDetails();
         transactionDetail.setTransactionId(transactionId);
         transactionDetail.setParameterName(parameterName);
@@ -117,8 +157,7 @@ public class CustomerNotificationService implements ICustomerNotificationService
         return transactionDetail;
     }
 
-    private AmountCalculationResult calculateAmountTextAndIsKgvIncluded(
-            List<CashTransactionDetailDTO> cashTransactionDetailDTOList) {
+    private AmountCalculationResult calculateAmountTextAndIsKgvIncluded(List<CashTransactionDetailDTO> cashTransactionDetailDTOList) {
         String amountText = "";
         Boolean isKgvIncluded = Boolean.FALSE;
         BigDecimal totalAmount = calculateTotalAmount(cashTransactionDetailDTOList);
@@ -129,15 +168,18 @@ public class CustomerNotificationService implements ICustomerNotificationService
 
             if (isCurrencyEqualToAccountCurrency(firstDetailDTO)) {
                 amountText = calculateAmountTextForEqualCurrency(totalAmount, commissionAmount, firstDetailDTO);
-            } else if (hasKmvAmountGreaterThanZero(firstDetailDTO)) {
+            }
+            else if (hasKmvAmountGreaterThanZero(firstDetailDTO)) {
                 isKgvIncluded = Boolean.TRUE;
                 amountText = calculateAmountTextForKmvAmount(totalAmount, firstDetailDTO);
-            } else {
+            }
+            else {
                 amountText = calculateDefaultAmountText(totalAmount, firstDetailDTO);
 
                 if (isCurrencyEqualToAccountCurrency(firstDetailDTO)) {
                     amountText += " " + firstDetailDTO.getAccountCurrency();
-                } else if (hasKmvAmountGreaterThanZero(firstDetailDTO)) {
+                }
+                else if (hasKmvAmountGreaterThanZero(firstDetailDTO)) {
                     isKgvIncluded = Boolean.TRUE;
                     amountText = calculateAmountTextForKmvAmount(totalAmount, firstDetailDTO);
                 }
@@ -170,7 +212,7 @@ public class CustomerNotificationService implements ICustomerNotificationService
     }
 
     private String calculateAmountTextForEqualCurrency(BigDecimal totalAmount, BigDecimal commissionAmount,
-            CashTransactionDetailDTO detailDTO) {
+                                                       CashTransactionDetailDTO detailDTO) {
         String amountText = formatCurrency(totalAmount, "#,##") + " " + detailDTO.getCurrency();
         amountText += " " + formatCurrency(commissionAmount, "#,##") + detailDTO.getCurrency();
         return amountText;
@@ -203,7 +245,7 @@ public class CustomerNotificationService implements ICustomerNotificationService
     }
 
     private TransactionHeader getTransactionHeaders(CashTransactionDTO cashTransactionDTO,
-            List<CashTransactionDetailDTO> cashTransactionDetailDTOList) {
+                                                    List<CashTransactionDetailDTO> cashTransactionDetailDTOList) {
         TransactionHeader transactionHeader = new TransactionHeader();
         transactionHeader.setClientNo(cashTransactionDetailDTOList.get(0).getCashTransactionStoredRequest()
                 .getClientInfo().getClientNo());
@@ -220,6 +262,11 @@ public class CustomerNotificationService implements ICustomerNotificationService
         DecimalFormatSymbols unusualSymbols = new DecimalFormatSymbols(currentLocale);
         DecimalFormat formatter = new DecimalFormat(format, unusualSymbols);
         return formatter.format(number).replace(".", "#").replace(",", ".").replace("#", ",");
+    }
+
+    private String formatDate (Date date) {
+        SimpleDateFormat formatter = new SimpleDateFormat("HH:mm");
+        return formatter.format(date);
     }
 
     private static class AmountCalculationResult {
