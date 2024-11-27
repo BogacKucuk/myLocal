@@ -1,242 +1,163 @@
-@Getter
-@Setter
-public class CashTransactionDTO {
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
-    private Long   id;
-    private String processCode;
-    private Long   customerNo;
-    private String branchCode;
-    private String status;
-    private Date   createDate;
-    private String createdBy;
-    private Date   updateDate;
-    private String updatedBy;
-    
-}
+@ExtendWith(SpringExtension.class)
+class CustomerNotificationServiceTest {
 
-@Getter
-@Setter
-public class CashTransactionDetailDTO {
+    @InjectMocks
+    CustomerNotificationService customerNotificationService;
 
-    private Long                         id;
-    private Long                         cashTransactionId;
-    private BigDecimal                   amount;
-    private String                       currency;
-    private String                       transactionId;
-    private Long                         contractNo;
-    private BigDecimal                   accountAmount;
-    private BigDecimal                   amountTl;
-    private String                       accountName;
-    private String                       accountNo;
-    private String                       accountCurrency;
-    private String                       accountType;
-    private String                       accountBranchCode;
-    private BigDecimal                   commissionAmount;
-    private BigDecimal                   commissionAmountTl;
-    private BigDecimal                   kmvAmount;
-    private BigDecimal                   exchangeRate;
-    private BigDecimal                   accountExchangeRate;
-    private String                       transactionDescription;
-    private String                       accountingDescription;
-    private String                       transactionMaker;
-    private Long                         transactionMakerCustomerNo;
-    private String                       orderOwnershipFlag;
-    private String                       rentPaymentFlag;
-    private Integer                      customerTypeCode;
-    private String                       customerSbuType;
-    private Integer                      statisticCode;
-    private Date                         createDate;
-    private Date                         updateDate;
-    private BigDecimal                   parity;
+    @Mock
+    AccountClient accountClient;
 
-    private CashTransactionStoredRequest cashTransactionStoredRequest;
+    @Mock
+    CustomerNotificationProducer notificationProducer;
 
-}
-
-@Getter
-@Setter
-public class CashTransactionStoredRequest {
-
-    private ResponseCommissionInformation responseCommissionInformation;
-    private List<Long>                    vaultProvisionIdList;
-    private Boolean                       takeCommissionFromTransactionAmount;
-    private ClientDTO                     clientInfo;
-    private Integer                       legalStatus;
-    private MoneyDepositModalDetailDTO    rentPaymentModalDetail;
-    private MoneyDepositModalDetailDTO    otherPersonModalDetail;
-    private BigDecimal                    kgvAmountTl;
-    private Boolean                       takeTaxFromAccount;
-    private Boolean                       masakApprovalNeeded;
-    private Boolean                       existsOnlyLimitApproval;
-    private Boolean                       existsApproval;
-    private String                        mainReceiptId;
-    private Boolean                       checkedFlexibleAccount;
-    private Boolean                       flexibleAccountVisible;
-    private Long                          clientTicketId;
-}
-
-@Component
-public class CustomerNotificationProducer {
-
-    private final KafkaTemplate<String, String> kafkaTemplate;
-    private final String notificationTopic;
-
-    @Autowired
-    public CustomerNotificationProducer(
-            @Qualifier("customerNotificationKafkaTemplate") KafkaTemplate<String, String> kafkaTemplate,
-            @Value("${kafka.customerNotification.address}") String notificationTopic,
-            @Value("${kafka.customerNotification.postfix}") String notificationTopicPostfix) {
-        this.kafkaTemplate = kafkaTemplate;
-        this.notificationTopic = notificationTopic + notificationTopicPostfix;
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
     }
 
-    public void sendMessageToNotificationQueue(Object messageObject) {
-        if (messageObject == null) {
-            throw new IllegalArgumentException("Notification message null olamaz");
-        }
-        String message = ObjectUtils.convertObjectToJSON(messageObject);
-        kafkaTemplate.send(notificationTopic, message);
-    }
-}
+    // Test metotları buraya gelecek
+	
+	@Test
+	void testSendToNotificationQueue_Success() throws AccountException {
+		// Arrange
+		CashTransactionDTO cashTransactionDTO = new CashTransactionDTO();
+		cashTransactionDTO.setCreateDate(new Date());
+		cashTransactionDTO.setBranchCode("123");
+		cashTransactionDTO.setCreatedBy("testUser");
+		cashTransactionDTO.setUpdatedBy("testUser");
+
+		CashTransactionStoredRequest storedRequest = new CashTransactionStoredRequest();
+		storedRequest.setCheckedFlexibleAccount(Boolean.TRUE);
+		storedRequest.setTakeCommissionFromTransactionAmount(Boolean.FALSE);
+		storedRequest.setClientInfo(new ClientDTO());
+
+		CashTransactionDetailDTO detailDTO = new CashTransactionDetailDTO();
+		detailDTO.setTransactionId("txn123");
+		detailDTO.setAccountNo("acc123");
+		detailDTO.setAccountCurrency("TRY");
+		detailDTO.setCurrency("TRY");
+		detailDTO.setAmount(BigDecimal.valueOf(1000));
+		detailDTO.setCashTransactionStoredRequest(storedRequest);
+		detailDTO.setCommissionAmount(BigDecimal.ZERO);
+
+		List<CashTransactionDetailDTO> detailDTOList = Collections.singletonList(detailDTO);
+
+		BalanceDTO balanceDTO = new BalanceDTO();
+		balanceDTO.setAvailableBalance("5000");
+		balanceDTO.setOverdraftBalance(BigDecimal.valueOf(10000));
+
+		ResponseBalanceInfo balanceInfo = new ResponseBalanceInfo();
+		balanceInfo.setBalanceDTO(balanceDTO);
+
+		ResponseEntity<ResponseBalanceInfo> responseBalanceInfo = ResponseEntity.ok(balanceInfo);
+
+		ResponseAccountNumberWithCurrencyClient accountNumberResponse = new ResponseAccountNumberWithCurrencyClient();
+		accountNumberResponse.setIban("TRXXXXXX");
+
+		ResponseEntity<ResponseAccountNumberWithCurrencyClient> accountNumberEntity = ResponseEntity.ok(accountNumberResponse);
+
+		// Mocking AccountClient methods
+		when(accountClient.getBalanceInfo(anyString(), anyBoolean())).thenReturn(responseBalanceInfo);
+		when(accountClient.accountNumberWithCurrency(anyString())).thenReturn(accountNumberEntity);
+
+		// Act
+		customerNotificationService.sendToNotificationQueue(cashTransactionDTO, detailDTOList);
+
+		// Assert
+		verify(notificationProducer, times(1)).sendMessageToNotificationQueue(any(CustomerNotificationDTO.class));
+	}
+	
+	
+	@Test
+	void testSendToNotificationQueue_AccountException() {
+		// Arrange
+		CashTransactionDTO cashTransactionDTO = new CashTransactionDTO();
+		List<CashTransactionDetailDTO> detailDTOList = new ArrayList<>();
+
+		CashTransactionStoredRequest storedRequest = new CashTransactionStoredRequest();
+		storedRequest.setCheckedFlexibleAccount(Boolean.TRUE);
+		storedRequest.setClientInfo(new ClientDTO());
+
+		CashTransactionDetailDTO detailDTO = new CashTransactionDetailDTO();
+		detailDTO.setAccountNo("acc123");
+		detailDTO.setCashTransactionStoredRequest(storedRequest);
+		detailDTOList.add(detailDTO);
+
+		// Mocking AccountClient to throw MicroException
+		when(accountClient.getBalanceInfo(anyString(), anyBoolean())).thenThrow(new MicroException("Error"));
+
+		// Act & Assert
+		assertThrows(AccountException.class, () -> {
+			customerNotificationService.sendToNotificationQueue(cashTransactionDTO, detailDTOList);
+		});
+	}
 
 
-@FeignClient(name = "COREBANKING.ACCOUNT.account", configuration = { MicroErrorDecoder.class })
-public interface AccountClient {
+	@Test
+	void testGetParameters_Success() throws AccountException {
+		// Arrange
+		CashTransactionDTO cashTransactionDTO = new CashTransactionDTO();
+		cashTransactionDTO.setCreateDate(new Date());
+		cashTransactionDTO.setBranchCode("123");
+		cashTransactionDTO.setCreatedBy("testUser");
+		cashTransactionDTO.setUpdatedBy("testUser");
 
+		CashTransactionStoredRequest storedRequest = new CashTransactionStoredRequest();
+		storedRequest.setCheckedFlexibleAccount(Boolean.TRUE);
+		storedRequest.setTakeCommissionFromTransactionAmount(Boolean.FALSE);
+		storedRequest.setClientInfo(new ClientDTO());
 
-    @GetMapping(path = "/acc/findbyaccountccy/{accountNumberWithCurrency}")
-    ResponseEntity<ResponseAccountNumberWithCurrencyClient> accountNumberWithCurrency(@PathVariable("accountNumberWithCurrency") @Validated String accountNumberWithCurrency);
+		CashTransactionDetailDTO detailDTO = new CashTransactionDetailDTO();
+		detailDTO.setTransactionId("txn123");
+		detailDTO.setAccountNo("acc123");
+		detailDTO.setAccountCurrency("TRY");
+		detailDTO.setCurrency("TRY");
+		detailDTO.setAmount(BigDecimal.valueOf(1000));
+		detailDTO.setCashTransactionStoredRequest(storedRequest);
+		detailDTO.setCommissionAmount(BigDecimal.ZERO);
 
-    @GetMapping(path = "/balance/balanceinfo")
-    public ResponseEntity<ResponseBalanceInfo> getBalanceInfo(@RequestParam String accountNumber, @RequestParam Boolean lockRequired) throws MicroException;
+		List<CashTransactionDetailDTO> detailDTOList = Collections.singletonList(detailDTO);
 
-}
+		BalanceDTO balanceDTO = new BalanceDTO();
+		balanceDTO.setAvailableBalance("5000");
+		balanceDTO.setOverdraftBalance(BigDecimal.valueOf(10000));
 
-@Getter
-@Setter
-public class ResponseAccountNumberWithCurrencyClient {
-	 private String accountNoWithCurrency;
-	    private String accountNo;
-	    private int clientNo;
-	    private int accountDate;
-	    private String accountType;
-	    private String accessInd;
-	    private String advice;
-	    private String blockCode;
-	    private int blockLimit;
-	    private String branch;
-	    private String branchAc;
-	    private String brnBlock;
-	    private String brnOd;
-	    private String cType;
-	    private String ccyCopy;
-	    private String ccyx;
-	    private String chInd;
-	    private String channel;
-	    private int closeDate;
-	    private int crBaseId;
-	    private String department;
-	    private int drBaseId;
-	    private String fccaRule;
-	    private String glaccCr;
-	    private String glaccDr;
-	    private String gmBloke;
-	    private String iban;
-	    private int luc;
-	    private String maint;
-	    private int masterNo;
-	    private int openDate;
-	    private int reviewDate;
-	    private String screen;
-	    private String sgkind;
-	    private int sharedAccNo;
-	    private int softlock;
-	    private int statusCode;
-	    private String taxInd;
-	    private String toFrom;
-	    private String usageAuth;
-	    private String userCls;
-	    private String userOpn;
-	    private String usercode;
-	    private String ykbhesap;
-	    private String workingTimedAccount;
-	    private String accountName;
-	    private String accountHintName;
-	    private Object limitStartDate;
-	    private Object reviewDateStr;
-}
+		ResponseBalanceInfo balanceInfo = new ResponseBalanceInfo();
+		balanceInfo.setBalanceDTO(balanceDTO);
 
-@Getter
-@Setter
-public class ResponseBalanceInfo {
-    private BalanceDTO balanceDTO;
-}
+		ResponseEntity<ResponseBalanceInfo> responseBalanceInfo = ResponseEntity.ok(balanceInfo);
 
-@Getter
-@Setter
-public class BalanceDTO {
-    private BigDecimal balance;
-    private BigDecimal transferAmount;
-    private Boolean isBalanceAvailableForTransfer;
-    private BigDecimal bookBalance;
-    private BigDecimal valueBalance;
-    private BigDecimal blockedAmount;
-    private BigDecimal overDraftLimit;
-    private BigDecimal fundBalance;
-    private String accountType;
-    private String availableBalance;
-    private BigDecimal overdraftBalance;
-    private String currency;
-    private String accountNumberKwCaac;
-    private BigDecimal blockedOverdraft;
-    private BigDecimal availableOverDraft;
-    private BigDecimal workingTimedBalance;
-}
+		ResponseAccountNumberWithCurrencyClient accountNumberResponse = new ResponseAccountNumberWithCurrencyClient();
+		accountNumberResponse.setIban("TRXXXXXX");
 
-@Getter
-@Setter
-public class TransactionDetails {
-    private String transactionId;
-    private String parameterName;
-    private String parameterValue;
-}
+		ResponseEntity<ResponseAccountNumberWithCurrencyClient> accountNumberEntity = ResponseEntity.ok(accountNumberResponse);
 
-public class AccountException extends MicroException {
-    private static final long serialVersionUID = -3585253702308801485L;
+		// Mocking AccountClient methods
+		when(accountClient.getBalanceInfo(anyString(), anyBoolean())).thenReturn(responseBalanceInfo);
+		when(accountClient.accountNumberWithCurrency(anyString())).thenReturn(accountNumberEntity);
 
-    public AccountException() {
-        super(serialVersionUID);
-    }
+		// Act
+		CustomerNotificationDTO result = customerNotificationService.getParameters(cashTransactionDTO, detailDTOList);
 
-    public AccountException(String message) {
-        super(serialVersionUID, message);
-    }
+		// Assert
+		assertNotNull(result);
+		assertNotNull(result.getTransactionHeader());
+		assertNotNull(result.getTransactionDetails());
+		assertEquals(7, result.getTransactionDetails().size()); // Beklenen parametre sayısı
+	}
 
-    public AccountException(String message, Exception e) {
-        super(serialVersionUID, message, e);
-    }
+	@Test
+	void testSendToNotificationQueue_NullDetailList() {
+		// Arrange
+		CashTransactionDTO cashTransactionDTO = new CashTransactionDTO();
 
-    public AccountException(ExceptionData data, Exception exception) {
-        super(data, exception);
-    }
+		// Act & Assert
+		assertThrows(NullPointerException.class, () -> {
+			customerNotificationService.sendToNotificationQueue(cashTransactionDTO, null);
+		});
+	}
 
-    public AccountException(ExceptionData data, Map<String, String> parameters) {
-        super(data, parameters);
-    }
-
-    public AccountException(ExceptionData data) {
-        super(data);
-    }
-
-    public AccountException(Long errorCode, String errorMessage, Exception exception) {
-        super(errorCode, errorMessage, exception);
-    }
-
-    public AccountException(Long errorCode, String errorMessage) {
-        super(errorCode, errorMessage);
-    }
-
-    public AccountException(Long errorCode) {
-        super(errorCode);
-    }
 }
