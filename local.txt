@@ -1,25 +1,3 @@
-package com.ykb.corebanking.vault.money.deposit.withdraw.service.impl;
-
-import com.ykb.architecture.micro.error.exception.MicroException;
-import com.ykb.corebanking.vault.money.deposit.withdraw.constant.NotificationConstants;
-import com.ykb.corebanking.vault.money.deposit.withdraw.dto.*;
-import com.ykb.corebanking.vault.money.deposit.withdraw.exception.AccountException;
-import com.ykb.corebanking.vault.money.deposit.withdraw.kafka.producer.CustomerNotificationProducer;
-import com.ykb.corebanking.vault.money.deposit.withdraw.micro.clients.AccountClient;
-import com.ykb.corebanking.vault.money.deposit.withdraw.micro.clients.response.ResponseAccountNumberWithCurrencyClient;
-import com.ykb.corebanking.vault.money.deposit.withdraw.service.ICustomerNotificationService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-
-import java.math.BigDecimal;
-import java.text.DecimalFormat;
-import java.text.DecimalFormatSymbols;
-import java.text.SimpleDateFormat;
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
-import java.util.Locale;
 
 @Service
 public class CustomerNotificationService implements ICustomerNotificationService {
