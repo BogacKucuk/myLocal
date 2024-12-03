@@ -1,85 +1,60 @@
-@RestController
-@RequestMapping("/smartControl")
-public class SmartControlController {
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
-    private ISmartControlService smartControlService;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-    @Autowired
-    public SmartControlController(ISmartControlService smartControlService) {
-        this.smartControlService = smartControlService;
+@ExtendWith(SpringExtension.class)
+class SmartControlControllerTest {
+
+    @InjectMocks
+    SmartControlController smartControlController;
+
+    @Mock
+    ISmartControlService smartControlService;
+
+    @Test
+    void getSmartControlDocuments_ShouldReturnExpectedResponse() throws SmartControlException {
+        // Arrange
+        RequestSmartControlDocuments request = new RequestSmartControlDocuments();
+        request.setParameterName("testParameter");
+        request.setGroupId("testGroupId");
+
+        SmartControlDataDTO expectedResponse = new SmartControlDataDTO();
+        expectedResponse.setBbtDocuments(new ArrayList<>());
+        expectedResponse.setNotExistsDocs(new ArrayList<>());
+
+        when(smartControlService.getSmartControlDocuments(any(RequestSmartControlDocuments.class)))
+            .thenReturn(expectedResponse);
+
+        // Act
+        ResponseEntity<SmartControlDataDTO> response = smartControlController.getSmartControlDocuments(request);
+
+        // Assert
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertEquals(expectedResponse, response.getBody());
     }
 
-    @PostMapping("/getDocuments")
-    public ResponseEntity<SmartControlDataDTO> getSmartControlDocuments(@RequestBody RequestSmartControlDocuments request) throws SmartControlException {
-        return new ResponseEntity<>(smartControlService.getSmartControlDocuments(request), HttpStatus.OK);
-    }
-}
+    @Test
+    void getSmartControlDocuments_ShouldThrowSmartControlException() throws SmartControlException {
+        // Arrange
+        RequestSmartControlDocuments request = new RequestSmartControlDocuments();
+        request.setParameterName("testParameter");
+        request.setGroupId("testGroupId");
 
-public interface ISmartControlService {
-    SmartControlDataDTO getSmartControlDocuments(RequestSmartControlDocuments request) throws SmartControlException;
-}
+        when(smartControlService.getSmartControlDocuments(any(RequestSmartControlDocuments.class)))
+            .thenThrow(new SmartControlException("Test Exception"));
 
-@Getter
-@Setter
-public class SmartControlDataDTO {
-    List<SmartControlDocumentDTO> bbtDocuments;
-    List<SmartControlDocumentDTO> notExistsDocs;
-}
-
-
-@Getter
-@Setter
-public class SmartControlDocumentDTO {
-    private String parameterName;
-    private String description;
-    private String key;
-    private Boolean isExist;
-}
-
-@Getter
-@Setter
-public class RequestSmartControlDocuments {
-    private String parameterName;
-    private String groupId;
-}
-
-public class SmartControlException extends MicroException {
-
-    private static final long serialVersionUID = -3585253702308801485L;
-
-    public SmartControlException() {
-        super(serialVersionUID);
-    }
-
-    public SmartControlException(String message) {
-        super(serialVersionUID, message);
-    }
-
-    public SmartControlException(String message, Exception e) {
-        super(serialVersionUID, message, e);
-    }
-
-    public SmartControlException(ExceptionData data, Exception exception) {
-        super(data, exception);
-    }
-
-    public SmartControlException(ExceptionData data, Map<String, String> parameters) {
-        super(data, parameters);
-    }
-
-    public SmartControlException(ExceptionData data) {
-        super(data);
-    }
-
-    public SmartControlException(Long errorCode, String errorMessage, Exception exception) {
-        super(errorCode, errorMessage, exception);
-    }
-
-    public SmartControlException(Long errorCode, String errorMessage) {
-        super(errorCode, errorMessage);
-    }
-
-    public SmartControlException(Long errorCode) {
-        super(errorCode);
+        // Act & Assert
+        assertThrows(SmartControlException.class, () -> {
+            smartControlController.getSmartControlDocuments(request);
+        });
     }
 }
