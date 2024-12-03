@@ -1,55 +1,46 @@
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.springframework.http.ResponseEntity;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.junit.jupiter.api.extension.ExtendWith;
 import java.util.Arrays;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-class SmartControlControllerTest {
+@ExtendWith(SpringExtension.class)
+@SpringBootTest(classes = SmartControlService.class)
+class SmartControlServiceTest {
 
-    SmartControlController controller;
+    @MockBean
+    ICashTrxnParameterService parameterService;
 
-    @Mock
-    ISmartControlService smartControlService;
-
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-        controller = new SmartControlController(smartControlService);
-    }
+    @Autowired
+    SmartControlService smartControlService;
 
     @Test
-    void getSmartControlDocuments_ShouldReturnOkResponse() throws TrxnParameterNotFoundException {
+    void getDocumentParameters_ShouldReturnParameterList() throws TrxnParameterNotFoundException {
         String parameterName = "testParam";
-        RequestSmartControlDocuments request = new RequestSmartControlDocuments();
-        request.setParameterName(parameterName);
-
         List<CashTrxnParameterDTO> mockList = Arrays.asList(new CashTrxnParameterDTO());
-        when(smartControlService.getDocumentParameters(parameterName)).thenReturn(mockList);
+        when(parameterService.getCashTrxnInfoParametersContainingWithCache(parameterName)).thenReturn(mockList);
 
-        ResponseEntity<List<CashTrxnParameterDTO>> response = controller.getSmartControlDocuments(request);
+        List<CashTrxnParameterDTO> result = smartControlService.getDocumentParameters(parameterName);
 
-        assertNotNull(response);
-        assertEquals(200, response.getStatusCodeValue());
-        assertEquals(mockList, response.getBody());
-        verify(smartControlService, times(1)).getDocumentParameters(parameterName);
+        assertNotNull(result);
+        assertEquals(1, result.size());
+        verify(parameterService, times(1)).getCashTrxnInfoParametersContainingWithCache(parameterName);
     }
 
     @Test
-    void getSmartControlDocuments_ShouldThrowException_WhenServiceFails() throws TrxnParameterNotFoundException {
+    void getDocumentParameters_ShouldThrowException_WhenNoParametersFound() {
         String parameterName = "testParam";
-        RequestSmartControlDocuments request = new RequestSmartControlDocuments();
-        request.setParameterName(parameterName);
-
-        when(smartControlService.getDocumentParameters(parameterName)).thenThrow(new TrxnParameterNotFoundException("Not found"));
+        when(parameterService.getCashTrxnInfoParametersContainingWithCache(parameterName)).thenReturn(null);
 
         assertThrows(TrxnParameterNotFoundException.class, () -> {
-            controller.getSmartControlDocuments(request);
+            smartControlService.getDocumentParameters(parameterName);
         });
 
-        verify(smartControlService, times(1)).getDocumentParameters(parameterName);
+        verify(parameterService, times(1)).getCashTrxnInfoParametersContainingWithCache(parameterName);
     }
 }
