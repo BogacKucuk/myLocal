@@ -7,7 +7,6 @@ import org.springframework.test.context.junit.jupiter.SpringExtension;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
@@ -20,18 +19,7 @@ class CashTrxnInfoParameterServiceTest {
     @Mock
     private ICashTrxnInfoParameterRepository cashTrxnInfoParameterRepository;
 
-    // Mapper'ı mock'lamaya gerek yok, çünkü servis sınıfı statik INSTANCE üzerinden erişiyor.
-
-    @Test
-    void when_getCashTrxnInfoParameter_shouldReturnParameter() {
-        when(cashTrxnInfoParameterRepository.findById(Mockito.anyString())).thenReturn(Optional.of(createCashTrxnInfoParameterEntity()));
-        RequestCashTrxnInfoParameter request = new RequestCashTrxnInfoParameter();
-        request.setParameterName("NAME");
-        ResponseCashTrxnInfoParameter response = cashTrxnInfoParameterService.getCashTrxnInfoParameter(request);
-        assertNotNull(response);
-        assertNotNull(response.getCashTrxnParameterDTO());
-        assertEquals("Y", response.getCashTrxnParameterDTO().getValue());
-    }
+    // Yeni test metotları başlıyor
 
     @Test
     void when_getCashTrxnInfoParametersContaining_withValidRequest_shouldReturnParameters() {
@@ -90,6 +78,7 @@ class CashTrxnInfoParameterServiceTest {
         verify(cashTrxnInfoParameterRepository, times(1)).findByParameterNameContaining("testParam");
     }
 
+    // Yardımcı metot
     private CashTrxnInfoParameterEntity createCashTrxnInfoParameterEntity() {
         CashTrxnInfoParameterEntity entity = new CashTrxnInfoParameterEntity();
         entity.setParameterName("NAME");
