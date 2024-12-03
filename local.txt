@@ -1,125 +1,26 @@
-import org.mapstruct.Mapper;
-import org.mapstruct.factory.Mappers;
-
-import com.ykb.corebanking.vault.money.deposit.withdraw.dto.CashTrxnParameterDTO;
-import com.ykb.corebanking.vault.money.deposit.withdraw.entity.CashTrxnInfoParameterEntity;
-
-@Mapper(componentModel = "spring")
-public abstract class ICashTrxnInfoParameterMapper {
-
-    public static final ICashTrxnInfoParameterMapper INSTANCE = Mappers.getMapper(ICashTrxnInfoParameterMapper.class);
-
-    public abstract CashTrxnInfoParameterEntity toEntity(CashTrxnParameterDTO dto);
-
-    public abstract CashTrxnParameterDTO toDto(CashTrxnInfoParameterEntity dto);
-
-}
-
-
-aşağıda CashTrxnInfoParameterService sınıfı ve bu sınıf için yazılmış CashTrxnInfoParameterServiceTest sınıfının kodları var. ben CashTrxnInfoParameterService sınıfına getCashTrxnInfoParametersContaining metodunu ekledim. CashTrxnInfoParameterServiceTest sınıfında var olan kodları değiştirmeden sadece benim eklediğim getCashTrxnInfoParametersContaining metodu için test yaz. aynı mantıkta basit testler yeterli olur. mümkünse metodun tüm satırlarını cover'la. eksik gördüğün bir sınıf veya kod varsa bana bildir.
-
-@Service
-public class CashTrxnInfoParameterService implements ICashTrxnInfoParameterService {
-
-    @Autowired
-    ICashTrxnInfoParameterRepository cashTrxnInfoParameterRepository;
-
-    @Override
-    public ResponseCashTrxnInfoParameter getCashTrxnInfoParameter(RequestCashTrxnInfoParameter request) {
-        ResponseCashTrxnInfoParameter response = null;
-        if (request != null) {
-            Optional<CashTrxnInfoParameterEntity> optionalEntity = cashTrxnInfoParameterRepository.findById(request.getParameterName());
-            if (optionalEntity.isPresent()) {
-                response = new ResponseCashTrxnInfoParameter();
-                response.setCashTrxnParameterDTO(ICashTrxnInfoParameterMapper.INSTANCE.toDto(optionalEntity.get()));
-            }
-        }
-        return response;
-    }
-
-    @Override
-    public ResponseCashTrxnInfoParameterList getCashTrxnInfoParametersContaining(RequestCashTrxnInfoParameter request) {
-        ResponseCashTrxnInfoParameterList responseList = new ResponseCashTrxnInfoParameterList();
-
-        if (request != null && request.getParameterName() != null) {
-            List<CashTrxnInfoParameterEntity> entities = cashTrxnInfoParameterRepository.findByParameterNameContaining(request.getParameterName());
-            if (entities != null && !entities.isEmpty()) {
-                List<CashTrxnParameterDTO> dtos = entities.stream()
-                        .map(ICashTrxnInfoParameterMapper.INSTANCE::toDto)
-                        .collect(Collectors.toCollection(ArrayList::new));
-                responseList.setCashTrxnParameterDTOList(dtos);
-            }
-        }
-        return responseList;
-    }
-
-}
-
-public interface ICashTrxnInfoParameterService {
-
-    public ResponseCashTrxnInfoParameter getCashTrxnInfoParameter(RequestCashTrxnInfoParameter request);
-
-    ResponseCashTrxnInfoParameterList getCashTrxnInfoParametersContaining(RequestCashTrxnInfoParameter request);
-
-}
-
-public interface ICashTrxnInfoParameterRepository extends JpaRepository<CashTrxnInfoParameterEntity, String>, JpaSpecificationExecutor<CashTrxnInfoParameterEntity> {
-
-    List<CashTrxnInfoParameterEntity> findByParameterNameContaining(String parameterName);
-}
-
-@Entity
-@Table(name = "CASH_TRXN_INFO_PARAMETER")
-@Getter
-@Setter
-public class CashTrxnInfoParameterEntity {
-
-    @Id
-    @Column(name = "PARAMETER_NAME", length = 250)
-    private String parameterName;
-    @Column(name = "DESCRIPTION", length = 100)
-    private String description;
-    @Column(name = "PARAMETER_VALUE", length = 100)
-    private String value;
-    @Column(name = "START_DATE")
-    private Date   startDate;
-    @Column(name = "EXPIRE_DATE")
-    private Date   expireDate;
-    @Column(name = "DATA_TYPE", length = 128)
-    private String dataType;
-
-}
-
-
-@Getter
-@Setter
-public class ResponseCashTrxnInfoParameterList {
-
-    private List<CashTrxnParameterDTO> cashTrxnParameterDTOList;
-}
-
-@Getter
-@Setter
-public class CashTrxnParameterDTO {
-
-    private String parameterName;
-    private String description;
-    private String value;
-    private Date   startDate;
-    private Date   expireDate;
-    private String dataType;
-
-}
-
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(SpringExtension.class)
 class CashTrxnInfoParameterServiceTest {
 
     @InjectMocks
-    private CashTrxnInfoParameterService     cashTrxnInfoParameterService;
+    private CashTrxnInfoParameterService cashTrxnInfoParameterService;
 
     @Mock
     private ICashTrxnInfoParameterRepository cashTrxnInfoParameterRepository;
+
+    // Mapper'ı mock'lamaya gerek yok, çünkü servis sınıfı statik INSTANCE üzerinden erişiyor.
 
     @Test
     void when_getCashTrxnInfoParameter_shouldReturnParameter() {
@@ -127,7 +28,66 @@ class CashTrxnInfoParameterServiceTest {
         RequestCashTrxnInfoParameter request = new RequestCashTrxnInfoParameter();
         request.setParameterName("NAME");
         ResponseCashTrxnInfoParameter response = cashTrxnInfoParameterService.getCashTrxnInfoParameter(request);
-        assertTrue(response != null && response.getCashTrxnParameterDTO() != null && "Y".equals(response.getCashTrxnParameterDTO().getValue()));
+        assertNotNull(response);
+        assertNotNull(response.getCashTrxnParameterDTO());
+        assertEquals("Y", response.getCashTrxnParameterDTO().getValue());
+    }
+
+    @Test
+    void when_getCashTrxnInfoParametersContaining_withValidRequest_shouldReturnParameters() {
+        RequestCashTrxnInfoParameter request = new RequestCashTrxnInfoParameter();
+        request.setParameterName("testParam");
+
+        List<CashTrxnInfoParameterEntity> entities = Arrays.asList(createCashTrxnInfoParameterEntity());
+
+        when(cashTrxnInfoParameterRepository.findByParameterNameContaining("testParam")).thenReturn(entities);
+
+        ResponseCashTrxnInfoParameterList response = cashTrxnInfoParameterService.getCashTrxnInfoParametersContaining(request);
+
+        assertNotNull(response);
+        assertNotNull(response.getCashTrxnParameterDTOList());
+        assertEquals(1, response.getCashTrxnParameterDTOList().size());
+        assertEquals("Y", response.getCashTrxnParameterDTOList().get(0).getValue());
+
+        verify(cashTrxnInfoParameterRepository, times(1)).findByParameterNameContaining("testParam");
+    }
+
+    @Test
+    void when_getCashTrxnInfoParametersContaining_withNullRequest_shouldReturnEmptyResponse() {
+        ResponseCashTrxnInfoParameterList response = cashTrxnInfoParameterService.getCashTrxnInfoParametersContaining(null);
+
+        assertNotNull(response);
+        assertNull(response.getCashTrxnParameterDTOList());
+
+        verifyNoInteractions(cashTrxnInfoParameterRepository);
+    }
+
+    @Test
+    void when_getCashTrxnInfoParametersContaining_withNullParameterName_shouldReturnEmptyResponse() {
+        RequestCashTrxnInfoParameter request = new RequestCashTrxnInfoParameter();
+        request.setParameterName(null);
+
+        ResponseCashTrxnInfoParameterList response = cashTrxnInfoParameterService.getCashTrxnInfoParametersContaining(request);
+
+        assertNotNull(response);
+        assertNull(response.getCashTrxnParameterDTOList());
+
+        verifyNoInteractions(cashTrxnInfoParameterRepository);
+    }
+
+    @Test
+    void when_getCashTrxnInfoParametersContaining_noEntitiesFound_shouldReturnEmptyList() {
+        RequestCashTrxnInfoParameter request = new RequestCashTrxnInfoParameter();
+        request.setParameterName("testParam");
+
+        when(cashTrxnInfoParameterRepository.findByParameterNameContaining("testParam")).thenReturn(Collections.emptyList());
+
+        ResponseCashTrxnInfoParameterList response = cashTrxnInfoParameterService.getCashTrxnInfoParametersContaining(request);
+
+        assertNotNull(response);
+        assertNull(response.getCashTrxnParameterDTOList());
+
+        verify(cashTrxnInfoParameterRepository, times(1)).findByParameterNameContaining("testParam");
     }
 
     private CashTrxnInfoParameterEntity createCashTrxnInfoParameterEntity() {
@@ -136,5 +96,4 @@ class CashTrxnInfoParameterServiceTest {
         entity.setValue("Y");
         return entity;
     }
-
 }
