@@ -1,48 +1,122 @@
-// SmartControlServiceTest.java
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import java.util.Arrays;
-import java.util.List;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+aşağıda CashTrxnInfoParameterService sınıfı ve bu sınıf için yazılmış CashTrxnInfoParameterServiceTest sınıfının kodları var. ben CashTrxnInfoParameterService sınıfına getCashTrxnInfoParametersContaining metodunu ekledim. CashTrxnInfoParameterServiceTest sınıfında var olan kodları değiştirmeden sadece benim eklediğim getCashTrxnInfoParametersContaining metodu için test yaz. aynı mantıkta basit testler yeterli olur. mümkünse metodun tüm satırlarını cover'la. eksik gördüğün bir sınıf veya kod varsa bana bildir.
 
-class SmartControlServiceTest {
+@Service
+public class CashTrxnInfoParameterService implements ICashTrxnInfoParameterService {
 
-    SmartControlService smartControlService;
+    @Autowired
+    ICashTrxnInfoParameterRepository cashTrxnInfoParameterRepository;
+
+    @Override
+    public ResponseCashTrxnInfoParameter getCashTrxnInfoParameter(RequestCashTrxnInfoParameter request) {
+        ResponseCashTrxnInfoParameter response = null;
+        if (request != null) {
+            Optional<CashTrxnInfoParameterEntity> optionalEntity = cashTrxnInfoParameterRepository.findById(request.getParameterName());
+            if (optionalEntity.isPresent()) {
+                response = new ResponseCashTrxnInfoParameter();
+                response.setCashTrxnParameterDTO(ICashTrxnInfoParameterMapper.INSTANCE.toDto(optionalEntity.get()));
+            }
+        }
+        return response;
+    }
+
+    @Override
+    public ResponseCashTrxnInfoParameterList getCashTrxnInfoParametersContaining(RequestCashTrxnInfoParameter request) {
+        ResponseCashTrxnInfoParameterList responseList = new ResponseCashTrxnInfoParameterList();
+
+        if (request != null && request.getParameterName() != null) {
+            List<CashTrxnInfoParameterEntity> entities = cashTrxnInfoParameterRepository.findByParameterNameContaining(request.getParameterName());
+            if (entities != null && !entities.isEmpty()) {
+                List<CashTrxnParameterDTO> dtos = entities.stream()
+                        .map(ICashTrxnInfoParameterMapper.INSTANCE::toDto)
+                        .collect(Collectors.toCollection(ArrayList::new));
+                responseList.setCashTrxnParameterDTOList(dtos);
+            }
+        }
+        return responseList;
+    }
+
+}
+
+public interface ICashTrxnInfoParameterService {
+
+    public ResponseCashTrxnInfoParameter getCashTrxnInfoParameter(RequestCashTrxnInfoParameter request);
+
+    ResponseCashTrxnInfoParameterList getCashTrxnInfoParametersContaining(RequestCashTrxnInfoParameter request);
+
+}
+
+public interface ICashTrxnInfoParameterRepository extends JpaRepository<CashTrxnInfoParameterEntity, String>, JpaSpecificationExecutor<CashTrxnInfoParameterEntity> {
+
+    List<CashTrxnInfoParameterEntity> findByParameterNameContaining(String parameterName);
+}
+
+@Entity
+@Table(name = "CASH_TRXN_INFO_PARAMETER")
+@Getter
+@Setter
+public class CashTrxnInfoParameterEntity {
+
+    @Id
+    @Column(name = "PARAMETER_NAME", length = 250)
+    private String parameterName;
+    @Column(name = "DESCRIPTION", length = 100)
+    private String description;
+    @Column(name = "PARAMETER_VALUE", length = 100)
+    private String value;
+    @Column(name = "START_DATE")
+    private Date   startDate;
+    @Column(name = "EXPIRE_DATE")
+    private Date   expireDate;
+    @Column(name = "DATA_TYPE", length = 128)
+    private String dataType;
+
+}
+
+
+@Getter
+@Setter
+public class ResponseCashTrxnInfoParameterList {
+
+    private List<CashTrxnParameterDTO> cashTrxnParameterDTOList;
+}
+
+@Getter
+@Setter
+public class CashTrxnParameterDTO {
+
+    private String parameterName;
+    private String description;
+    private String value;
+    private Date   startDate;
+    private Date   expireDate;
+    private String dataType;
+
+}
+
+
+@ExtendWith(SpringExtension.class)
+class CashTrxnInfoParameterServiceTest {
+
+    @InjectMocks
+    private CashTrxnInfoParameterService     cashTrxnInfoParameterService;
 
     @Mock
-    ICashTrxnParameterService parameterService;
-
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-        smartControlService = new SmartControlService(parameterService);
-    }
+    private ICashTrxnInfoParameterRepository cashTrxnInfoParameterRepository;
 
     @Test
-    void getDocumentParameters_ShouldReturnParameterList() throws TrxnParameterNotFoundException {
-        String parameterName = "testParam";
-        List<CashTrxnParameterDTO> mockList = Arrays.asList(new CashTrxnParameterDTO());
-        when(parameterService.getCashTrxnInfoParametersContainingWithCache(parameterName)).thenReturn(mockList);
-
-        List<CashTrxnParameterDTO> result = smartControlService.getDocumentParameters(parameterName);
-
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        verify(parameterService, times(1)).getCashTrxnInfoParametersContainingWithCache(parameterName);
+    void when_getCashTrxnInfoParameter_shouldReturnParameter() {
+        when(cashTrxnInfoParameterRepository.findById(Mockito.anyString())).thenReturn(Optional.of(createCashTrxnInfoParameterEntity()));
+        RequestCashTrxnInfoParameter request = new RequestCashTrxnInfoParameter();
+        request.setParameterName("NAME");
+        ResponseCashTrxnInfoParameter response = cashTrxnInfoParameterService.getCashTrxnInfoParameter(request);
+        assertTrue(response != null && response.getCashTrxnParameterDTO() != null && "Y".equals(response.getCashTrxnParameterDTO().getValue()));
     }
 
-    @Test
-    void getDocumentParameters_ShouldThrowException_WhenNoParametersFound() {
-        String parameterName = "testParam";
-        when(parameterService.getCashTrxnInfoParametersContainingWithCache(parameterName)).thenReturn(null);
-
-        assertThrows(TrxnParameterNotFoundException.class, () -> {
-            smartControlService.getDocumentParameters(parameterName);
-        });
-
-        verify(parameterService, times(1)).getCashTrxnInfoParametersContainingWithCache(parameterName);
+    private CashTrxnInfoParameterEntity createCashTrxnInfoParameterEntity() {
+        CashTrxnInfoParameterEntity entity = new CashTrxnInfoParameterEntity();
+        entity.setParameterName("NAME");
+        entity.setValue("Y");
+        return entity;
     }
+
 }
