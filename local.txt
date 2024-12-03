@@ -1,24 +1,23 @@
-// SmartControlServiceTest.java
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.junit.jupiter.api.extension.ExtendWith;
 import java.util.Arrays;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(SpringExtension.class)
+@SpringBootTest(classes = SmartControlService.class)
 class SmartControlServiceTest {
 
-    @Mock
+    @MockBean
     ICashTrxnParameterService parameterService;
 
-    @InjectMocks
+    @Autowired
     SmartControlService smartControlService;
-
-    SmartControlServiceTest() {
-        MockitoAnnotations.openMocks(this);
-    }
 
     @Test
     void getDocumentParameters_ShouldReturnParameterList() throws TrxnParameterNotFoundException {
@@ -47,28 +46,27 @@ class SmartControlServiceTest {
 }
 
 
-// SmartControlControllerTest.java
 import org.junit.jupiter.api.Test;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.junit.jupiter.api.extension.ExtendWith;
 import org.springframework.http.ResponseEntity;
 import java.util.Arrays;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
+@ExtendWith(SpringExtension.class)
+@WebMvcTest(SmartControlController.class)
 class SmartControlControllerTest {
 
-    @Mock
+    @MockBean
     ISmartControlService smartControlService;
 
-    @InjectMocks
+    @Autowired
     SmartControlController controller;
-
-    SmartControlControllerTest() {
-        MockitoAnnotations.openMocks(this);
-    }
 
     @Test
     void getSmartControlDocuments_ShouldReturnOkResponse() throws TrxnParameterNotFoundException {
