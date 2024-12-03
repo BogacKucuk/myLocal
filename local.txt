@@ -1,42 +1,53 @@
-@Test
-void testGetTransactionDetail_NullBody() throws Exception {
-    // Arrange
-    CashTransactionDTO cashTransactionDTO = new CashTransactionDTO();
-    cashTransactionDTO.setCreateDate(new Date());
+@RestController
+@RequestMapping("/smartControl")
+public class SmartControlController {
 
-    CashTransactionStoredRequest storedRequest = new CashTransactionStoredRequest();
-    storedRequest.setCheckedFlexibleAccount(Boolean.TRUE);
-    storedRequest.setClientInfo(new ClientDTO());
+    private ISmartControlService smartControlService;
 
-    CashTransactionDetailDTO detailDTO = new CashTransactionDetailDTO();
-    detailDTO.setTransactionId("txn123");
-    detailDTO.setAccountNo("acc123");
-    detailDTO.setAccountCurrency("TRY");
-    detailDTO.setCurrency("TRY");
-    detailDTO.setAmount(BigDecimal.valueOf(1000));
-    detailDTO.setCashTransactionStoredRequest(storedRequest);
+    @Autowired
+    public SmartControlController(ISmartControlService smartControlService) {
+        this.smartControlService = smartControlService;
+    }
 
-    List<CashTransactionDetailDTO> detailDTOList = Collections.singletonList(detailDTO);
+    @PostMapping("/getDocuments")
+    public ResponseEntity<List<CashTrxnParameterDTO>> getSmartControlDocuments(@RequestBody RequestSmartControlDocuments request) throws TrxnParameterNotFoundException {
+        return new ResponseEntity<>(smartControlService.getDocumentParameters(request.getParameterName()), HttpStatus.OK);
+    }
+}
 
-    // Mocking AccountClient methods to return ResponseEntity with null body
-    ResponseEntity<ResponseAccountNumberWithCurrencyClient> responseEntity = ResponseEntity.ok(null);
-    when(accountClient.accountNumberWithCurrency(anyString())).thenReturn(responseEntity);
+public interface ISmartControlService {
+    List<CashTrxnParameterDTO> getDocumentParameters(String parameterName) throws TrxnParameterNotFoundException;
+}
 
-    // Mocking getBalanceInfo
-    BalanceDTO balanceDTO = new BalanceDTO();
-    balanceDTO.setAvailableBalance("5000");
-    balanceDTO.setOverdraftBalance(BigDecimal.valueOf(10000));
+@Getter
+@Setter
+public class CashTrxnParameterDTO {
 
-    ResponseBalanceInfo balanceInfo = new ResponseBalanceInfo();
-    balanceInfo.setBalanceDTO(balanceDTO);
+    private String parameterName;
+    private String description;
+    private String value;
+    private Date   startDate;
+    private Date   expireDate;
+    private String dataType;
 
-    ResponseEntity<ResponseBalanceInfo> responseBalanceInfo = ResponseEntity.ok(balanceInfo);
-    when(accountClient.getBalanceInfo(anyString(), anyBoolean())).thenReturn(responseBalanceInfo);
+}
 
-    // Act & Assert
-    AccountException exception = assertThrows(AccountException.class, () -> {
-        customerNotificationService.getParameters(cashTransactionDTO, detailDTOList);
-    });
+@Service
+public class SmartControlService implements ISmartControlService {
 
-    assertEquals("Hesap iban bilgileri bulunamadı.", exception.getMessage());
+    private final ICashTrxnParameterService parameterService;
+
+    @Autowired
+    public SmartControlService(ICashTrxnParameterService parameterService) {
+        this.parameterService = parameterService;
+    }
+
+    @Override
+    public List<CashTrxnParameterDTO> getDocumentParameters(String parameterName) throws TrxnParameterNotFoundException {
+        List<CashTrxnParameterDTO> parameterList = parameterService.getCashTrxnInfoParametersContainingWithCache(parameterName);
+        if (parameterList == null || parameterList.isEmpty()) {
+            throw new TrxnParameterNotFoundException("Parametre bulunamadı: " + parameterName);
+        }
+        return parameterList;
+    }
 }
