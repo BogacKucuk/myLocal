@@ -1,152 +1,44 @@
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
-
-import java.util.*;
-
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 @ExtendWith(SpringExtension.class)
-class SmartControlServiceTest {
-
-    @InjectMocks
-    SmartControlService smartControlService;
-
-    @Mock
-    SmartControlClient smartControlClient;
-
-    @Mock
-    BbtBranchOpsWorkflowClient bbtBranchOpsWorkflowClient;
+class SmartControlDocumentsTest {
 
     @Test
-    void getSmartControlDocuments_ShouldThrowException_WhenGroupIdIsNull() {
+    void getDocument_ShouldReturnDocumentName_WhenIdExists() {
         // Arrange
-        RequestSmartControlDocuments request = new RequestSmartControlDocuments();
-        request.setGroupId(null);
-        request.setParameterName("testParameter");
-
-        // Act & Assert
-        SmartControlException exception = assertThrows(SmartControlException.class, () -> {
-            smartControlService.getSmartControlDocuments(request);
-        });
-
-        assertEquals("groupId null olamaz.", exception.getMessage());
-    }
-
-    @Test
-    void getSmartControlDocuments_ShouldThrowException_WhenBBTDocsNotFound() throws SmartControlException {
-        // Arrange
-        RequestSmartControlDocuments request = new RequestSmartControlDocuments();
-        request.setGroupId("123");
-        request.setParameterName("testParameter");
-
-        RequestBranchOperationControlResult bbtRequest = new RequestBranchOperationControlResult();
-        bbtRequest.setGroupId(Long.valueOf(request.getGroupId()));
-
-        ResultBBTListBranchOperationDetailDto bbtResponse = new ResultBBTListBranchOperationDetailDto();
-        bbtResponse.setData(Collections.emptyList());
-
-        when(bbtBranchOpsWorkflowClient.listBranchOperation(any(RequestBranchOperationControlResult.class)))
-                .thenReturn(bbtResponse);
-
-        // Act & Assert
-        SmartControlException exception = assertThrows(SmartControlException.class, () -> {
-            smartControlService.getSmartControlDocuments(request);
-        });
-
-        assertEquals("BBT dokümanları bulunamadı.", exception.getMessage());
-    }
-
-    @Test
-    void getSmartControlDocuments_ShouldThrowException_WhenClientResponseIsNull() throws SmartControlException {
-        // Arrange
-        RequestSmartControlDocuments request = new RequestSmartControlDocuments();
-        request.setGroupId("123");
-        request.setParameterName("testParameter");
-
-        // Mock BBT client response
-        ResultBBTListBranchOperationDetailDto bbtResponse = createMockBBTResponse();
-        when(bbtBranchOpsWorkflowClient.listBranchOperation(any(RequestBranchOperationControlResult.class)))
-                .thenReturn(bbtResponse);
-
-        // Mock SmartControl client response as null
-        when(smartControlClient.getSmartControlDocuments(any(RequestSmartControlDocuments.class)))
-                .thenReturn(null);
-
-        // Act & Assert
-        SmartControlException exception = assertThrows(SmartControlException.class, () -> {
-            smartControlService.getSmartControlDocuments(request);
-        });
-
-        assertEquals("Gerekli dokümanlar bulunamadı.", exception.getMessage());
-    }
-
-    @Test
-    void getSmartControlDocuments_ShouldReturnData_WhenAllDataIsValid() throws SmartControlException {
-        // Arrange
-        RequestSmartControlDocuments request = new RequestSmartControlDocuments();
-        request.setGroupId("123");
-        request.setParameterName("testParameter");
-
-        // Mock BBT client response
-        ResultBBTListBranchOperationDetailDto bbtResponse = createMockBBTResponse();
-        when(bbtBranchOpsWorkflowClient.listBranchOperation(any(RequestBranchOperationControlResult.class)))
-                .thenReturn(bbtResponse);
-
-        // Mock SmartControl client response
-        CashTrxnParameterDTO cashTrxnParameterDTO = new CashTrxnParameterDTO();
-        cashTrxnParameterDTO.setParameterName("paramKey");
-        cashTrxnParameterDTO.setValue("paramValue;paramDescription");
-
-        ResponseEntity<List<CashTrxnParameterDTO>> clientResponse = ResponseEntity.ok(
-                Arrays.asList(cashTrxnParameterDTO)
-        );
-
-        when(smartControlClient.getSmartControlDocuments(any(RequestSmartControlDocuments.class)))
-                .thenReturn(clientResponse);
+        String documentId = "4"; // VEKALETNAME
 
         // Act
-        SmartControlDataDTO result = smartControlService.getSmartControlDocuments(request);
+        String documentName = SmartControlDocuments.getDocument(documentId);
 
         // Assert
-        assertNotNull(result);
-        assertNotNull(result.getBbtDocuments());
-        assertNotNull(result.getNotExistsDocs());
-        assertFalse(result.getBbtDocuments().isEmpty());
-        assertFalse(result.getNotExistsDocs().isEmpty());
-
-        // Verify BBT Documents
-        SmartControlDocumentDTO bbtDoc = result.getBbtDocuments().get(0);
-        assertEquals("Vekaletname", bbtDoc.getParameterName());
-        assertEquals("Sistemde Mevcut", bbtDoc.getDescription());
-        assertTrue(bbtDoc.getIsExist());
-
-        // Verify Not Exists Documents
-        SmartControlDocumentDTO notExistDoc = result.getNotExistsDocs().get(0);
-        assertEquals("paramValue", notExistDoc.getParameterName());
-        assertEquals("paramDescription", notExistDoc.getDescription());
-        assertFalse(notExistDoc.getIsExist());
+        assertEquals("Vekaletname", documentName);
     }
 
-    private ResultBBTListBranchOperationDetailDto createMockBBTResponse() {
-        BranchOperationDocument document = new BranchOperationDocument();
-        document.setDocumentTypeId(4L); // Corresponds to VEKALETNAME
+    @Test
+    void getDocument_ShouldReturnNotFoundMessage_WhenIdDoesNotExist() {
+        // Arrange
+        String documentId = "99999";
 
-        BranchOperationDto operationDto = new BranchOperationDto();
-        operationDto.setBranchOperationDocuments(Arrays.asList(document));
+        // Act
+        String documentName = SmartControlDocuments.getDocument(documentId);
 
-        BranchOperationDetailDTO detailDTO = new BranchOperationDetailDTO();
-        detailDTO.setBranchOperationDto(operationDto);
+        // Assert
+        assertEquals("99999-Bulunamadı", documentName);
+    }
 
-        ResultBBTListBranchOperationDetailDto bbtResponse = new ResultBBTListBranchOperationDetailDto();
-        bbtResponse.setData(Arrays.asList(detailDTO));
+    @Test
+    void getDocument_ShouldReturnCorrectDocumentName_ForMultipleIds() {
+        // Arrange
+        String documentId = "51"; // IMZA
 
-        return bbtResponse;
+        // Act
+        String documentName = SmartControlDocuments.getDocument(documentId);
+
+        // Assert
+        assertEquals("Ticari İmza veya İmza", documentName);
     }
 }
