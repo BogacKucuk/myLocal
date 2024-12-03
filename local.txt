@@ -1,81 +1,25 @@
-[ERROR] Errors: 
-[ERROR]   SmartControlControllerTest.getSmartControlDocuments_ShouldReturnOkResponse » UnsatisfiedDependency Error creating bean with name 'com.ykb.corebanking.vault.money.deposit.withdraw.controller.SmartControlControllerTest': Unsatisfied dependency expressed through field 'controller': No qualifying bean of type 'com.ykb.corebanking.vault.money.deposit.withdraw.controller.SmartControlController' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {@org.springframework.beans.factory.annotation.Autowired(required=true)}
-[ERROR]   SmartControlControllerTest.getSmartControlDocuments_ShouldThrowException_WhenServiceFails » UnsatisfiedDependency Error creating bean with name 'com.ykb.corebanking.vault.money.deposit.withdraw.controller.SmartControlControllerTest': Unsatisfied dependency expressed through field 'controller': No qualifying bean of type 'com.ykb.corebanking.vault.money.deposit.withdraw.controller.SmartControlController' available: expected at least 1 bean which qualifies as autowire candidate. Dependency annotations: {@org.springframework.beans.factory.annotation.Autowired(required=true)}
-[INFO] 
-[ERROR] Tests run: 2, Failures: 0, Errors: 2, Skipped: 0
-[INFO] 
-
-
-
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.junit.jupiter.api.extension.ExtendWith;
-import java.util.Arrays;
-import java.util.List;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
-@ExtendWith(SpringExtension.class)
-@SpringBootTest(classes = SmartControlService.class)
-class SmartControlServiceTest {
-
-    @MockBean
-    ICashTrxnParameterService parameterService;
-
-    @Autowired
-    SmartControlService smartControlService;
-
-    @Test
-    void getDocumentParameters_ShouldReturnParameterList() throws TrxnParameterNotFoundException {
-        String parameterName = "testParam";
-        List<CashTrxnParameterDTO> mockList = Arrays.asList(new CashTrxnParameterDTO());
-        when(parameterService.getCashTrxnInfoParametersContainingWithCache(parameterName)).thenReturn(mockList);
-
-        List<CashTrxnParameterDTO> result = smartControlService.getDocumentParameters(parameterName);
-
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        verify(parameterService, times(1)).getCashTrxnInfoParametersContainingWithCache(parameterName);
-    }
-
-    @Test
-    void getDocumentParameters_ShouldThrowException_WhenNoParametersFound() {
-        String parameterName = "testParam";
-        when(parameterService.getCashTrxnInfoParametersContainingWithCache(parameterName)).thenReturn(null);
-
-        assertThrows(TrxnParameterNotFoundException.class, () -> {
-            smartControlService.getDocumentParameters(parameterName);
-        });
-
-        verify(parameterService, times(1)).getCashTrxnInfoParametersContainingWithCache(parameterName);
-    }
-}
-
-
-import org.junit.jupiter.api.Test;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
 import org.springframework.http.ResponseEntity;
 import java.util.Arrays;
 import java.util.List;
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.*;
 
-@ExtendWith(SpringExtension.class)
-@WebMvcTest(SmartControlController.class)
 class SmartControlControllerTest {
 
-    @MockBean
+    SmartControlController controller;
+
+    @Mock
     ISmartControlService smartControlService;
 
-    @Autowired
-    SmartControlController controller;
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+        controller = new SmartControlController(smartControlService);
+    }
 
     @Test
     void getSmartControlDocuments_ShouldReturnOkResponse() throws TrxnParameterNotFoundException {
