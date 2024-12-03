@@ -1,3 +1,21 @@
+import org.mapstruct.Mapper;
+import org.mapstruct.factory.Mappers;
+
+import com.ykb.corebanking.vault.money.deposit.withdraw.dto.CashTrxnParameterDTO;
+import com.ykb.corebanking.vault.money.deposit.withdraw.entity.CashTrxnInfoParameterEntity;
+
+@Mapper(componentModel = "spring")
+public abstract class ICashTrxnInfoParameterMapper {
+
+    public static final ICashTrxnInfoParameterMapper INSTANCE = Mappers.getMapper(ICashTrxnInfoParameterMapper.class);
+
+    public abstract CashTrxnInfoParameterEntity toEntity(CashTrxnParameterDTO dto);
+
+    public abstract CashTrxnParameterDTO toDto(CashTrxnInfoParameterEntity dto);
+
+}
+
+
 aşağıda CashTrxnInfoParameterService sınıfı ve bu sınıf için yazılmış CashTrxnInfoParameterServiceTest sınıfının kodları var. ben CashTrxnInfoParameterService sınıfına getCashTrxnInfoParametersContaining metodunu ekledim. CashTrxnInfoParameterServiceTest sınıfında var olan kodları değiştirmeden sadece benim eklediğim getCashTrxnInfoParametersContaining metodu için test yaz. aynı mantıkta basit testler yeterli olur. mümkünse metodun tüm satırlarını cover'la. eksik gördüğün bir sınıf veya kod varsa bana bildir.
 
 @Service
