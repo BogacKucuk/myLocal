@@ -1,88 +1,85 @@
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+@RestController
+@RequestMapping("/smartControl")
+public class SmartControlController {
 
-@ExtendWith(SpringExtension.class)
-class CashTrxnInfoParameterServiceTest {
+    private ISmartControlService smartControlService;
 
-    @InjectMocks
-    private CashTrxnInfoParameterService cashTrxnInfoParameterService;
-
-    @Mock
-    private ICashTrxnInfoParameterRepository cashTrxnInfoParameterRepository;
-
-    // Yeni test metotları başlıyor
-
-    @Test
-    void when_getCashTrxnInfoParametersContaining_withValidRequest_shouldReturnParameters() {
-        RequestCashTrxnInfoParameter request = new RequestCashTrxnInfoParameter();
-        request.setParameterName("testParam");
-
-        List<CashTrxnInfoParameterEntity> entities = Arrays.asList(createCashTrxnInfoParameterEntity());
-
-        when(cashTrxnInfoParameterRepository.findByParameterNameContaining("testParam")).thenReturn(entities);
-
-        ResponseCashTrxnInfoParameterList response = cashTrxnInfoParameterService.getCashTrxnInfoParametersContaining(request);
-
-        assertNotNull(response);
-        assertNotNull(response.getCashTrxnParameterDTOList());
-        assertEquals(1, response.getCashTrxnParameterDTOList().size());
-        assertEquals("Y", response.getCashTrxnParameterDTOList().get(0).getValue());
-
-        verify(cashTrxnInfoParameterRepository, times(1)).findByParameterNameContaining("testParam");
+    @Autowired
+    public SmartControlController(ISmartControlService smartControlService) {
+        this.smartControlService = smartControlService;
     }
 
-    @Test
-    void when_getCashTrxnInfoParametersContaining_withNullRequest_shouldReturnEmptyResponse() {
-        ResponseCashTrxnInfoParameterList response = cashTrxnInfoParameterService.getCashTrxnInfoParametersContaining(null);
+    @PostMapping("/getDocuments")
+    public ResponseEntity<SmartControlDataDTO> getSmartControlDocuments(@RequestBody RequestSmartControlDocuments request) throws SmartControlException {
+        return new ResponseEntity<>(smartControlService.getSmartControlDocuments(request), HttpStatus.OK);
+    }
+}
 
-        assertNotNull(response);
-        assertNull(response.getCashTrxnParameterDTOList());
+public interface ISmartControlService {
+    SmartControlDataDTO getSmartControlDocuments(RequestSmartControlDocuments request) throws SmartControlException;
+}
 
-        verifyNoInteractions(cashTrxnInfoParameterRepository);
+@Getter
+@Setter
+public class SmartControlDataDTO {
+    List<SmartControlDocumentDTO> bbtDocuments;
+    List<SmartControlDocumentDTO> notExistsDocs;
+}
+
+
+@Getter
+@Setter
+public class SmartControlDocumentDTO {
+    private String parameterName;
+    private String description;
+    private String key;
+    private Boolean isExist;
+}
+
+@Getter
+@Setter
+public class RequestSmartControlDocuments {
+    private String parameterName;
+    private String groupId;
+}
+
+public class SmartControlException extends MicroException {
+
+    private static final long serialVersionUID = -3585253702308801485L;
+
+    public SmartControlException() {
+        super(serialVersionUID);
     }
 
-    @Test
-    void when_getCashTrxnInfoParametersContaining_withNullParameterName_shouldReturnEmptyResponse() {
-        RequestCashTrxnInfoParameter request = new RequestCashTrxnInfoParameter();
-        request.setParameterName(null);
-
-        ResponseCashTrxnInfoParameterList response = cashTrxnInfoParameterService.getCashTrxnInfoParametersContaining(request);
-
-        assertNotNull(response);
-        assertNull(response.getCashTrxnParameterDTOList());
-
-        verifyNoInteractions(cashTrxnInfoParameterRepository);
+    public SmartControlException(String message) {
+        super(serialVersionUID, message);
     }
 
-    @Test
-    void when_getCashTrxnInfoParametersContaining_noEntitiesFound_shouldReturnEmptyList() {
-        RequestCashTrxnInfoParameter request = new RequestCashTrxnInfoParameter();
-        request.setParameterName("testParam");
-
-        when(cashTrxnInfoParameterRepository.findByParameterNameContaining("testParam")).thenReturn(Collections.emptyList());
-
-        ResponseCashTrxnInfoParameterList response = cashTrxnInfoParameterService.getCashTrxnInfoParametersContaining(request);
-
-        assertNotNull(response);
-        assertNull(response.getCashTrxnParameterDTOList());
-
-        verify(cashTrxnInfoParameterRepository, times(1)).findByParameterNameContaining("testParam");
+    public SmartControlException(String message, Exception e) {
+        super(serialVersionUID, message, e);
     }
 
-    // Yardımcı metot
-    private CashTrxnInfoParameterEntity createCashTrxnInfoParameterEntity() {
-        CashTrxnInfoParameterEntity entity = new CashTrxnInfoParameterEntity();
-        entity.setParameterName("NAME");
-        entity.setValue("Y");
-        return entity;
+    public SmartControlException(ExceptionData data, Exception exception) {
+        super(data, exception);
+    }
+
+    public SmartControlException(ExceptionData data, Map<String, String> parameters) {
+        super(data, parameters);
+    }
+
+    public SmartControlException(ExceptionData data) {
+        super(data);
+    }
+
+    public SmartControlException(Long errorCode, String errorMessage, Exception exception) {
+        super(errorCode, errorMessage, exception);
+    }
+
+    public SmartControlException(Long errorCode, String errorMessage) {
+        super(errorCode, errorMessage);
+    }
+
+    public SmartControlException(Long errorCode) {
+        super(errorCode);
     }
 }
