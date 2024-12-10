@@ -1,44 +1,216 @@
-import static org.junit.jupiter.api.Assertions.*;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@ExtendWith(SpringExtension.class)
-class SmartControlDocumentsTest {
+public interface ICashSealApprovalService {
+    ResponseCreateCashSealApproval createCashSealApprovalRecord(RequestCreateCashSealApproval request) throws CashSealApprovalSaveException;
 
-    @Test
-    void getDocument_ShouldReturnDocumentName_WhenIdExists() {
-        // Arrange
-        String documentId = "4"; // VEKALETNAME
+    CashSealApprovalDTO findById(Long id) throws CashSealApprovalSaveException, CashSealApprovalNotFoundException;
+}
 
-        // Act
-        String documentName = SmartControlDocuments.getDocument(documentId);
 
-        // Assert
-        assertEquals("Vekaletname", documentName);
+package com.ykb.corebanking.vault.money.deposit.withdraw.service.impl;
+
+import com.ykb.corebanking.vault.money.deposit.withdraw.dto.CashSealApprovalDTO;
+import com.ykb.corebanking.vault.money.deposit.withdraw.entity.CashSealApprovalEntity;
+import com.ykb.corebanking.vault.money.deposit.withdraw.exception.CashSealApprovalNotFoundException;
+import com.ykb.corebanking.vault.money.deposit.withdraw.exception.CashSealApprovalSaveException;
+import com.ykb.corebanking.vault.money.deposit.withdraw.mapper.ICashSealApprovalMapper;
+import com.ykb.corebanking.vault.money.deposit.withdraw.repository.ICashSealApprovalRepository;
+import com.ykb.corebanking.vault.money.deposit.withdraw.request.RequestCreateCashSealApproval;
+import com.ykb.corebanking.vault.money.deposit.withdraw.response.ResponseCreateCashSealApproval;
+import com.ykb.corebanking.vault.money.deposit.withdraw.service.ICashSealApprovalService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.Optional;
+
+@Service
+public class CashSealApprovalService implements ICashSealApprovalService {
+
+    private ICashSealApprovalRepository repository;
+
+    @Autowired
+    public CashSealApprovalService(ICashSealApprovalRepository repository) {
+        this.repository = repository;
     }
 
-    @Test
-    void getDocument_ShouldReturnNotFoundMessage_WhenIdDoesNotExist() {
-        // Arrange
-        String documentId = "99999";
+    @Override
+    public ResponseCreateCashSealApproval createCashSealApprovalRecord(RequestCreateCashSealApproval request) throws CashSealApprovalSaveException {
+        try {
+            if (request != null && request.getCashSealApprovalDTO() != null) {
+                ResponseCreateCashSealApproval response = new ResponseCreateCashSealApproval();
+                CashSealApprovalEntity entity = repository.saveAndFlush(ICashSealApprovalMapper.INSTANCE.dtoToEntity(request.getCashSealApprovalDTO()));
+                response.setId(entity.getId());
+                response.setCashSealApprovalDTO(ICashSealApprovalMapper.INSTANCE.entityToDto(entity));
+                return response;
+            }
+            else {
+                throw new CashSealApprovalSaveException("Cash Seal Approval create record request boş olamaz.");
+            }
 
-        // Act
-        String documentName = SmartControlDocuments.getDocument(documentId);
-
-        // Assert
-        assertEquals("99999-Bulunamadı", documentName);
+        }
+        catch (Exception e) {
+            throw new CashSealApprovalSaveException("An error occurred while trying to create CASH_SEAL_APPROVAL record", e);
+        }
     }
 
-    @Test
-    void getDocument_ShouldReturnCorrectDocumentName_ForMultipleIds() {
-        // Arrange
-        String documentId = "51"; // IMZA
-
-        // Act
-        String documentName = SmartControlDocuments.getDocument(documentId);
-
-        // Assert
-        assertEquals("Ticari İmza veya İmza", documentName);
+    @Override
+    public CashSealApprovalDTO findById(Long id) throws CashSealApprovalSaveException, CashSealApprovalNotFoundException {
+        Optional<CashSealApprovalEntity> entity = repository.findById(id);
+        if (entity.isPresent()) {
+            return ICashSealApprovalMapper.INSTANCE.entityToDto(entity.get());
+        }
+        else {
+            throw new CashSealApprovalNotFoundException("Cash Seal Approval kaydı bulunamadı");
+        }
     }
+}
+
+
+public interface ICashSealApprovalRepository extends JpaRepository<CashSealApprovalEntity, Long>, JpaSpecificationExecutor<CashSealApprovalEntity> {
+
+}
+
+package com.ykb.corebanking.vault.money.deposit.withdraw.entity;
+
+import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.util.Date;
+
+@Entity
+@Table(name = "CASH_SEAL_APPROVAL")
+@Getter
+@Setter
+public class CashSealApprovalEntity {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY, generator = "SEQ_CASH_SEAL_APPROVAL")
+    @SequenceGenerator(name = "SEQ_CASH_SEAL_APPROVAL", sequenceName = "SEQ_CASH_SEAL_APPROVAL", allocationSize = 1)
+    @Column(name = "ID", length = 16)
+    private Long id;
+
+    @Column(name = "CASH_TRANSACTION_ID", length = 16)
+    private Long cashTransactionId;
+
+    @Column(name = "PROCESS_CODE", length = 14)
+    private String processCode;
+
+    @Column(name = "CUSTOMER_NO", length = 12)
+    private Long customerNo;
+
+    @Column(name = "USER_CODE", length = 10)
+    private String userCode;
+
+    @Column(name = "BRANCH_CODE", length = 4)
+    private String branchCode;
+
+    @Column(name = "APPROVAL_TYPE", length = 20)
+    private String approvalType;
+
+    @Column(name = "CREATE_DATE")
+    private Date createDate;
+}
+
+@Getter
+@Setter
+public class ResponseCreateCashSealApproval {
+    private Long id;
+    private CashSealApprovalDTO cashSealApprovalDTO;
+}
+
+
+@Getter
+@Setter
+public class CashSealApprovalDTO {
+    private Long cashTransactionId;
+    private String processCode;
+    private Long customerNo;
+    private String userCode;
+    private String branchCode;
+    private String approvalType;
+    private Date createDate;
+
+}
+
+
+@Getter
+@Setter
+public class RequestCreateCashSealApproval {
+    private CashSealApprovalDTO cashSealApprovalDTO;
+}
+
+
+public class CashSealApprovalSaveException extends MicroException {
+    private static final long serialVersionUID = -8141519613513529651L;
+
+    public CashSealApprovalSaveException(ExceptionData data, Exception exception) {
+        super(data, exception);
+    }
+
+    public CashSealApprovalSaveException(ExceptionData data, Map<String, String> parameters) {
+        super(data, parameters);
+    }
+
+    public CashSealApprovalSaveException(ExceptionData data) {
+        super(data);
+    }
+
+    public CashSealApprovalSaveException(String errorMessage, Exception exception) {
+        super(serialVersionUID, errorMessage, exception);
+    }
+
+    public CashSealApprovalSaveException(String errorMessage) {
+        super(serialVersionUID, errorMessage);
+    }
+
+    public CashSealApprovalSaveException() {
+        super(serialVersionUID);
+    }
+}
+
+
+public class CashSealApprovalNotFoundException extends MicroException {
+    private static final long serialVersionUID = -8141519613513529651L;
+
+    public CashSealApprovalNotFoundException(ExceptionData data, Exception exception) {
+        super(data, exception);
+    }
+
+    public CashSealApprovalNotFoundException(ExceptionData data, Map<String, String> parameters) {
+        super(data, parameters);
+    }
+
+    public CashSealApprovalNotFoundException(ExceptionData data) {
+        super(data);
+    }
+
+    public CashSealApprovalNotFoundException(String errorMessage, Exception exception) {
+        super(serialVersionUID, errorMessage, exception);
+    }
+
+    public CashSealApprovalNotFoundException(String errorMessage) {
+        super(serialVersionUID, errorMessage);
+    }
+
+    public CashSealApprovalNotFoundException() {
+        super(serialVersionUID);
+    }
+}
+
+
+package com.ykb.corebanking.vault.money.deposit.withdraw.mapper;
+
+import com.ykb.corebanking.vault.money.deposit.withdraw.dto.CashSealApprovalDTO;
+import com.ykb.corebanking.vault.money.deposit.withdraw.entity.CashSealApprovalEntity;
+import org.mapstruct.Mapper;
+import org.mapstruct.factory.Mappers;
+
+@Mapper(componentModel = "spring")
+public abstract class ICashSealApprovalMapper {
+
+    public static final ICashSealApprovalMapper INSTANCE = Mappers.getMapper(ICashSealApprovalMapper.class);
+
+    public abstract CashSealApprovalEntity dtoToEntity(CashSealApprovalDTO dto);
+
+    public abstract CashSealApprovalDTO entityToDto(CashSealApprovalEntity entity);
 }
