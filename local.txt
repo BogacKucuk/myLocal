@@ -1,4 +1,321 @@
-[ERROR] Failures: 
-[ERROR]   CashSealApprovalServiceTest.findById_repositoryException_throwsSaveException:131 Unexpected exception type thrown ==> expected: <com.ykb.corebanking.vault.money.deposit.withdraw.exception.CashSealApprovalSaveException> but was: <java.lang.RuntimeException>
-[INFO] 
-[ERROR] Tests run: 7, Failures: 1, Errors: 0, Skipped: 0
+@Service
+public class AfterPerformTransactionOperationsHandler implements IAfterPerformTransactionOperationsHandler {
+
+    private ICashTransactionStorageService cashTransactionStorageService;
+    private INapEventService               napEventService;
+    private IIdentityValidationService     identityValidationService;
+    private IEhoEventService               ehoEventService;
+    private IDWHService                    dwhService;
+    private IOtherPersonDetailService      otherPersonDetailService;
+    private IRentPaymentService            rentPaymentService;
+    private MostRecentUsedAccountPublisher mostRecentUsedAccountPublisher;
+    private IProcessHistoryService         processHistoryService;
+    private ICustomerNotificationService   customerNotificationService;
+    private ICashSealApprovalService       cashSealApprovalService;
+
+    @Autowired
+    public AfterPerformTransactionOperationsHandler(ICashTransactionStorageService cashTransactionStorageService, INapEventService napEventService,
+                                                    IIdentityValidationService identityValidationService, IEhoEventService ehoEventService, IDWHService dwhService, IOtherPersonDetailService otherPersonDetailService,
+                                                    IRentPaymentService rentPaymentService, MostRecentUsedAccountPublisher mostRecentUsedAccountPublisher, IProcessHistoryService processHistoryService, ICustomerNotificationService customerNotificationService, ICashSealApprovalService cashSealApprovalService) {
+        this.cashTransactionStorageService = cashTransactionStorageService;
+        this.napEventService = napEventService;
+        this.identityValidationService = identityValidationService;
+        this.ehoEventService = ehoEventService;
+        this.dwhService = dwhService;
+        this.otherPersonDetailService = otherPersonDetailService;
+        this.rentPaymentService = rentPaymentService;
+        this.mostRecentUsedAccountPublisher = mostRecentUsedAccountPublisher;
+        this.processHistoryService = processHistoryService;
+        this.customerNotificationService = customerNotificationService;
+        this.cashSealApprovalService = cashSealApprovalService;
+    }
+
+    @Override
+    @Transactional(rollbackFor = { Exception.class })
+    public Boolean performOperationsAfterTransaction(AfterPerformTransactionDTO afterPerformTransactionDTO) throws MoneyDepositWithdrawQueueException {
+        try {
+            RequestCashTransactionAndDetail requestCashTransactionAndDetail = new RequestCashTransactionAndDetail();
+            requestCashTransactionAndDetail.setCashTransactionId(afterPerformTransactionDTO.getCashTransactionId());
+            ResponseCashTransactionAndDetail responseCashTransactionAndDetail = cashTransactionStorageService.getCashTransactionAndDetail(requestCashTransactionAndDetail);
+
+            CashTransactionDTO cashTransactionDTO = responseCashTransactionAndDetail.getCashTransactionDTO();
+            List<CashTransactionDetailDTO> cashTransactionDetailList = responseCashTransactionAndDetail.getCashTransactionDetailList();
+
+            checkTransactionValid(cashTransactionDetailList);
+
+            //CREATE IDENTITY VALIDATION
+            ResponseIdentityValidation responseIdentityValidation = identityValidationService
+                    .createIdentityRecord(MoneyDepositWithdrawUtil.createRequestIdentityValidation(cashTransactionDTO, cashTransactionDetailList));
+
+            // EKLENEN KISIM
+            if (Boolean.TRUE.equals(checkForSealApprovalLog(cashTransactionDetailList.get(0)))) {
+                ResponseCreateCashSealApproval cashSealApprovalResponse = cashSealApprovalService.createCashSealApprovalRecord(createCashSealApprovalRequest(cashTransactionDTO, cashTransactionDetailList.get(0)));
+            }
+            //EKLENEN KISIM
+
+            DWHMessageDTO dWHMessageDTO = createDWHMessageDTO(afterPerformTransactionDTO, cashTransactionDTO, cashTransactionDetailList);
+            if (PROCESS_CODE.DEPOSIT.name().equals(cashTransactionDTO.getProcessCode())) {
+                doMoneyDepositPopupTransaction(cashTransactionDetailList.get(0).getCashTransactionStoredRequest(), cashTransactionDTO);
+                dwhService.sendDepositMessageViaCashTransactionInfo(dWHMessageDTO);
+            } else {
+                dwhService.sendWithdrawalMessageViaCashTransactionInfo(dWHMessageDTO);
+            }
+
+            //PUBLISH NAP EVENT QUEUE
+            napEventService.publishNapEvent(NAPEventDTOMapper.INSTANCE.toNapEventDTO(cashTransactionDetailList, cashTransactionDTO));
+
+            //PUBLISH EHO EVENT QUEUE
+            if (ControlUtil.isNotNull(responseIdentityValidation) && ControlUtil.isNotNull(responseIdentityValidation.getIdentityValidationDTO())) {
+                List<EHOEventDTO> ehodto = EHOEventDTOMapper.INSTANCE.toEHOEventDTO(cashTransactionDetailList, cashTransactionDTO, responseIdentityValidation.getIdentityValidationDTO());
+                ehoEventService.publishEhoEvent(ehodto);
+            }
+            //PUBLISH MOST RECENT USED ACCOUNT QUEUE
+            publishToMostRecentUsedAccountQueue(cashTransactionDTO, cashTransactionDetailList);
+
+            //PUBLISH PROCESS HISTORY QUEUE
+            processHistoryService.processSave(MoneyDepositWithdrawUtil.prepareProcessHistoryDto(cashTransactionDTO, cashTransactionDetailList.get(0), afterPerformTransactionDTO.getIsReverse()));
+
+            // PUBLISH CUSTOMER NOTIFICATION QUEUE
+            //customerNotificationService.sendToNotificationQueue(cashTransactionDTO, cashTransactionDetailList);
+            return true;
+
+        } catch (Exception e) {
+            throw new MoneyDepositWithdrawQueueException(e.getMessage());
+        }
+
+    }
+
+    @Override
+    public Boolean performReverseOperationsAfterTransaction(AfterPerformTransactionDTO afterPerformTransactionDTO) throws MoneyDepositWithdrawQueueException {
+        try {
+            RequestCashTransactionAndDetail requestCashTransactionAndDetail = new RequestCashTransactionAndDetail();
+            requestCashTransactionAndDetail.setCashTransactionId(afterPerformTransactionDTO.getCashTransactionId());
+            ResponseCashTransactionAndDetail responseCashTransactionAndDetail = cashTransactionStorageService.getCashTransactionAndDetail(requestCashTransactionAndDetail);
+
+            CashTransactionDTO cashTransactionDTO = responseCashTransactionAndDetail.getCashTransactionDTO();
+            List<CashTransactionDetailDTO> cashTransactionDetailList = responseCashTransactionAndDetail.getCashTransactionDetailList();
+
+            DWHMessageDTO dWHMessageDTO = createDWHMessageDTO(afterPerformTransactionDTO, cashTransactionDTO, cashTransactionDetailList);
+            if (PROCESS_CODE.DEPOSIT.name().equals(cashTransactionDTO.getProcessCode())) {
+                dwhService.sendDepositMessageViaCashTransactionInfo(dWHMessageDTO);
+            } else {
+                dwhService.sendWithdrawalMessageViaCashTransactionInfo(dWHMessageDTO);
+            }
+            napEventService.publishNapEvent(NAPEventDTOMapper.INSTANCE.toNapEventDTO(cashTransactionDetailList, cashTransactionDTO));
+
+            //PUBLISH PROCESS HISTORY QUEUE
+            processHistoryService.processCancel(MoneyDepositWithdrawUtil.prepareProcessHistoryDto(cashTransactionDTO, cashTransactionDetailList.get(0), afterPerformTransactionDTO.getIsReverse()));
+
+            return true;
+        } catch (Exception e) {
+            throw new MoneyDepositWithdrawQueueException(e.getMessage());
+        }
+    }
+
+    private void publishToMostRecentUsedAccountQueue(CashTransactionDTO cashTransactionDTO, List<CashTransactionDetailDTO> cashTransactionDetailList) {
+        MostRecentUsedAccountDTO mostRecentUsedAccountDTO = new MostRecentUsedAccountDTO();
+        mostRecentUsedAccountDTO.setTransactionCode(PROCESS_CODE.DEPOSIT.name().equals(cashTransactionDTO.getProcessCode()) ? CashProcessType.PARYAT.name() : CashProcessType.PARCEK.name());
+        mostRecentUsedAccountDTO.setCustomerNo(cashTransactionDTO.getCustomerNo());
+        mostRecentUsedAccountDTO.setAccountNo(cashTransactionDetailList.get(0).getAccountNo());
+        mostRecentUsedAccountDTO.setTransactionDate(cashTransactionDTO.getCreateDate());
+        mostRecentUsedAccountPublisher.publishToMostRecentUsedAccountQueue(mostRecentUsedAccountDTO);
+    }
+
+    private void doMoneyDepositPopupTransaction(CashTransactionStoredRequest cashTransactionStoredRequest, CashTransactionDTO cashTransactionDTO)
+            throws OtherPersonDetailSaveException, RentPaymentException {
+        if (cashTransactionStoredRequest != null) {
+            if (cashTransactionStoredRequest.getOtherPersonModalDetail() != null) {
+                createOtherPersonDetail(cashTransactionStoredRequest.getOtherPersonModalDetail(), cashTransactionDTO);
+            }
+            if (cashTransactionStoredRequest.getRentPaymentModalDetail() != null) {
+                createRentPayment(cashTransactionStoredRequest.getRentPaymentModalDetail(), cashTransactionDTO);
+            }
+        }
+    }
+
+    private void createOtherPersonDetail(MoneyDepositModalDetailDTO moneyDepositModalDetail, CashTransactionDTO cashTransactionDTO) throws OtherPersonDetailSaveException {
+        RequestOtherPersonDetail request = new RequestOtherPersonDetail();
+        moneyDepositModalDetail.setCreatedBy(cashTransactionDTO.getCreatedBy());
+        moneyDepositModalDetail.setCashTransactionsId(cashTransactionDTO.getId());
+        request.setMoneyDepositModalDetailDTO(moneyDepositModalDetail);
+        otherPersonDetailService.create(request);
+    }
+
+    private void createRentPayment(MoneyDepositModalDetailDTO moneyDepositModalDetail, CashTransactionDTO cashTransactionDTO) throws RentPaymentException {
+        RequestRentPayment request = new RequestRentPayment();
+        moneyDepositModalDetail.setCreatedBy(cashTransactionDTO.getCreatedBy());
+        moneyDepositModalDetail.setCashTransactionsId(cashTransactionDTO.getId());
+        request.setMoneyDepositModalDetailDTO(moneyDepositModalDetail);
+        rentPaymentService.create(request);
+    }
+
+    private void checkTransactionValid(List<CashTransactionDetailDTO> detailList) throws MoneyDepositWithdrawQueueException {
+        for (CashTransactionDetailDTO detailDto : detailList) {
+            if (detailDto.getContractNo() == null) {
+                throw new MoneyDepositWithdrawQueueException(MoneyDepositWithdrawQueueException.CONTACT_NUMBER_NOT_FOUND_EXCEPTION + detailDto.getId());
+            }
+        }
+    }
+
+    private DWHMessageDTO createDWHMessageDTO(AfterPerformTransactionDTO afterPerformTransactionDTO, CashTransactionDTO cashTransactionDTO, List<CashTransactionDetailDTO> cashTransactionDetailList) {
+        DWHMessageDTO dWHMessageDTO = new DWHMessageDTO();
+        dWHMessageDTO.setCashTransactionDTO(cashTransactionDTO);
+        dWHMessageDTO.setCashTransactionDetailList(cashTransactionDetailList);
+        dWHMessageDTO.setApproveNecessity(afterPerformTransactionDTO.getApprovalExists());
+        dWHMessageDTO.setIsReverse(afterPerformTransactionDTO.getIsReverse());
+        return dWHMessageDTO;
+    }
+
+    // EKLEDİĞİM METOT
+    private RequestCreateCashSealApproval createCashSealApprovalRequest(CashTransactionDTO cashTransactionDTO, CashTransactionDetailDTO cashTransactionDetailDTO) {
+        RequestCreateCashSealApproval request = new RequestCreateCashSealApproval();
+        CashSealApprovalDTO dto = new CashSealApprovalDTO();
+
+        dto.setCustomerNo(cashTransactionDTO.getCustomerNo());
+        dto.setCashTransactionId(cashTransactionDTO.getId());
+        dto.setBranchCode(cashTransactionDTO.getBranchCode());
+        dto.setUserCode(cashTransactionDTO.getCreatedBy());
+        dto.setCreateDate(cashTransactionDTO.getCreateDate());
+        dto.setProcessCode(cashTransactionDTO.getProcessCode());
+        dto.setApprovalType(cashTransactionDetailDTO.getCashTransactionStoredRequest().getSealApprovalType());
+
+        request.setCashSealApprovalDTO(dto);
+        return request;
+    }
+
+    // EKLEDİĞİM METOT
+    private Boolean checkForSealApprovalLog(CashTransactionDetailDTO cashTransactionDetailDTO) {
+        if (cashTransactionDetailDTO.getCashTransactionStoredRequest().getSealApprovalType() != null) {
+            return Boolean.TRUE;
+        }
+        return Boolean.FALSE;
+    }
+
+}
+
+
+@ExtendWith(SpringExtension.class)
+class AfterPerformTransactionOperationsHandlerTest {
+
+    @Mock
+    private ICashTransactionStorageService           cashTransactionStorageService;
+    @Mock
+    private INapEventService                         napEventService;
+    @Mock
+    private IIdentityValidationService               identityValidationService;
+    @Mock
+    private IEhoEventService                         ehoEventService;
+    @Mock
+    private IDWHService                              dwhService;
+    @Mock
+    private IOtherPersonDetailService                otherPersonDetailService;
+    @Mock
+    private IRentPaymentService                      rentPaymentService;
+    @Mock
+    private MostRecentUsedAccountPublisher           mostRecentUsedAccountPublisher;
+    @Mock
+    private IProcessHistoryService                   processHistoryService;
+    @Mock
+    private ICustomerNotificationService             customerNotificationService;
+
+    @InjectMocks
+    private AfterPerformTransactionOperationsHandler handler;
+
+    @BeforeEach
+    public void init() throws CashTransactionAndDetailNotFoundException {
+        doNothing().when(napEventService).publishNapEvent(Mockito.any());
+        when(identityValidationService.createIdentityRecord(Mockito.any())).thenReturn(MoneyDepositTransactionServiceTestUtil.createResponseIdentityValidation());
+        doNothing().when(ehoEventService).publishEhoEvent(Mockito.any());
+        doNothing().when(mostRecentUsedAccountPublisher).publishToMostRecentUsedAccountQueue(Mockito.any());
+    }
+
+    @Test
+    void when_performOperationsAfterTransaction_shouldCompleteSuccessfullyForDeposit() throws CashTransactionAndDetailNotFoundException, DWHException, MoneyDepositWithdrawQueueException, AccountException {
+        when(cashTransactionStorageService.getCashTransactionAndDetail(Mockito.any())).thenReturn(createResponseCashTransactionAndDetailForDeposit());
+        doNothing().when(dwhService).sendDepositMessageViaCashTransactionInfo(Mockito.any());
+        doNothing().when(customerNotificationService).sendToNotificationQueue(Mockito.any(), Mockito.any());
+        handler.performOperationsAfterTransaction(createAfterPerformTransactionDTO());
+
+        verify(cashTransactionStorageService, times(1)).getCashTransactionAndDetail(Mockito.any());
+        verify(napEventService, times(1)).publishNapEvent(Mockito.any());
+        verify(identityValidationService, times(1)).createIdentityRecord(Mockito.any());
+        verify(ehoEventService, times(1)).publishEhoEvent(Mockito.any());
+        verify(dwhService, times(1)).sendDepositMessageViaCashTransactionInfo(Mockito.any());
+        verify(mostRecentUsedAccountPublisher, times(1)).publishToMostRecentUsedAccountQueue(Mockito.any(MostRecentUsedAccountDTO.class));
+        //verify(customerNotificationService, times(1)).sendToNotificationQueue(Mockito.any(CashTransactionDTO.class), Mockito.any());
+    }
+
+    @Test
+    void when_performOperationsAfterTransaction_shouldCompleteSuccessfullyForWithdraw() throws CashTransactionAndDetailNotFoundException, DWHException, MoneyDepositWithdrawQueueException, AccountException {
+        when(cashTransactionStorageService.getCashTransactionAndDetail(Mockito.any())).thenReturn(createResponseCashTransactionAndDetailForWithdraw());
+        doNothing().when(dwhService).sendWithdrawalMessageViaCashTransactionInfo(Mockito.any());
+        doNothing().when(customerNotificationService).sendToNotificationQueue(Mockito.any(), Mockito.any());
+        handler.performOperationsAfterTransaction(createAfterPerformTransactionDTO());
+
+        verify(cashTransactionStorageService, times(1)).getCashTransactionAndDetail(Mockito.any());
+        verify(napEventService, times(1)).publishNapEvent(Mockito.any());
+        verify(identityValidationService, times(1)).createIdentityRecord(Mockito.any());
+        verify(ehoEventService, times(1)).publishEhoEvent(Mockito.any());
+        verify(dwhService, times(1)).sendWithdrawalMessageViaCashTransactionInfo(Mockito.any());
+        verify(mostRecentUsedAccountPublisher, times(1)).publishToMostRecentUsedAccountQueue(Mockito.any(MostRecentUsedAccountDTO.class));
+        //verify(customerNotificationService, times(1)).sendToNotificationQueue(Mockito.any(CashTransactionDTO.class), Mockito.any());
+    }
+
+    @Test
+    void when_performReverseOperationsAfterTransaction_shouldCompleteSuccessfullyForDeposit() throws CashTransactionAndDetailNotFoundException, DWHException, MoneyDepositWithdrawQueueException {
+        when(cashTransactionStorageService.getCashTransactionAndDetail(Mockito.any())).thenReturn(createResponseCashTransactionAndDetailForDeposit());
+        doNothing().when(dwhService).sendDepositMessageViaCashTransactionInfo(Mockito.any());
+        handler.performReverseOperationsAfterTransaction(createAfterPerformTransactionDTO());
+
+        verify(cashTransactionStorageService, times(1)).getCashTransactionAndDetail(Mockito.any());
+        verify(napEventService, times(1)).publishNapEvent(Mockito.any());
+        verify(dwhService, times(1)).sendDepositMessageViaCashTransactionInfo(Mockito.any());
+    }
+
+    @Test
+    void when_performReverseOperationsAfterTransaction_shouldCompleteSuccessfullyForWithdraw() throws CashTransactionAndDetailNotFoundException, DWHException, MoneyDepositWithdrawQueueException {
+        when(cashTransactionStorageService.getCashTransactionAndDetail(Mockito.any())).thenReturn(createResponseCashTransactionAndDetailForWithdraw());
+        doNothing().when(dwhService).sendWithdrawalMessageViaCashTransactionInfo(Mockito.any());
+        handler.performReverseOperationsAfterTransaction(createAfterPerformTransactionDTO());
+
+        verify(cashTransactionStorageService, times(1)).getCashTransactionAndDetail(Mockito.any());
+        verify(napEventService, times(1)).publishNapEvent(Mockito.any());
+        verify(dwhService, times(1)).sendWithdrawalMessageViaCashTransactionInfo(Mockito.any());
+    }
+
+    private ResponseCashTransactionAndDetail createResponseCashTransactionAndDetailForWithdraw() {
+        ResponseCashTransactionAndDetail response = MoneyWithdrawTransactionServiceTestUtil.createResponseCashTransactionAndDetail();
+        response.getCashTransactionDTO().setStatus(FlowXApprovalStatus.COMPLETED.getStatus());
+        return response;
+    }
+
+    private ResponseCashTransactionAndDetail createResponseCashTransactionAndDetailForDeposit() {
+        ResponseCashTransactionAndDetail response = MoneyDepositTransactionServiceTestUtil.createResponseCashTransactionAndDetail();
+        response.getCashTransactionDTO().setStatus(FlowXApprovalStatus.COMPLETED.getStatus());
+        CashTransactionStoredRequest cashTransactionStoredRequest = response.getCashTransactionDetailList().get(0).getCashTransactionStoredRequest();
+        cashTransactionStoredRequest.setRentPaymentModalDetail(createMoneyDepositModalDetailDTO());
+        cashTransactionStoredRequest.setOtherPersonModalDetail(createMoneyDepositModalDetailDTO());
+        return response;
+    }
+
+    private MoneyDepositModalDetailDTO createMoneyDepositModalDetailDTO() {
+        MoneyDepositModalDetailDTO dto = new MoneyDepositModalDetailDTO();
+        dto.setCreateDate(new Date());
+        dto.setCreatedBy("U073485");
+        dto.setCustomerNo(13719L);
+        dto.setNameSurnameTitle("NAME SURNAME");
+        dto.setCashTransactionsId(1l);
+        dto.setCustomerTaxId(1234567891l);
+        dto.setIdentityNo(12345698789l);
+        dto.setId(1L);
+        return dto;
+    }
+
+    private AfterPerformTransactionDTO createAfterPerformTransactionDTO() {
+        AfterPerformTransactionDTO dto = new AfterPerformTransactionDTO();
+        dto.setApprovalExists(false);
+        dto.setCashTransactionId(1l);
+        return dto;
+    }
+
+}
