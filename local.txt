@@ -1,3 +1,102 @@
-[ERROR] Errors: 
-11-Dec-2024 01:15:58	[ERROR]   CustomerNotificationServiceTest.testGetParameters_Success:142 » Account Hesap iban bilgileri bulunamadı.
-11-Dec-2024 01:15:58	[ERROR]   CustomerNotificationServiceTest.testSendToNotificationQueue_Success:88 » Account Hesap iban bilgileri bulunamadı.
+@Test
+void testSendToNotificationQueue_Success() throws MicroException {
+    // Arrange
+    CashTransactionDTO cashTransactionDTO = new CashTransactionDTO();
+    cashTransactionDTO.setCreateDate(new Date());
+    cashTransactionDTO.setBranchCode("326");
+    cashTransactionDTO.setCreatedBy("U058408");
+    cashTransactionDTO.setUpdatedBy("U058408");
+
+    CashTransactionStoredRequest storedRequest = new CashTransactionStoredRequest();
+    storedRequest.setCheckedFlexibleAccount(Boolean.TRUE);
+    storedRequest.setTakeCommissionFromTransactionAmount(Boolean.FALSE);
+    storedRequest.setClientInfo(new ClientDTO());
+
+    CashTransactionDetailDTO detailDTO = new CashTransactionDetailDTO();
+    detailDTO.setTransactionId("txn123");
+    detailDTO.setAccountNo("369");
+    detailDTO.setAccountCurrency("TL");
+    detailDTO.setCurrency("TL");
+    detailDTO.setAmount(BigDecimal.valueOf(1000));
+    detailDTO.setCashTransactionStoredRequest(storedRequest);
+    detailDTO.setCommissionAmount(BigDecimal.ZERO);
+
+    List<CashTransactionDetailDTO> detailDTOList = Collections.singletonList(detailDTO);
+
+    BalanceDTO balanceDTO = new BalanceDTO();
+    balanceDTO.setAvailableBalance(BigDecimal.valueOf(5000));
+    balanceDTO.setOverDraftBalance(BigDecimal.valueOf(10000));
+
+    ResponseBalanceInfo balanceInfo = new ResponseBalanceInfo();
+    balanceInfo.setBalanceDTO(balanceDTO);
+
+    ResponseEntity<ResponseBalanceInfo> responseBalanceInfo = ResponseEntity.ok(balanceInfo);
+
+    // Değişiklik yapılan kısım: Artık accountNumberWithCurrency yerine getAccountByAccountNoWithoutException mock'lanıyor
+    AccountInfoResponse accountInfoResponse = new AccountInfoResponse();
+    accountInfoResponse.setIban("TRXXXXXX");
+    ResponseEntity<AccountInfoResponse> accountNumberEntity = ResponseEntity.ok(accountInfoResponse);
+
+    // Mocking AccountClient methods
+    when(accountClient.getBalanceInfo(anyString(), anyBoolean())).thenReturn(responseBalanceInfo);
+    when(accountClient.getAccountByAccountNoWithoutException(anyString())).thenReturn(accountNumberEntity);
+
+    // Act
+    customerNotificationService.sendToNotificationQueue(cashTransactionDTO, detailDTOList);
+
+    // Assert
+    verify(notificationProducer, times(1)).sendMessageToNotificationQueue(any(CustomerNotificationDTO.class));
+}
+
+
+@Test
+void testGetParameters_Success() throws MicroException {
+    // Arrange
+    CashTransactionDTO cashTransactionDTO = new CashTransactionDTO();
+    cashTransactionDTO.setCreateDate(new Date());
+    cashTransactionDTO.setBranchCode("326");
+    cashTransactionDTO.setCreatedBy("U058408");
+    cashTransactionDTO.setUpdatedBy("U058408");
+
+    CashTransactionStoredRequest storedRequest = new CashTransactionStoredRequest();
+    storedRequest.setCheckedFlexibleAccount(Boolean.TRUE);
+    storedRequest.setTakeCommissionFromTransactionAmount(Boolean.FALSE);
+    storedRequest.setClientInfo(new ClientDTO());
+
+    CashTransactionDetailDTO detailDTO = new CashTransactionDetailDTO();
+    detailDTO.setTransactionId("txn123");
+    detailDTO.setAccountNo("acc123");
+    detailDTO.setAccountCurrency("TL");
+    detailDTO.setCurrency("TL");
+    detailDTO.setAmount(BigDecimal.valueOf(1000));
+    detailDTO.setCashTransactionStoredRequest(storedRequest);
+    detailDTO.setCommissionAmount(BigDecimal.ZERO);
+
+    List<CashTransactionDetailDTO> detailDTOList = Collections.singletonList(detailDTO);
+
+    BalanceDTO balanceDTO = new BalanceDTO();
+    balanceDTO.setAvailableBalance(BigDecimal.valueOf(5000));
+    balanceDTO.setOverDraftBalance(BigDecimal.valueOf(10000));
+
+    ResponseBalanceInfo balanceInfo = new ResponseBalanceInfo();
+    balanceInfo.setBalanceDTO(balanceDTO);
+
+    ResponseEntity<ResponseBalanceInfo> responseBalanceInfo = ResponseEntity.ok(balanceInfo);
+
+    // Değişiklik: accountNumberWithCurrency yerine getAccountByAccountNoWithoutException mock'lanıyor
+    AccountInfoResponse accountInfoResponse = new AccountInfoResponse();
+    accountInfoResponse.setIban("TRXXXXXX");
+    ResponseEntity<AccountInfoResponse> accountNumberEntity = ResponseEntity.ok(accountInfoResponse);
+
+    // Mocking AccountClient methods
+    when(accountClient.getBalanceInfo(anyString(), anyBoolean())).thenReturn(responseBalanceInfo);
+    when(accountClient.getAccountByAccountNoWithoutException(anyString())).thenReturn(accountNumberEntity);
+
+    // Act
+    CustomerNotificationDTO result = customerNotificationService.getParameters(cashTransactionDTO, detailDTOList);
+
+    // Assert
+    assertNotNull(result);
+    assertNotNull(result.getTransactionHeader());
+    assertNotNull(result.getTransactionDetails());
+}
