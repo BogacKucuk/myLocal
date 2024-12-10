@@ -1,11 +1,3 @@
-
-public interface ICashSealApprovalService {
-    ResponseCreateCashSealApproval createCashSealApprovalRecord(RequestCreateCashSealApproval request) throws CashSealApprovalSaveException;
-
-    CashSealApprovalDTO findById(Long id) throws CashSealApprovalSaveException, CashSealApprovalNotFoundException;
-}
-
-
 package com.ykb.corebanking.vault.money.deposit.withdraw.service.impl;
 
 import com.ykb.corebanking.vault.money.deposit.withdraw.dto.CashSealApprovalDTO;
@@ -16,201 +8,127 @@ import com.ykb.corebanking.vault.money.deposit.withdraw.mapper.ICashSealApproval
 import com.ykb.corebanking.vault.money.deposit.withdraw.repository.ICashSealApprovalRepository;
 import com.ykb.corebanking.vault.money.deposit.withdraw.request.RequestCreateCashSealApproval;
 import com.ykb.corebanking.vault.money.deposit.withdraw.response.ResponseCreateCashSealApproval;
-import com.ykb.corebanking.vault.money.deposit.withdraw.service.ICashSealApprovalService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import java.util.Optional;
-
-@Service
-public class CashSealApprovalService implements ICashSealApprovalService {
-
-    private ICashSealApprovalRepository repository;
-
-    @Autowired
-    public CashSealApprovalService(ICashSealApprovalRepository repository) {
-        this.repository = repository;
-    }
-
-    @Override
-    public ResponseCreateCashSealApproval createCashSealApprovalRecord(RequestCreateCashSealApproval request) throws CashSealApprovalSaveException {
-        try {
-            if (request != null && request.getCashSealApprovalDTO() != null) {
-                ResponseCreateCashSealApproval response = new ResponseCreateCashSealApproval();
-                CashSealApprovalEntity entity = repository.saveAndFlush(ICashSealApprovalMapper.INSTANCE.dtoToEntity(request.getCashSealApprovalDTO()));
-                response.setId(entity.getId());
-                response.setCashSealApprovalDTO(ICashSealApprovalMapper.INSTANCE.entityToDto(entity));
-                return response;
-            }
-            else {
-                throw new CashSealApprovalSaveException("Cash Seal Approval create record request boş olamaz.");
-            }
-
-        }
-        catch (Exception e) {
-            throw new CashSealApprovalSaveException("An error occurred while trying to create CASH_SEAL_APPROVAL record", e);
-        }
-    }
-
-    @Override
-    public CashSealApprovalDTO findById(Long id) throws CashSealApprovalSaveException, CashSealApprovalNotFoundException {
-        Optional<CashSealApprovalEntity> entity = repository.findById(id);
-        if (entity.isPresent()) {
-            return ICashSealApprovalMapper.INSTANCE.entityToDto(entity.get());
-        }
-        else {
-            throw new CashSealApprovalNotFoundException("Cash Seal Approval kaydı bulunamadı");
-        }
-    }
-}
-
-
-public interface ICashSealApprovalRepository extends JpaRepository<CashSealApprovalEntity, Long>, JpaSpecificationExecutor<CashSealApprovalEntity> {
-
-}
-
-package com.ykb.corebanking.vault.money.deposit.withdraw.entity;
-
-import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.Setter;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mapstruct.factory.Mappers;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.MockitoAnnotations;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import java.util.Date;
+import java.util.Optional;
 
-@Entity
-@Table(name = "CASH_SEAL_APPROVAL")
-@Getter
-@Setter
-public class CashSealApprovalEntity {
+@ExtendWith(SpringExtension.class)
+class CashSealApprovalServiceTest {
 
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY, generator = "SEQ_CASH_SEAL_APPROVAL")
-    @SequenceGenerator(name = "SEQ_CASH_SEAL_APPROVAL", sequenceName = "SEQ_CASH_SEAL_APPROVAL", allocationSize = 1)
-    @Column(name = "ID", length = 16)
-    private Long id;
+    @Mock
+    ICashSealApprovalRepository repository;
 
-    @Column(name = "CASH_TRANSACTION_ID", length = 16)
-    private Long cashTransactionId;
+    @InjectMocks
+    CashSealApprovalService service;
 
-    @Column(name = "PROCESS_CODE", length = 14)
-    private String processCode;
+    ICashSealApprovalMapper mapper = Mappers.getMapper(ICashSealApprovalMapper.class);
 
-    @Column(name = "CUSTOMER_NO", length = 12)
-    private Long customerNo;
-
-    @Column(name = "USER_CODE", length = 10)
-    private String userCode;
-
-    @Column(name = "BRANCH_CODE", length = 4)
-    private String branchCode;
-
-    @Column(name = "APPROVAL_TYPE", length = 20)
-    private String approvalType;
-
-    @Column(name = "CREATE_DATE")
-    private Date createDate;
-}
-
-@Getter
-@Setter
-public class ResponseCreateCashSealApproval {
-    private Long id;
-    private CashSealApprovalDTO cashSealApprovalDTO;
-}
-
-
-@Getter
-@Setter
-public class CashSealApprovalDTO {
-    private Long cashTransactionId;
-    private String processCode;
-    private Long customerNo;
-    private String userCode;
-    private String branchCode;
-    private String approvalType;
-    private Date createDate;
-
-}
-
-
-@Getter
-@Setter
-public class RequestCreateCashSealApproval {
-    private CashSealApprovalDTO cashSealApprovalDTO;
-}
-
-
-public class CashSealApprovalSaveException extends MicroException {
-    private static final long serialVersionUID = -8141519613513529651L;
-
-    public CashSealApprovalSaveException(ExceptionData data, Exception exception) {
-        super(data, exception);
+    @BeforeEach
+    void setup() {
+        MockitoAnnotations.openMocks(this);
     }
 
-    public CashSealApprovalSaveException(ExceptionData data, Map<String, String> parameters) {
-        super(data, parameters);
+    @Test
+    void createCashSealApprovalRecord_success() throws CashSealApprovalSaveException {
+        CashSealApprovalDTO dto = new CashSealApprovalDTO();
+        dto.setProcessCode("DEPOSIT");
+        dto.setCustomerNo(369L);
+        dto.setUserCode("U073485");
+        dto.setBranchCode("326");
+        dto.setApprovalType("S");
+        dto.setCreateDate(new Date());
+
+        RequestCreateCashSealApproval request = new RequestCreateCashSealApproval();
+        request.setCashSealApprovalDTO(dto);
+
+        CashSealApprovalEntity entity = mapper.dtoToEntity(dto);
+        entity.setId(1L);
+
+        Mockito.when(repository.saveAndFlush(Mockito.any(CashSealApprovalEntity.class))).thenReturn(entity);
+
+        ResponseCreateCashSealApproval response = service.createCashSealApprovalRecord(request);
+
+        Assertions.assertNotNull(response);
+        Assertions.assertEquals(1L, response.getId());
+        Assertions.assertNotNull(response.getCashSealApprovalDTO());
+        Assertions.assertEquals("DEPOSIT", response.getCashSealApprovalDTO().getProcessCode());
     }
 
-    public CashSealApprovalSaveException(ExceptionData data) {
-        super(data);
+    @Test
+    void createCashSealApprovalRecord_nullRequest_throwsException() {
+        Assertions.assertThrows(CashSealApprovalSaveException.class, () -> service.createCashSealApprovalRecord(null));
     }
 
-    public CashSealApprovalSaveException(String errorMessage, Exception exception) {
-        super(serialVersionUID, errorMessage, exception);
+    @Test
+    void createCashSealApprovalRecord_nullInnerDto_throwsException() {
+        RequestCreateCashSealApproval request = new RequestCreateCashSealApproval();
+        request.setCashSealApprovalDTO(null);
+
+        Assertions.assertThrows(CashSealApprovalSaveException.class, () -> service.createCashSealApprovalRecord(request));
     }
 
-    public CashSealApprovalSaveException(String errorMessage) {
-        super(serialVersionUID, errorMessage);
+    @Test
+    void createCashSealApprovalRecord_repositoryException_throwsException() {
+        CashSealApprovalDTO dto = new CashSealApprovalDTO();
+        dto.setProcessCode("WITHDRAW");
+        dto.setCustomerNo(369L);
+        dto.setUserCode("U073485");
+        dto.setBranchCode("326");
+        dto.setApprovalType("O");
+        dto.setCreateDate(new Date());
+
+        RequestCreateCashSealApproval request = new RequestCreateCashSealApproval();
+        request.setCashSealApprovalDTO(dto);
+
+        Mockito.when(repository.saveAndFlush(Mockito.any())).thenThrow(new RuntimeException("DB error"));
+
+        Assertions.assertThrows(CashSealApprovalSaveException.class, () -> service.createCashSealApprovalRecord(request));
     }
 
-    public CashSealApprovalSaveException() {
-        super(serialVersionUID);
-    }
-}
+    @Test
+    void findById_success() throws CashSealApprovalSaveException, CashSealApprovalNotFoundException {
+        CashSealApprovalEntity entity = new CashSealApprovalEntity();
+        entity.setId(1L);
+        entity.setProcessCode("DEPOSIT");
+        entity.setCustomerNo(369L);
+        entity.setUserCode("U073485");
+        entity.setBranchCode("326");
+        entity.setApprovalType("S");
+        entity.setCreateDate(new Date());
 
+        Mockito.when(repository.findById(1L)).thenReturn(Optional.of(entity));
 
-public class CashSealApprovalNotFoundException extends MicroException {
-    private static final long serialVersionUID = -8141519613513529651L;
+        CashSealApprovalDTO result = service.findById(1L);
 
-    public CashSealApprovalNotFoundException(ExceptionData data, Exception exception) {
-        super(data, exception);
-    }
-
-    public CashSealApprovalNotFoundException(ExceptionData data, Map<String, String> parameters) {
-        super(data, parameters);
-    }
-
-    public CashSealApprovalNotFoundException(ExceptionData data) {
-        super(data);
-    }
-
-    public CashSealApprovalNotFoundException(String errorMessage, Exception exception) {
-        super(serialVersionUID, errorMessage, exception);
+        Assertions.assertNotNull(result);
+        Assertions.assertEquals("DEPOSIT", result.getProcessCode());
+        Assertions.assertEquals(369L, result.getCustomerNo());
+        Assertions.assertEquals("U073485", result.getUserCode());
+        Assertions.assertEquals("326", result.getBranchCode());
+        Assertions.assertEquals("S", result.getApprovalType());
     }
 
-    public CashSealApprovalNotFoundException(String errorMessage) {
-        super(serialVersionUID, errorMessage);
+    @Test
+    void findById_notFound_throwsException() {
+        Mockito.when(repository.findById(99L)).thenReturn(Optional.empty());
+
+        Assertions.assertThrows(CashSealApprovalNotFoundException.class, () -> service.findById(99L));
     }
 
-    public CashSealApprovalNotFoundException() {
-        super(serialVersionUID);
+    @Test
+    void findById_repositoryException_throwsSaveException() {
+        Mockito.when(repository.findById(Mockito.anyLong())).thenThrow(new RuntimeException("DB error"));
+        Assertions.assertThrows(CashSealApprovalSaveException.class, () -> service.findById(2L));
     }
-}
 
-
-package com.ykb.corebanking.vault.money.deposit.withdraw.mapper;
-
-import com.ykb.corebanking.vault.money.deposit.withdraw.dto.CashSealApprovalDTO;
-import com.ykb.corebanking.vault.money.deposit.withdraw.entity.CashSealApprovalEntity;
-import org.mapstruct.Mapper;
-import org.mapstruct.factory.Mappers;
-
-@Mapper(componentModel = "spring")
-public abstract class ICashSealApprovalMapper {
-
-    public static final ICashSealApprovalMapper INSTANCE = Mappers.getMapper(ICashSealApprovalMapper.class);
-
-    public abstract CashSealApprovalEntity dtoToEntity(CashSealApprovalDTO dto);
-
-    public abstract CashSealApprovalDTO entityToDto(CashSealApprovalEntity entity);
 }
