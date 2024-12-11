@@ -1,4 +1,169 @@
-[ERROR] Errors: 
-[ERROR]   CustomerNotificationServiceTest.testGetParameters_Success:140 » NullPointer Cannot invoke "java.math.BigDecimal.toString()" because the return value of "com.ykb.corebanking.vault.money.deposit.withdraw.dto.BalanceDTO.getValueBalance()" is null
-[ERROR]   CustomerNotificationServiceTest.testSendToNotificationQueue_Success:89 » NullPointer Cannot invoke "java.math.BigDecimal.toString()" because the return value of "com.ykb.corebanking.vault.money.deposit.withdraw.dto.BalanceDTO.getValueBalance()" is null
-[INFO] 
+1. Spring Bean Yaşam Döngüsü ve Yaratılma Sırası
+Spring Framework, uygulama başlatılırken uygulamanın temel bileşenlerini (Bean’leri) tespit ederek bir ApplicationContext içerisinde yönetir. Bir bean, Spring konteyneri tarafından yönetilen, lifecycle’ı Spring’e emanet edilmiş bir nesnedir. Bean tanımlarını genellikle @Component, @Service, @Repository, @Controller gibi stereotip anotasyonlarla veya @Bean metotlarıyla konfigüre ederiz.
+
+Temel Oluşturma Aşamaları:
+
+Bean Tanımlarının Keşfi:
+Spring, configuration class’larını (@Configuration anotasyonu ile işaretli), component-scan yoluyla bulunmuş sınıfları (@Component, @Service, @Repository, @Controller) ve manuel olarak XML ya da Java Config üzerinden belirtilmiş bean tanımlarını tespit eder.
+
+Bean Tanımlarının Kayıt Edilmesi (BeanDefinition Registration):
+Keşfedilen her bean tanımı, BeanDefinition olarak ApplicationContext’e kaydedilir. Bu aşamada henüz somut nesneler oluşturulmaz; sadece hangi bean’in hangi sınıftan üretileceği ve bağımlılıklarının neler olduğu kayıt altına alınır.
+
+Bean’lerin Oluşturulması (Instantiation) ve Bağımlılıkların Atanması (Dependency Injection):
+Tüm BeanDefinition’lar oluşturulmaya başlandığında, Spring bean’leri instantiate eder ve constructor / setter / field injection yoluyla bağımlılıklarını enjekte eder. Bu aşama esnasında bir bean, ihtiyaç duyduğu diğer bean’lere başvurur. Böylece bir bean enjekte edilirken, diğer bean’in de instantiate edilmesi gerekir.
+
+Bu noktada, eğer A bean’i B bean’ine ihtiyaç duyarken B bean’i de A bean’ine ihtiyaç duyuyorsa, circular dependency (döngüsel bağımlılık) meydana gelir.
+
+Post-Processing (Aware Interfaces, BeanPostProcessors):
+Bean oluşturma ve injection aşamaları tamamlanırken BeanPostProcessor gibi mekanizmalar devreye girerek bean’leri özelleştirebilir. Örneğin, @Autowired anotasyonlarını işleyen AutowiredAnnotationBeanPostProcessor bu aşamada çalışır.
+
+Lifecycle Callbacks ve Tamamlanma:
+Eğer bean’ler InitializingBean veya DisposableBean gibi belirli arayüzleri implement ediyorsa veya @PostConstruct / @PreDestroy gibi anotasyonlar varsa, bunlar bu aşamada çalışır.
+Tüm bean’ler oluşturulup bağımlılıkları çözümlendikten sonra ApplicationContext kullanımınıza hazır hale gelir.
+
+Kısaca Sıra:
+
+Bean tanımlarının bulunması
+Bean’lerin sırayla instantiate edilmesi
+Bağımlılıkların enjekte edilmesi (bu aşamada circular dependencies ortaya çıkar)
+Post-processor’lerin çalışması
+Initialization callback’leri
+Context’in hazır hale gelmesi
+2. Circular Dependency (Döngüsel Bağımlılık) Nedir?
+Circular dependency, iki veya daha fazla bean’in birbirine bağımlı olması anlamına gelir. Örneğin:
+
+java
+Kodu kopyala
+@Component
+public class A {
+    @Autowired
+    private B b;
+}
+
+@Component
+public class B {
+    @Autowired
+    private A a;
+}
+Burada, A bean’i oluşturulurken B bean’ine ihtiyaç vardır. Ancak B bean’i oluşturulurken de A bean’ine ihtiyaç duyulur. Bu kısır döngü, Spring’in bean oluşturma sürecinde bir çakışmaya neden olur.
+
+Neden Sorun Teşkil Eder?
+
+Spring, bean’leri oluşturup dependency injection yaparken sıralı bir şekilde ilerler. Bir bean’in oluşturulabilmesi için diğer bean’lerin de oluşturulması gerekir. Circular dependency bu sıra mantığını bozar.
+Bu durum, runtime’da BeanCurrentlyInCreationException veya CircularReferenceException gibi hatalara yol açabilir.
+3. Spring’in Circular Dependency Konusundaki Varsayılan Davranışı
+Spring Framework (5.x öncesi davranışlar)
+Spring Framework, tarihsel olarak setter injection ile circular dependencies’i destekler. Yani constructor injection yerine setter/field injection kullandığınızda, Spring bean’lerin bir skeleton’unu (yarı oluşturulmuş bean) önce hafızada tutar, sonra bağımlılıklarını set eder. Bu, bazı döngüsel durumları tolere edebilir.
+
+Constructor-based Injection Durumunda:
+Constructor injection, genellikle circular dependency sorununu daha erken ortaya çıkarır. Çünkü bean daha en baştan tam bağımlılıklarla birlikte oluşturulmak ister. Bu da döngüsel bir durumda Spring’in bean’i oluşturmak için kısır döngüye girmesine sebep olur.
+
+Spring Boot 2.6+ Değişikliği:
+Spring Boot 2.6 ile birlikte varsayılan olarak circular dependency durumu artık hata fırlatmaktadır. Bundan önce Spring Boot, setter injection üzerinden çoğu circular dependency durumunu tolere ediyordu. Ancak best practice’leri teşvik etmek adına artık spring.main.allow-circular-references özelliğini false olarak belirledi. Bu özelliği true yaparak eski davranışa dönebilirsiniz.
+
+4. Döngüsel Bağımlılıkları Çözmenin Yolları
+Tasarımsal Değişiklik:
+Genellikle circular dependency, tasarım hatalarından veya sınıfların birbirinin iş mantığına fazla bağımlı olmasından kaynaklanır. Mümkünse A ve B sınıflarının ilişkilerini yeniden düzenleyin, belki de araya bir aracı sınıf koyun veya tasarımı gevşetin.
+
+Constructor Injection yerine Setter/Field Injection (Öncelikli Tavsiye Değil):
+Bu bir çözüm sayılmaz, ama tarihsel olarak eğer constructor injection yerine setter injection kullanılıyorsa, Spring bazı circular durumlarını yönetebiliyordu. Ancak bu iyi bir pratik değildir, çünkü constructor injection ile bağımlılıklarınızın gerekliliğini daha net ifade edersiniz.
+
+@Lazy Anotasyonu Kullanımı:
+Eğer circular dependency tamamen kaçınılmazsa (pek tavsiye edilmese de), @Lazy anotasyonu ile bean enjekte edildiği anda değil, gerçekten ihtiyaç duyulduğunda (lazy initialization) oluşturularak kısır döngünün kırılması sağlanabilir. Örneğin:
+
+java
+Kodu kopyala
+@Component
+public class A {
+    @Autowired
+    @Lazy
+    private B b;
+}
+Bu sayede A bean’i oluşturulurken B henüz tam oluşturulmamış olabilir ama A’nın hemen B’yi çağırması gerekmediği için Spring bunu tolere edebilir.
+
+ObjectFactory veya Provider Kullanımı:
+@Autowired ile birlikte ObjectFactory veya Provider kullanarak bean’in doğrudan değil, bir fabrikadan temin edilmesini sağlayarak circular dependency’yi erteleyebilirsiniz. Bu da bir anlamda lazy yaklaşımdır.
+
+5. Bean Overriding (Bean Üzerine Yazma) ve Circular Dependency İlişkisi
+Bean Overriding Nedir?
+Aynı bean adıyla birden fazla tanımlama yapıldığında Spring, varsayılan olarak en son tanımlanan bean’in önceki tanımları üzerine yazmasını (override etmesini) sağlayabilir ya da buna izin vermeyebilir. Spring Boot 2.1’den itibaren varsayılan olarak bean overriding devre dışı bırakılmıştır. Yani aynı isimde birden fazla bean tanımlarsanız hata alırsınız.
+
+Bean Overriding’in Circular Dependency’ye Etkisi:
+Doğrudan bir çözüm veya ilişki yoktur. Ancak bazen bir bean’i farklı konfigürasyonlarda yeniden tanımlamaya çalışırken oluşan karmaşık bağımlılıklar durumu kötüleştirebilir veya anlaşılmasını zorlaştırabilir. Bean overriding olmaksızın, hangi bean’in hangi bağımlılıklarla yüklendiği daha deterministik ve izlenebilir olur.
+
+6. Örnek Senaryolar
+Constructor Tabanlı Bağımlılıkta Circular Dependency:
+
+java
+Kodu kopyala
+@Component
+public class A {
+    private B b;
+    
+    @Autowired
+    public A(B b) {
+        this.b = b;
+    }
+}
+
+@Component
+public class B {
+    private A a;
+    
+    @Autowired
+    public B(A a) {
+        this.a = a;
+    }
+}
+Bu durumda Spring hemen hata verecektir çünkü A’yı oluşturmak için B gerekir, B’yi oluşturmak için A gerekir.
+
+Setter Tabanlı Bağımlılıkta Circular Dependency:
+
+java
+Kodu kopyala
+@Component
+public class A {
+    private B b;
+    
+    @Autowired
+    public void setB(B b) {
+        this.b = b;
+    }
+}
+
+@Component
+public class B {
+    private A a;
+    
+    @Autowired
+    public void setA(A a) {
+        this.a = a;
+    }
+}
+Eski sürümlerde Spring bunu tolere edebilir ve bean’leri kısmen oluşturup sonra setter’lar aracılığıyla birbirlerine atayabilirdi. Ancak Spring Boot 2.6+ varsayılan ayarlarıyla bu da hata verecektir (opsiyon açık değilse).
+
+@Lazy Kullanımı ile Döngüsel Bağımlılığın Kırılması:
+
+java
+Kodu kopyala
+@Component
+public class A {
+    @Autowired
+    @Lazy
+    private B b;
+}
+
+@Component
+public class B {
+    @Autowired
+    @Lazy
+    private A a;
+}
+Bu durumda, A oluşturulduğunda B’ye ihtiyaç duyar, fakat B henüz tamamen oluşturulmaksızın @Lazy proxy’si aracılığıyla enjekte edilebilir. Benzer şekilde B de A’yı lazy alır. Bu şekilde en azından konteyner start-up aşamasında circular dependency hatası önlenebilir, ancak run-time’da dikkatli kullanılmalıdır.
+
+Özetle:
+
+Circular dependency, iki veya daha fazla bean’in birbirine bağımlı olması sonucu oluşan bir tasarım problemidir.
+Spring, tarihsel olarak setter injection ile bazı durumları idare edebilse de, modern Spring Boot sürümlerinde varsayılan olarak bu durum artık hata fırlatır.
+Çözüm, genellikle tasarımsal karmaşıklığı azaltmaktan, @Lazy veya ObjectFactory gibi mekanizmalar kullanmaya kadar geniş bir yelpazede farklı yaklaşımlar içerir.
+Bean overriding, farklı bir konu olmakla birlikte, benzer şekilde yapılandırma karmaşasını artırıp debug etmeyi zorlaştırabilir.
