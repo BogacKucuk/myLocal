@@ -1,15 +1,14 @@
 package com.bogac.techtalks;
 
-import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
+import org.junit.Assert;
+import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.springframework.test.context.junit4.SpringRunner;
 
-
-@ExtendWith(SpringExtension.class)
+@RunWith(SpringRunner.class) // JUnit 4 için Spring test runner
 @SpringBootTest
 @ActiveProfiles("test")
 public class MyServiceTest {
@@ -20,66 +19,6 @@ public class MyServiceTest {
     @Test
     public void greetingTest() {
         String greeting = myService.greet("User");
-        Assertions.assertEquals("Hi User from overridden bean", greeting);
+        Assert.assertEquals("Hi User from overridden bean", greeting);
     }
 }
-
-
-
-package com.bogac.techtalks;
-
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import org.springframework.context.annotation.Profile;
-
-
-@Profile("test")
-@TestConfiguration
-public class TestConfig {
-
-    @Bean
-    public MyService myService() {
-        return name -> "Hi " + name + " from overridden bean";
-    }
-}
-
-
-package com.bogac.techtalks;
-
-
-public class MyServiceImpl implements MyService{
-    @Override
-    public String greet(String name) {
-        return "Hello " + name;
-    }
-}
-
-package com.bogac.techtalks;
-
-public interface MyService {
-    String greet(String name);
-}
-
-package com.bogac.techtalks;
-
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-
-@Configuration
-public class Config {
-
-    @Bean
-    public MyService myService() {
-        return new MyServiceImpl();
-    }
-}
-
-application.properties:
-spring.application.name=techtalks
-server.port=1997
-#spring.main.allow-bean-definition-overriding=true
-
-
-application-test.properties:
-spring.main.allow-bean-definition-overriding=true
