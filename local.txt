@@ -1,15 +1,124 @@
 package com.ykb.corebanking.vault.money.deposit.withdraw.service.impl;
 
-import static org.junit.Assert.assertTrue;
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+import java.util.stream.Collectors;
 
 import com.ykb.corebanking.vault.money.deposit.withdraw.dto.CashTrxnParameterDTO;
 import com.ykb.corebanking.vault.money.deposit.withdraw.exception.CashTrxnParameterException;
-import com.ykb.corebanking.vault.money.deposit.withdraw.request.*;
-import com.ykb.corebanking.vault.money.deposit.withdraw.response.*;
-import com.ykb.corebanking.vault.money.deposit.withdraw.service.ICashTrxnInfoParameterService;
+import com.ykb.corebanking.vault.money.deposit.withdraw.request.RequestCashTrxnCreateParameter;
+import com.ykb.corebanking.vault.money.deposit.withdraw.request.RequestCashTrxnUpdateParameter;
+import com.ykb.corebanking.vault.money.deposit.withdraw.response.ResponseCashTrxnCreateParameter;
+import com.ykb.corebanking.vault.money.deposit.withdraw.response.ResponseCashTrxnSystemParameterList;
+import com.ykb.corebanking.vault.money.deposit.withdraw.response.ResponseCashTrxnUpdateParameter;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import com.ykb.corebanking.vault.money.deposit.withdraw.entity.CashTrxnSystemParameterEntity;
+import com.ykb.corebanking.vault.money.deposit.withdraw.mapper.ICashTrxnSystemParameterMapper;
+import com.ykb.corebanking.vault.money.deposit.withdraw.repository.ICashTrxnSystemParameterRepository;
+import com.ykb.corebanking.vault.money.deposit.withdraw.request.RequestCashTrxnSystemParameter;
+import com.ykb.corebanking.vault.money.deposit.withdraw.response.ResponseCashTrxnSystemParameter;
 import com.ykb.corebanking.vault.money.deposit.withdraw.service.ICashTrxnSystemParameterService;
+
+@Service
+public class CashTrxnSystemParameterService implements ICashTrxnSystemParameterService {
+    
+    @Autowired
+    ICashTrxnSystemParameterRepository cashTrxnSystemParameterRepository;
+
+    @Override
+    public ResponseCashTrxnSystemParameter getCashTrxnSystemParameter(RequestCashTrxnSystemParameter request) {
+        ResponseCashTrxnSystemParameter response = null;
+        if (request != null) {
+            Optional<CashTrxnSystemParameterEntity> optionalEntity = cashTrxnSystemParameterRepository.findById(request.getParameterName());
+            if (optionalEntity.isPresent()) {
+                response = new ResponseCashTrxnSystemParameter();
+                response.setCashTrxnParameterDTO(ICashTrxnSystemParameterMapper.INSTANCE.toDto(optionalEntity.get()));
+            }
+        }
+        return response;
+    }
+
+    @Override
+    public void updateReldayParameter( String paramName ) {
+        
+        cashTrxnSystemParameterRepository.updateReldayParameter(paramName);
+        
+    }
+
+    @Override
+    public ResponseCashTrxnSystemParameterList getCashTrxnSystemParametersContaining(RequestCashTrxnSystemParameter request) {
+        ResponseCashTrxnSystemParameterList responseList = new ResponseCashTrxnSystemParameterList();
+        if (request != null && request.getParameterName() != null) {
+            List<CashTrxnSystemParameterEntity> entities = cashTrxnSystemParameterRepository.findByParameterNameContaining(request.getParameterName());
+            if (entities != null && !entities.isEmpty()) {
+                List<CashTrxnParameterDTO> dtos = entities.stream()
+                        .map(ICashTrxnSystemParameterMapper.INSTANCE::toDto)
+                        .collect(Collectors.toCollection(ArrayList::new));
+                responseList.setCashTrxnParameterDTOList(dtos);
+            }
+        }
+        return responseList;
+    }
+
+    @Override
+    public ResponseCashTrxnCreateParameter createSystemParameter(RequestCashTrxnCreateParameter request) throws CashTrxnParameterException {
+        ResponseCashTrxnCreateParameter response = new ResponseCashTrxnCreateParameter();
+        try {
+            if(request != null && request.getParameterDTO() != null) {
+                CashTrxnSystemParameterEntity entity = cashTrxnSystemParameterRepository.saveAndFlush(ICashTrxnSystemParameterMapper.INSTANCE.toEntity(request.getParameterDTO()));
+                response.setParameterName(entity.getParameterName());
+                response.setParameterDTO(ICashTrxnSystemParameterMapper.INSTANCE.toDto(entity));
+                return response;
+            }
+            else {
+                throw new CashTrxnParameterException("Request null olamaz");
+            }
+        }
+        catch (Exception e) {
+            throw new CashTrxnParameterException("SYSTEM tablosuna kayıt oluştururken hata alındı.");
+        }
+    }
+
+    @Override
+    public void deleteCashTrxnSystemParameter(String id) throws CashTrxnParameterException {
+        try {
+            cashTrxnSystemParameterRepository.deleteById(id);
+        }
+        catch (Exception e) {
+            throw new CashTrxnParameterException(id + " silinirken hata alındı.");
+        }
+    }
+
+    @Override
+    public ResponseCashTrxnUpdateParameter updateCashTrxnSystemParameter(RequestCashTrxnUpdateParameter request) throws CashTrxnParameterException {
+        try {
+            CashTrxnSystemParameterEntity entity = cashTrxnSystemParameterRepository.saveAndFlush(ICashTrxnSystemParameterMapper.INSTANCE.toEntity(request.getCashTrxnParameterDTO()));
+            ResponseCashTrxnUpdateParameter response = new ResponseCashTrxnUpdateParameter();
+            response.setParameterName(entity.getParameterName());
+            response.setCashTrxnParameterDTO(ICashTrxnSystemParameterMapper.INSTANCE.toDto(entity));
+            return response;
+        }
+        catch (Exception e) {
+            throw new CashTrxnParameterException(request.getCashTrxnParameterDTO().getParameterName() + " güncellernirken hata alındı.");
+        }
+    }
+
+}
+
+
+package com.ykb.corebanking.vault.money.deposit.withdraw.service.impl;
+
+import static org.junit.Assert.assertTrue;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.Optional;
+
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -17,251 +126,44 @@ import org.mockito.Mock;
 import org.mockito.Mockito;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
+import com.ykb.corebanking.vault.money.deposit.withdraw.entity.CashTrxnSystemParameterEntity;
+import com.ykb.corebanking.vault.money.deposit.withdraw.repository.ICashTrxnSystemParameterRepository;
+import com.ykb.corebanking.vault.money.deposit.withdraw.request.RequestCashTrxnSystemParameter;
+import com.ykb.corebanking.vault.money.deposit.withdraw.response.ResponseCashTrxnSystemParameter;
 
 @ExtendWith(SpringExtension.class)
-class CashTrxnParameterServiceTest {
+class CashTrxnSystemParameterServiceTest {
 
     @InjectMocks
-    private CashTrxnParameterService cashTrxnParameterService;
+    private CashTrxnSystemParameterService     cashTrxnSystemParameterService;
 
     @Mock
-    private ICashTrxnInfoParameterService cashTrxnInfoParameterService;
-
-    @Mock
-    private ICashTrxnSystemParameterService cashTrxnSystemParameterService;
+    private ICashTrxnSystemParameterRepository cashTrxnSystemParameterRepository;
 
     @Test
-    void when_getCashTrxnInfoParameterWithCache_shouldReturnParameter() {
-        when(cashTrxnInfoParameterService.getCashTrxnInfoParameter(Mockito.any()))
-                .thenReturn(createResponseCashTrxnInfoParameter());
-        CashTrxnParameterDTO cashTrxnParameterDTO = cashTrxnParameterService.getCashTrxnInfoParameterWithCache("PARAMETER_NAME");
-        assertTrue(cashTrxnParameterDTO != null && "VALUE".equals(cashTrxnParameterDTO.getValue()));
+    void when_getCashTrxnSystemParameter_shouldReturnParameter() {
+        when(cashTrxnSystemParameterRepository.findById(Mockito.anyString())).thenReturn(Optional.of(createCashTrxnSystemParameterEntity()));
+        RequestCashTrxnSystemParameter request = new RequestCashTrxnSystemParameter();
+        request.setParameterName("NAME");
+        ResponseCashTrxnSystemParameter response = cashTrxnSystemParameterService.getCashTrxnSystemParameter(request);
+        assertTrue(response != null && response.getCashTrxnParameterDTO() != null && "Y".equals(response.getCashTrxnParameterDTO().getValue()));
     }
-
+    
     @Test
-    void when_getCashTrxnSystemParameterWithCache_shouldReturnParameter() {
-        when(cashTrxnSystemParameterService.getCashTrxnSystemParameter(Mockito.any()))
-                .thenReturn(createResponseCashTrxnSystemParameter());
-        CashTrxnParameterDTO cashTrxnParameterDTO = cashTrxnParameterService.getCashTrxnSystemParameterWithCache("PARAMETER_NAME");
-        assertTrue(cashTrxnParameterDTO != null && "VALUE".equals(cashTrxnParameterDTO.getValue()));
+    void when_updateReldayParameter_shouldSucceed() {
+        String test= "app.micro.vault.money.deposit.withdraw.nap.date";
+
+        doNothing().when(cashTrxnSystemParameterRepository).updateReldayParameter(test);
+        cashTrxnSystemParameterService.updateReldayParameter(test);
+        verify(cashTrxnSystemParameterRepository, times(1)).updateReldayParameter(test);
     }
 
-    // Yeni eklenen metotlar için testler
-
-    @Test
-    void when_createCashTrxnParameter_withInfoTable_shouldCallInfoService() throws CashTrxnParameterException {
-        ResponseCashTrxnCreateParameter mockResponse = new ResponseCashTrxnCreateParameter();
-        mockResponse.setParameterName("INFO_PARAM");
-        when(cashTrxnInfoParameterService.createInfoParameter(any(RequestCashTrxnCreateParameter.class))).thenReturn(mockResponse);
-
-        RequestCashTrxnCreateParameter request = new RequestCashTrxnCreateParameter();
-        request.setTable("INFO");
-        ResponseCashTrxnCreateParameter response = cashTrxnParameterService.createCashTrxnParameter(request);
-
-        assertNotNull(response);
-        assertEquals("INFO_PARAM", response.getParameterName());
-        verify(cashTrxnInfoParameterService, times(1)).createInfoParameter(request);
-        verifyNoInteractions(cashTrxnSystemParameterService);
+    private CashTrxnSystemParameterEntity createCashTrxnSystemParameterEntity() {
+        CashTrxnSystemParameterEntity entity = new CashTrxnSystemParameterEntity();
+        entity.setParameterName("NAME");
+        entity.setValue("Y");
+        return entity;
     }
 
-    @Test
-    void when_createCashTrxnParameter_withSystemTable_shouldCallSystemService() throws CashTrxnParameterException {
-        ResponseCashTrxnCreateParameter mockResponse = new ResponseCashTrxnCreateParameter();
-        mockResponse.setParameterName("SYS_PARAM");
-        when(cashTrxnSystemParameterService.createSystemParameter(any(RequestCashTrxnCreateParameter.class))).thenReturn(mockResponse);
-
-        RequestCashTrxnCreateParameter request = new RequestCashTrxnCreateParameter();
-        request.setTable("SYSTEM");
-        ResponseCashTrxnCreateParameter response = cashTrxnParameterService.createCashTrxnParameter(request);
-
-        assertNotNull(response);
-        assertEquals("SYS_PARAM", response.getParameterName());
-        verify(cashTrxnSystemParameterService, times(1)).createSystemParameter(request);
-        verifyNoInteractions(cashTrxnInfoParameterService);
-    }
-
-    @Test
-    void when_deleteCashTrxnParameter_withInfoTable_shouldCallInfoService() throws CashTrxnParameterException {
-        doNothing().when(cashTrxnInfoParameterService).deleteCashTrxnInfoParameter("PARAM_NAME");
-
-        RequestCashTrxnDeleteParameter request = new RequestCashTrxnDeleteParameter();
-        request.setTable("INFO");
-        request.setParameterName("PARAM_NAME");
-
-        assertDoesNotThrow(() -> cashTrxnParameterService.deleteCashTrxnParameter(request));
-        verify(cashTrxnInfoParameterService, times(1)).deleteCashTrxnInfoParameter("PARAM_NAME");
-        verifyNoInteractions(cashTrxnSystemParameterService);
-    }
-
-    @Test
-    void when_deleteCashTrxnParameter_withSystemTable_shouldCallSystemService() throws CashTrxnParameterException {
-        doNothing().when(cashTrxnSystemParameterService).deleteCashTrxnSystemParameter("SYS_NAME");
-
-        RequestCashTrxnDeleteParameter request = new RequestCashTrxnDeleteParameter();
-        request.setTable("SYSTEM");
-        request.setParameterName("SYS_NAME");
-
-        assertDoesNotThrow(() -> cashTrxnParameterService.deleteCashTrxnParameter(request));
-        verify(cashTrxnSystemParameterService, times(1)).deleteCashTrxnSystemParameter("SYS_NAME");
-        verifyNoInteractions(cashTrxnInfoParameterService);
-    }
-
-    @Test
-    void when_updateCashTrxnParameter_withInfoTable_shouldCallInfoService() throws CashTrxnParameterException {
-        ResponseCashTrxnUpdateParameter mockResponse = new ResponseCashTrxnUpdateParameter();
-        mockResponse.setParameterName("INFO_UPDATED");
-        when(cashTrxnInfoParameterService.updateCashTrxnInfoParameter(any(RequestCashTrxnUpdateParameter.class))).thenReturn(mockResponse);
-
-        RequestCashTrxnUpdateParameter request = new RequestCashTrxnUpdateParameter();
-        request.setTable("INFO");
-
-        ResponseCashTrxnUpdateParameter response = cashTrxnParameterService.updateCashTrxnParameter(request);
-        assertNotNull(response);
-        assertEquals("INFO_UPDATED", response.getParameterName());
-        verify(cashTrxnInfoParameterService, times(1)).updateCashTrxnInfoParameter(request);
-        verifyNoInteractions(cashTrxnSystemParameterService);
-    }
-
-    @Test
-    void when_updateCashTrxnParameter_withSystemTable_shouldCallSystemService() throws CashTrxnParameterException {
-        ResponseCashTrxnUpdateParameter mockResponse = new ResponseCashTrxnUpdateParameter();
-        mockResponse.setParameterName("SYS_UPDATED");
-        when(cashTrxnSystemParameterService.updateCashTrxnSystemParameter(any(RequestCashTrxnUpdateParameter.class))).thenReturn(mockResponse);
-
-        RequestCashTrxnUpdateParameter request = new RequestCashTrxnUpdateParameter();
-        request.setTable("SYSTEM");
-
-        ResponseCashTrxnUpdateParameter response = cashTrxnParameterService.updateCashTrxnParameter(request);
-        assertNotNull(response);
-        assertEquals("SYS_UPDATED", response.getParameterName());
-        verify(cashTrxnSystemParameterService, times(1)).updateCashTrxnSystemParameter(request);
-        verifyNoInteractions(cashTrxnInfoParameterService);
-    }
-
-    @Test
-    void when_searchCashTrxnParameter_forInfoLikeSearch_shouldCall_getCashTrxnInfoParametersContainingWithCache() {
-        RequestCashTrxnSearchParameter request = new RequestCashTrxnSearchParameter();
-        request.setTable("INFO");
-        request.setParameterName("PARAM");
-        request.setLikeSearch(true);
-
-        CashTrxnParameterDTO dto = createCashTrxnParameterDTO("INFO_PARAM", "VAL");
-        when(cashTrxnInfoParameterService.getCashTrxnInfoParametersContaining(any()))
-                .thenReturn(createInfoParameterListResponse(Arrays.asList(dto)));
-
-        ResponseCashTrxnSearchParameter response = cashTrxnParameterService.searchCashTrxnParameter(request);
-        assertNotNull(response);
-        assertNotNull(response.getCashTrxnParameterDTOList());
-        assertEquals(1, response.getCashTrxnParameterDTOList().size());
-        assertEquals("VAL", response.getCashTrxnParameterDTOList().get(0).getValue());
-    }
-
-    @Test
-    void when_searchCashTrxnParameter_forInfoExactSearch_shouldCall_getCashTrxnInfoParameterWithCache() {
-        RequestCashTrxnSearchParameter request = new RequestCashTrxnSearchParameter();
-        request.setTable("INFO");
-        request.setParameterName("PARAM");
-        request.setLikeSearch(false);
-
-        when(cashTrxnInfoParameterService.getCashTrxnInfoParameter(any()))
-                .thenReturn(createResponseCashTrxnInfoParameter());
-
-        ResponseCashTrxnSearchParameter response = cashTrxnParameterService.searchCashTrxnParameter(request);
-        assertNotNull(response);
-        assertNotNull(response.getCashTrxnParameterDTOList());
-        assertEquals(1, response.getCashTrxnParameterDTOList().size());
-        assertEquals("VALUE", response.getCashTrxnParameterDTOList().get(0).getValue());
-    }
-
-    @Test
-    void when_searchCashTrxnParameter_forSystemLikeSearch_shouldCall_getCashTrxnSystemParametersContainingWithCache() {
-        RequestCashTrxnSearchParameter request = new RequestCashTrxnSearchParameter();
-        request.setTable("SYSTEM");
-        request.setParameterName("SYS_PARAM");
-        request.setLikeSearch(true);
-
-        CashTrxnParameterDTO dto = createCashTrxnParameterDTO("SYS_PARAM", "SYS_VAL");
-        when(cashTrxnSystemParameterService.getCashTrxnSystemParametersContaining(any()))
-                .thenReturn(createSystemParameterListResponse(Arrays.asList(dto)));
-
-        ResponseCashTrxnSearchParameter response = cashTrxnParameterService.searchCashTrxnParameter(request);
-        assertNotNull(response);
-        assertNotNull(response.getCashTrxnParameterDTOList());
-        assertEquals(1, response.getCashTrxnParameterDTOList().size());
-        assertEquals("SYS_VAL", response.getCashTrxnParameterDTOList().get(0).getValue());
-    }
-
-    @Test
-    void when_searchCashTrxnParameter_forSystemExactSearch_shouldCall_getCashTrxnSystemParameterWithCache() {
-        RequestCashTrxnSearchParameter request = new RequestCashTrxnSearchParameter();
-        request.setTable("SYSTEM");
-        request.setParameterName("SYS_PARAM");
-        request.setLikeSearch(false);
-
-        when(cashTrxnSystemParameterService.getCashTrxnSystemParameter(any()))
-                .thenReturn(createResponseCashTrxnSystemParameter());
-
-        ResponseCashTrxnSearchParameter response = cashTrxnParameterService.searchCashTrxnParameter(request);
-        assertNotNull(response);
-        assertNotNull(response.getCashTrxnParameterDTOList());
-        assertEquals(1, response.getCashTrxnParameterDTOList().size());
-        assertEquals("VALUE", response.getCashTrxnParameterDTOList().get(0).getValue());
-    }
-
-    @Test
-    void when_getCashTrxnSystemParametersContainingWithCache_shouldReturnList() {
-        CashTrxnParameterDTO dto = createCashTrxnParameterDTO("SYSTEM_PARAM", "SYSTEM_VAL");
-        when(cashTrxnSystemParameterService.getCashTrxnSystemParametersContaining(any()))
-                .thenReturn(createSystemParameterListResponse(Arrays.asList(dto)));
-
-        List<CashTrxnParameterDTO> result = cashTrxnParameterService.getCashTrxnSystemParametersContainingWithCache("SYSTEM_PARAM");
-        assertNotNull(result);
-        assertEquals(1, result.size());
-        assertEquals("SYSTEM_VAL", result.get(0).getValue());
-    }
-
-    @Test
-    void when_getCashTrxnSystemParametersContainingWithCache_noResults_shouldReturnEmptyList() {
-        when(cashTrxnSystemParameterService.getCashTrxnSystemParametersContaining(any()))
-                .thenReturn(createSystemParameterListResponse(Collections.emptyList()));
-
-        List<CashTrxnParameterDTO> result = cashTrxnParameterService.getCashTrxnSystemParametersContainingWithCache("NON_EXISTING");
-        // Dikkat: Kodda eğer boş dönerse boş list (new ArrayList<>) olarak set ediliyor. Null dönmeyeceğini varsayıyoruz.
-        assertNotNull(result);
-        assertTrue(result.isEmpty());
-    }
-
-    private ResponseCashTrxnInfoParameter createResponseCashTrxnInfoParameter() {
-        ResponseCashTrxnInfoParameter response = new ResponseCashTrxnInfoParameter();
-        response.setCashTrxnParameterDTO(createCashTrxnParameterDTO("PARAMETER_NAME", "VALUE"));
-        return response;
-    }
-
-    private ResponseCashTrxnSystemParameter createResponseCashTrxnSystemParameter() {
-        ResponseCashTrxnSystemParameter response = new ResponseCashTrxnSystemParameter();
-        response.setCashTrxnParameterDTO(createCashTrxnParameterDTO("PARAMETER_NAME", "VALUE"));
-        return response;
-    }
-
-    private CashTrxnParameterDTO createCashTrxnParameterDTO(String name, String value) {
-        CashTrxnParameterDTO dto = new CashTrxnParameterDTO();
-        dto.setParameterName(name);
-        dto.setValue(value);
-        return dto;
-    }
-
-    private ResponseCashTrxnInfoParameterList createInfoParameterListResponse(List<CashTrxnParameterDTO> dtoList) {
-        ResponseCashTrxnInfoParameterList response = new ResponseCashTrxnInfoParameterList();
-        response.setCashTrxnParameterDTOList(dtoList == null || dtoList.isEmpty() ? null : dtoList);
-        return response;
-    }
-
-    private ResponseCashTrxnSystemParameterList createSystemParameterListResponse(List<CashTrxnParameterDTO> dtoList) {
-        ResponseCashTrxnSystemParameterList response = new ResponseCashTrxnSystemParameterList();
-        response.setCashTrxnParameterDTOList(dtoList == null || dtoList.isEmpty() ? null : dtoList);
-        return response;
-    }
 }
+
