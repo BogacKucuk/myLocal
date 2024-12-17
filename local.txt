@@ -1,18 +1,226 @@
+package com.ykb.corebanking.vault.money.deposit.withdraw.service.impl;
+
+import com.ykb.corebanking.vault.money.deposit.withdraw.exception.CashTrxnParameterException;
+import com.ykb.corebanking.vault.money.deposit.withdraw.request.*;
+import com.ykb.corebanking.vault.money.deposit.withdraw.response.*;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.annotation.Cacheable;
+import org.springframework.stereotype.Service;
+
+import com.ykb.corebanking.vault.money.deposit.withdraw.dto.CashTrxnParameterDTO;
+import com.ykb.corebanking.vault.money.deposit.withdraw.service.ICashTrxnParameterService;
+import com.ykb.corebanking.vault.money.deposit.withdraw.service.ICashTrxnInfoParameterService;
+import com.ykb.corebanking.vault.money.deposit.withdraw.service.ICashTrxnSystemParameterService;
+
+import java.util.ArrayList;
+import java.util.List;
+
+@Service
+public class CashTrxnParameterService implements ICashTrxnParameterService {
+
+    @Autowired
+    private ICashTrxnInfoParameterService   cashTrxnInfoParameterService;
+    @Autowired
+    private ICashTrxnSystemParameterService cashTrxnSystemParameterService;
+
+
+    @Override
+    @Cacheable(value = "MoneyDepositWithdrawOneDayCache", unless = "#result == null", key = "#root.method.name.concat(':').concat(#parameterName)")
+    public CashTrxnParameterDTO getCashTrxnInfoParameterWithCache(String parameterName) {
+        CashTrxnParameterDTO cashTrxnParameterDTO = null;
+        RequestCashTrxnInfoParameter requestCashTrxnInfoParameter = new RequestCashTrxnInfoParameter();
+        requestCashTrxnInfoParameter.setParameterName(parameterName);
+        ResponseCashTrxnInfoParameter responseCashTrxnInfoParameter = cashTrxnInfoParameterService.getCashTrxnInfoParameter(requestCashTrxnInfoParameter);
+        if (responseCashTrxnInfoParameter != null) {
+            cashTrxnParameterDTO = responseCashTrxnInfoParameter.getCashTrxnParameterDTO();
+        }
+        return cashTrxnParameterDTO;
+    }
+
+    @Override
+    @Cacheable(value = "MoneyDepositWithdrawOneDayCache", unless = "#result == null", key = "#root.method.name.concat(':').concat(#parameterName)")
+    public CashTrxnParameterDTO getCashTrxnSystemParameterWithCache(String parameterName) {
+        CashTrxnParameterDTO cashTrxnParameterDTO = null;
+        RequestCashTrxnSystemParameter requestCashTrxnSystemParameter = new RequestCashTrxnSystemParameter();
+        requestCashTrxnSystemParameter.setParameterName(parameterName);
+        ResponseCashTrxnSystemParameter responseCashTrxnSystemParameter = cashTrxnSystemParameterService.getCashTrxnSystemParameter(requestCashTrxnSystemParameter);
+        if (responseCashTrxnSystemParameter != null) {
+            cashTrxnParameterDTO = responseCashTrxnSystemParameter.getCashTrxnParameterDTO();
+        }
+        return cashTrxnParameterDTO;
+    }
+
+    @Override
+    @Cacheable(value = "MoneyDepositWithdrawOneDayCache", unless = "#result == null", key = "#root.method.name.concat(':').concat(#parameterName)")
+    public List<CashTrxnParameterDTO> getCashTrxnInfoParametersContainingWithCache(String parameterName) {
+        List<CashTrxnParameterDTO> parameterDTOList = null;
+        RequestCashTrxnInfoParameter requestCashTrxnInfoParameter = new RequestCashTrxnInfoParameter();
+        requestCashTrxnInfoParameter.setParameterName(parameterName);
+        ResponseCashTrxnInfoParameterList response = cashTrxnInfoParameterService.getCashTrxnInfoParametersContaining(requestCashTrxnInfoParameter);
+        if (response != null && response.getCashTrxnParameterDTOList() != null && !response.getCashTrxnParameterDTOList().isEmpty()) {
+            parameterDTOList = response.getCashTrxnParameterDTOList();
+        }
+        return parameterDTOList;
+    }
+
+    @Override
+    @Cacheable(value = "MoneyDepositWithdrawOneDayCache", unless = "#result == null", key = "#root.method.name.concat(':').concat(#parameterName)")
+    public List<CashTrxnParameterDTO> getCashTrxnSystemParametersContainingWithCache(String parameterName) {
+        List<CashTrxnParameterDTO> parameterDTOList = new ArrayList<>();
+        RequestCashTrxnSystemParameter requestCashTrxnSystemParameter = new RequestCashTrxnSystemParameter();
+        requestCashTrxnSystemParameter.setParameterName(parameterName);
+        ResponseCashTrxnSystemParameterList response = cashTrxnSystemParameterService.getCashTrxnSystemParametersContaining(requestCashTrxnSystemParameter);
+        if (response != null && response.getCashTrxnParameterDTOList() != null && !response.getCashTrxnParameterDTOList().isEmpty()) {
+            parameterDTOList = response.getCashTrxnParameterDTOList();
+        }
+        return parameterDTOList;
+    }
+
+    @Override
+    public ResponseCashTrxnSearchParameter searchCashTrxnParameter(RequestCashTrxnSearchParameter request) {
+        ResponseCashTrxnSearchParameter response = new ResponseCashTrxnSearchParameter();
+        List<CashTrxnParameterDTO> parameterDTOList = new ArrayList<>();
+        if(request.getTable().equals("INFO")) {
+            if (Boolean.TRUE.equals(request.getLikeSearch())) {
+                parameterDTOList = getCashTrxnInfoParametersContainingWithCache(request.getParameterName());
+                response.setCashTrxnParameterDTOList(parameterDTOList);
+            }
+            else {
+                CashTrxnParameterDTO cashTrxnParameterDTO = getCashTrxnInfoParameterWithCache(request.getParameterName());
+                if (cashTrxnParameterDTO != null) {
+                    parameterDTOList.add(cashTrxnParameterDTO);
+                }
+                response.setCashTrxnParameterDTOList(parameterDTOList);
+            }
+        }
+        else {
+            if(Boolean.TRUE.equals(request.getLikeSearch())) {
+                parameterDTOList = getCashTrxnSystemParametersContainingWithCache(request.getParameterName());
+                response.setCashTrxnParameterDTOList(parameterDTOList);
+            }
+            else {
+                CashTrxnParameterDTO cashTrxnParameterDTO = getCashTrxnSystemParameterWithCache(request.getParameterName());
+                if (cashTrxnParameterDTO != null) {
+                    parameterDTOList.add(cashTrxnParameterDTO);
+                }
+                response.setCashTrxnParameterDTOList(parameterDTOList);
+            }
+        }
+        return response;
+    }
+
+    @Override
+    public ResponseCashTrxnCreateParameter createCashTrxnParameter(RequestCashTrxnCreateParameter request) throws CashTrxnParameterException {
+        ResponseCashTrxnCreateParameter response;
+        if (request.getTable().equals("INFO")) {
+            response = cashTrxnInfoParameterService.createInfoParameter(request);
+        }
+        else {
+            response = cashTrxnSystemParameterService.createSystemParameter(request);
+        }
+        return response;
+    }
+
+    @Override
+    public void deleteCashTrxnParameter(RequestCashTrxnDeleteParameter request) throws CashTrxnParameterException {
+        if (request.getTable().equals("INFO")) {
+            cashTrxnInfoParameterService.deleteCashTrxnInfoParameter(request.getParameterName());
+        }
+        else {
+            cashTrxnSystemParameterService.deleteCashTrxnSystemParameter(request.getParameterName());
+        }
+    }
+
+    @Override
+    public ResponseCashTrxnUpdateParameter updateCashTrxnParameter(RequestCashTrxnUpdateParameter request) throws CashTrxnParameterException {
+        ResponseCashTrxnUpdateParameter response;
+        if (request.getTable().equals("INFO")) {
+            response = cashTrxnInfoParameterService.updateCashTrxnInfoParameter(request);
+        }
+        else {
+            response = cashTrxnSystemParameterService.updateCashTrxnSystemParameter(request);
+        }
+        return response;
+    }
+
+}
+
+
+package com.ykb.corebanking.vault.money.deposit.withdraw.service.impl;
+
+import static org.junit.Assert.assertTrue;
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.doNothing;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.Optional;
+
+import com.ykb.corebanking.vault.money.deposit.withdraw.dto.CashTrxnParameterDTO;
+import com.ykb.corebanking.vault.money.deposit.withdraw.exception.CashTrxnParameterException;
+import com.ykb.corebanking.vault.money.deposit.withdraw.request.RequestCashTrxnCreateParameter;
+import com.ykb.corebanking.vault.money.deposit.withdraw.request.RequestCashTrxnUpdateParameter;
+import com.ykb.corebanking.vault.money.deposit.withdraw.response.ResponseCashTrxnCreateParameter;
+import com.ykb.corebanking.vault.money.deposit.withdraw.response.ResponseCashTrxnSystemParameterList;
+import com.ykb.corebanking.vault.money.deposit.withdraw.response.ResponseCashTrxnUpdateParameter;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
+
+import com.ykb.corebanking.vault.money.deposit.withdraw.entity.CashTrxnSystemParameterEntity;
+import com.ykb.corebanking.vault.money.deposit.withdraw.repository.ICashTrxnSystemParameterRepository;
+import com.ykb.corebanking.vault.money.deposit.withdraw.request.RequestCashTrxnSystemParameter;
+import com.ykb.corebanking.vault.money.deposit.withdraw.response.ResponseCashTrxnSystemParameter;
+
+@ExtendWith(SpringExtension.class)
+class CashTrxnSystemParameterServiceTest {
+
+    @InjectMocks
+    private CashTrxnSystemParameterService     cashTrxnSystemParameterService;
+
+    @Mock
+    private ICashTrxnSystemParameterRepository cashTrxnSystemParameterRepository;
+
+    @Test
+    void when_getCashTrxnSystemParameter_shouldReturnParameter() {
+        when(cashTrxnSystemParameterRepository.findById(Mockito.anyString())).thenReturn(Optional.of(createCashTrxnSystemParameterEntity()));
+        RequestCashTrxnSystemParameter request = new RequestCashTrxnSystemParameter();
+        request.setParameterName("NAME");
+        ResponseCashTrxnSystemParameter response = cashTrxnSystemParameterService.getCashTrxnSystemParameter(request);
+        assertTrue(response != null && response.getCashTrxnParameterDTO() != null && "Y".equals(response.getCashTrxnParameterDTO().getValue()));
+    }
+    
+    @Test
+    void when_updateReldayParameter_shouldSucceed() {
+        String test= "app.micro.vault.money.deposit.withdraw.nap.date";
+
+        doNothing().when(cashTrxnSystemParameterRepository).updateReldayParameter(test);
+        cashTrxnSystemParameterService.updateReldayParameter(test);
+        verify(cashTrxnSystemParameterRepository, times(1)).updateReldayParameter(test);
+    }
+
 
     @Test
     void when_getCashTrxnSystemParametersContaining_withValidRequest_shouldReturnParameters() {
         RequestCashTrxnSystemParameter request = new RequestCashTrxnSystemParameter();
         request.setParameterName("testParam");
-        
+
         CashTrxnSystemParameterEntity entity = createCashTrxnSystemParameterEntity();
         entity.setParameterName("testParam");
         entity.setValue("VAL");
-        
+
         when(cashTrxnSystemParameterRepository.findByParameterNameContaining("testParam"))
-            .thenReturn(Arrays.asList(entity));
+                .thenReturn(Arrays.asList(entity));
 
         ResponseCashTrxnSystemParameterList response = cashTrxnSystemParameterService.getCashTrxnSystemParametersContaining(request);
-        
+
         assertNotNull(response);
         assertNotNull(response.getCashTrxnParameterDTOList());
         assertEquals(1, response.getCashTrxnParameterDTOList().size());
@@ -25,7 +233,7 @@
         request.setParameterName("nonExistingParam");
 
         when(cashTrxnSystemParameterRepository.findByParameterNameContaining("nonExistingParam"))
-            .thenReturn(Collections.emptyList());
+                .thenReturn(Collections.emptyList());
 
         ResponseCashTrxnSystemParameterList response = cashTrxnSystemParameterService.getCashTrxnSystemParametersContaining(request);
 
@@ -38,7 +246,7 @@
         CashTrxnSystemParameterEntity savedEntity = createCashTrxnSystemParameterEntity();
         savedEntity.setParameterName("NEW_PARAM");
         savedEntity.setValue("NEW_VALUE");
-        
+
         when(cashTrxnSystemParameterRepository.saveAndFlush(any(CashTrxnSystemParameterEntity.class))).thenReturn(savedEntity);
 
         RequestCashTrxnCreateParameter request = new RequestCashTrxnCreateParameter();
@@ -82,3 +290,12 @@
         assertDoesNotThrow(() -> cashTrxnSystemParameterService.deleteCashTrxnSystemParameter("PARAM_TO_DELETE"));
         verify(cashTrxnSystemParameterRepository, times(1)).deleteById("PARAM_TO_DELETE");
     }
+
+    private CashTrxnSystemParameterEntity createCashTrxnSystemParameterEntity() {
+        CashTrxnSystemParameterEntity entity = new CashTrxnSystemParameterEntity();
+        entity.setParameterName("NAME");
+        entity.setValue("Y");
+        return entity;
+    }
+
+}
