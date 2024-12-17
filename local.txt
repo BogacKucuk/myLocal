@@ -1,48 +1,8 @@
 package com.ykb.corebanking.vault.money.deposit.withdraw.bff.controller;
 
-import com.ykb.corebanking.vault.money.deposit.withdraw.bff.request.RequestCashTrxnDeleteParameter;
-import com.ykb.corebanking.vault.money.deposit.withdraw.bff.request.RequestCashTrxnSearchParameter;
-import com.ykb.corebanking.vault.money.deposit.withdraw.bff.response.ResponseCashTrxnSearchParameter;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
-import com.ykb.corebanking.vault.money.deposit.withdraw.bff.dto.CashTrxnParameterDTO;
-import com.ykb.corebanking.vault.money.deposit.withdraw.bff.service.impl.CashTrxnParameterService;
-@RestController
-@RequestMapping("/api/parameter")
-public class CashTrxnParameterController {
-    @Autowired
-    CashTrxnParameterService cashTrxnParameterService;
-    @GetMapping("/infoParameter")
-    public CashTrxnParameterDTO getCashTrxnInfoParameterWithCache(@RequestParam String parameterName) {
-        return cashTrxnParameterService.getCashTrxnInfoParameterWithCache(parameterName);
-    }
-
-    @GetMapping("/systemParameter")
-    public CashTrxnParameterDTO getCashTrxnSystemParameterWithCache(@RequestParam String parameterName) {
-        return cashTrxnParameterService.getCashTrxnSystemParameterWithCache(parameterName);
-    }
-
-    @PostMapping("/search")
-    public ResponseEntity<ResponseCashTrxnSearchParameter> searchCashTrxnParameters(@RequestBody RequestCashTrxnSearchParameter request) {
-        return new ResponseEntity<>(cashTrxnParameterService.searchCashTrxnParameter(request), HttpStatus.OK);
-    }
-
-    @DeleteMapping("/delete")
-    public ResponseEntity<Void> deleteCashTrxnParameter(@RequestBody RequestCashTrxnDeleteParameter request) {
-        cashTrxnParameterService.deleteCashTrxnParameter(request);
-        return ResponseEntity.noContent().build();
-    }
- 
-    
-}
-
-
-package com.ykb.corebanking.vault.money.deposit.withdraw.bff.controller;
-
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.when;
 
 import org.junit.jupiter.api.Test;
@@ -50,30 +10,75 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.Mockito;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
 import com.ykb.corebanking.vault.money.deposit.withdraw.bff.dto.CashTrxnParameterDTO;
+import com.ykb.corebanking.vault.money.deposit.withdraw.bff.request.RequestCashTrxnDeleteParameter;
+import com.ykb.corebanking.vault.money.deposit.withdraw.bff.request.RequestCashTrxnSearchParameter;
+import com.ykb.corebanking.vault.money.deposit.withdraw.bff.response.ResponseCashTrxnSearchParameter;
 import com.ykb.corebanking.vault.money.deposit.withdraw.bff.service.impl.CashTrxnParameterService;
 
 @ExtendWith(SpringExtension.class)
 class CashTrxnParameterControllerTest {
+    
     @InjectMocks
     CashTrxnParameterController controller;
+    
     @Mock
-    CashTrxnParameterService  service;
+    CashTrxnParameterService service;
 
     @Test
     void whenCall_getCashTrxnInfoParameterWithCache_success() {
         when(service.getCashTrxnInfoParameterWithCache(Mockito.anyString())).thenReturn(new CashTrxnParameterDTO());
-        CashTrxnParameterDTO response = controller.getCashTrxnInfoParameterWithCache(Mockito.anyString());
+        CashTrxnParameterDTO response = controller.getCashTrxnInfoParameterWithCache("testParameter");
         assertNotNull(response);
-
     }
 
     @Test
     void whenCall_getCashTrxnSystemParameterWithCache_success() {
         when(service.getCashTrxnSystemParameterWithCache(Mockito.anyString())).thenReturn(new CashTrxnParameterDTO());
-        CashTrxnParameterDTO response = controller.getCashTrxnSystemParameterWithCache(Mockito.anyString());
+        CashTrxnParameterDTO response = controller.getCashTrxnSystemParameterWithCache("testParameter");
         assertNotNull(response);
+    }
+    
+    // Yeni eklenen test metodu
+    @Test
+    void whenCall_searchCashTrxnParameters_success() {
+        // Mock the service response
+        ResponseCashTrxnSearchParameter mockResponse = new ResponseCashTrxnSearchParameter();
+        when(service.searchCashTrxnParameter(Mockito.any(RequestCashTrxnSearchParameter.class)))
+            .thenReturn(mockResponse);
+        
+        // Create a mock request
+        RequestCashTrxnSearchParameter request = new RequestCashTrxnSearchParameter();
+        // Set necessary fields in request if needed
+        
+        // Call the controller method
+        ResponseEntity<ResponseCashTrxnSearchParameter> responseEntity = controller.searchCashTrxnParameters(request);
+        
+        // Assert the response
+        assertNotNull(responseEntity);
+        assertNotNull(responseEntity.getBody());
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+    }
+    
+    // Yeni eklenen test metodu
+    @Test
+    void whenCall_deleteCashTrxnParameter_success() {
+        // Mock the service method to do nothing
+        doNothing().when(service).deleteCashTrxnParameter(Mockito.any(RequestCashTrxnDeleteParameter.class));
+        
+        // Create a mock request
+        RequestCashTrxnDeleteParameter request = new RequestCashTrxnDeleteParameter();
+        // Set necessary fields in request if needed
+        
+        // Call the controller method
+        ResponseEntity<Void> responseEntity = controller.deleteCashTrxnParameter(request);
+        
+        // Assert the response
+        assertNotNull(responseEntity);
+        assertEquals(HttpStatus.NO_CONTENT, responseEntity.getStatusCode());
     }
 }
