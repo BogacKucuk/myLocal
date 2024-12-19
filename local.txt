@@ -1,164 +1,136 @@
-package com.ykb.corebanking.tellerline.receipt.controller;
+aşağıya reactta aldığım bir hata ve komponentin kodunu koyuyorum. useRef satırında hata veriyor gibi gözüküyor.
 
-import java.util.ArrayList;
-import java.util.List;
+react-dom.development.js:20115 The above error occurred in the <CashTrxnParameterModalForm> component:
 
-import com.ykb.corebanking.tellerline.receipt.controller.request.RequestReceiptAdcCriteria;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+    at CashTrxnParameterModalForm (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/src_pages_CashTrxnParameter_js.chunk.js:627:64)
+    at div
+    at div
+    at div
+    at div
+    at LazyRenderBox (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/bundle.js:286382:34)
+    at AnimateChild (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/bundle.js:185121:85)
+    at Animate (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/bundle.js:184787:85)
+    at div
+    at div
+    at Dialog (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/bundle.js:285786:34)
+    at Portal (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/bundle.js:227023:5)
+    at PortalWrapper (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/bundle.js:286487:34)
+    at _default (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/bundle.js:286298:23)
+    at Container (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/bundle.js:285625:23)
+    at P (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/bundle.js:249638:8)
+    at me (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/bundle.js:249420:61)
+    at ModalProvider (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/bundle.js:286744:39)
+    at YkbUiThemeConsumer (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/bundle.js:328797:24)
+    at div
+    at Modal (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/bundle.js:286851:34)
+    at CashTrxnParameterModal (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/src_pages_CashTrxnParameter_js.chunk.js:418:76)
+    at CashTrxnParameterTable (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/src_pages_CashTrxnParameter_js.chunk.js:856:70)
+    at div
+    at P (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/bundle.js:249638:8)
+    at div
+    at P (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/bundle.js:249638:8)
+    at LocaleReceiver
+    at YkbUiThemeConsumer (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/bundle.js:328797:24)
+    at Spin (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/bundle.js:297546:34)
+    at div
+    at P (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/bundle.js:249638:8)
+    at CashTrxnParameterMain (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/src_pages_CashTrxnParameter_js.chunk.js:314:75)
+    at Provider (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/vendors-node_modules_reduxjs_toolkit_dist_redux-toolkit_esm_js-node_modules_react-redux_es_index_js.chunk.js:2441:3)
+    at CashTrxnParameter (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/src_pages_CashTrxnParameter_js.chunk.js:1078:50)
+    at AsyncComponent (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/bundle.js:264126:36)
+    at ExternalDataContextProvider (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/bundle.js:261748:23)
+    at _class (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/bundle.js:261496:38)
+    at ShellCommunicatorProvider (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/bundle.js:267068:46)
+    at PermissionProvider (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/bundle.js:262265:25)
+    at IntlProvider (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/bundle.js:262102:46)
+    at SparxPage (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/bundle.js:263865:38)
+    at Route (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/bundle.js:241286:5)
+    at div
+    at Router (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/bundle.js:241454:5)
+    at MemoryRouter (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/bundle.js:240935:5)
+    at div
+    at RouteCreator (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/bundle.js:264247:21)
+    at Le (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/bundle.js:249559:60)
+    at YkbUiThemeProvider (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/bundle.js:328773:23)
+    at me (http://10.60.23.155:8080/Harmoni/sparx/money-deposit-withdraw-ui-corebanking/static/js/bundle.js:249420:61)
 
-import com.ykb.corebaking.tellerline.receipt.exception.ReceiptException;
-import com.ykb.corebanking.tellerline.receipt.controller.request.RequestAdcReceiptDisplay;
-import com.ykb.corebanking.tellerline.receipt.controller.request.RequestAdcReceiptListing;
-import com.ykb.corebanking.tellerline.receipt.controller.response.ResponseAdcReceiptDisplay;
-import com.ykb.corebanking.tellerline.receipt.controller.response.ResponseAdcReceiptDisplayList;
-import com.ykb.corebanking.tellerline.receipt.controller.response.ResponseAdcReceiptListing;
-import com.ykb.corebanking.tellerline.receipt.request.RequestReceiptSendMail;
-import com.ykb.corebanking.tellerline.receipt.response.ResponseAdcWrapperSendMail;
-import com.ykb.corebanking.tellerline.receipt.service.interfaces.IReceiptAlternativeDistributionChannelsService;
-import com.ykb.corebanking.tellerline.receipt.service.interfaces.IReceiptLogService;
-import com.ykb.corebanking.tellerline.receipt.service.interfaces.IReceiptMailWrapperService;
+React will try to recreate this component tree from scratch using the error boundary you provided, _class.
 
-import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
+import React, { useState, useRef, useEffect } from "react";
+import { TextInput, Textarea, Form, RadioGroup, DatePicker } from "ykb-ui";
+import { useSelector, useDispatch } from "react-redux";
+import { cashTrxnParameterActions } from "../../store/cashTrxnParameter-store";
 
-@Validated
-@RestController
-@RequestMapping("/receipt/adc")
-@Api("Receipt ADK Operations")
-public class ReceiptAlternativeDistributionChannelsController {
+const CashTrxnParameterModalForm = (props) => {
+  const FormItem = Form.Item;
+  const formRef = React.useRef(null);
+  const dispatch = useDispatch();
+  const modalMode = useSelector((state) => state.modalMode);
+  const table = useSelector((state) => state.table);
+  const modalFormRef = useSelector((state) => state.modalFormRef);
 
-	@Autowired
-	private IReceiptLogService receiptLogService;
-	@Autowired
-	IReceiptAlternativeDistributionChannelsService receiptAlternativeDistributionChannelsService;
-	@Autowired
-	private IReceiptMailWrapperService receiptMailWrapperService;
+  useEffect(() => {
+    dispatch(cashTrxnParameterActions.setModalFormRef(formRef));
+  }, []);
 
-	@PostMapping("/listing")
-	@ApiOperation("Inquire Receipt ADC")
-    @RateLimiter(name = "rateLimiterForADKListing")
-	public ResponseEntity<ResponseAdcReceiptListing> inquireReceipt(@RequestBody RequestAdcReceiptListing request) {
-        if (request.getAccount() != null && request.getCurrency() != null) {
-            request.setAccount(request.getAccount() + "    " + request.getCurrency());
-        }
-		ResponseAdcReceiptListing response = receiptAlternativeDistributionChannelsService.getReceiptList(request);
-		return new ResponseEntity<>(response, HttpStatus.OK);
-	}
-	
-    @PostMapping("/receiptDisplay")
-    @RateLimiter(name = "rateLimiterForADKReceiptDisplay")
-    public ResponseEntity<ResponseAdcReceiptDisplayList> adcGetDisplay(@RequestBody RequestAdcReceiptDisplay requestAdcReceiptDisplay) throws ReceiptException {
-        for (RequestReceiptAdcCriteria requestReceiptAdcCriteria : requestAdcReceiptDisplay.getRequestReceiptAdcCriteriaList()) {
-            if (requestReceiptAdcCriteria.getAccount() != null && requestReceiptAdcCriteria.getCurrency() != null) {
-                requestReceiptAdcCriteria.setAccountNo(requestReceiptAdcCriteria.getAccount() + "    " + requestReceiptAdcCriteria.getCurrency());
-            }
-        }
-        try {
-            ResponseAdcReceiptDisplayList responseList = new ResponseAdcReceiptDisplayList();
-            List<ResponseAdcReceiptDisplay> response = receiptAlternativeDistributionChannelsService.getReceiptDisplayList(requestAdcReceiptDisplay);
-            responseList.setResponseAdcReceiptDisplay(response);
-            return new ResponseEntity<>(responseList, HttpStatus.OK);
-        } catch (Exception e) {
-            receiptLogService.insertErrorReceiptLog(receiptLogService.createRequestReceiptLog("AdcDisplay", requestAdcReceiptDisplay, e.getMessage()));
-            return new ResponseEntity<>(createAdcErrorResponse(e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
+  useEffect(() => {
+    if (modalMode === "update") {
+      modalFormRef?.current?.resetFields([
+        "parameterName",
+        "description",
+        "value",
+        "startDate",
+        "expireDate",
+        "dataType",
+      ]);
+    } else if (modalMode === "create") {
+      modalFormRef?.current?.resetFields([
+        "parameterName",
+        "description",
+        "value",
+        "startDate",
+        "expireDate",
+        "dataType",
+      ]);
     }
-    
-	@PostMapping(path = "/sendMailAdc")
-    @RateLimiter(name = "rateLimiterForADKSendMail")
-	public ResponseEntity<ResponseAdcWrapperSendMail> sendEmailAdc(@RequestBody RequestReceiptSendMail request) {
-		return new ResponseEntity<>(receiptMailWrapperService.sendMail(request), HttpStatus.OK);
-	}
+  }, [modalMode]);
 
+  const changeSelectedTable = (value) => {
+    dispatch(cashTrxnParameterActions.setTable(value));
+  };
 
-    private ResponseAdcReceiptDisplayList createAdcErrorResponse(String errorMessage) {
-        ResponseAdcReceiptDisplayList responseList = new ResponseAdcReceiptDisplayList();
-        List<ResponseAdcReceiptDisplay> responseObjectList = new ArrayList<>();
-        ResponseAdcReceiptDisplay responseObject = ResponseAdcReceiptDisplay.builder().errorMessage(errorMessage).isSuccessful(true).build();
-        responseObjectList.add(responseObject);
-        responseList.setResponseAdcReceiptDisplay(responseObjectList);
-        return responseList;
-    }
-}
+  return (
+    <Form ref={formRef} colSpan={{ span: 24 }}>
+      <FormItem colSpan={{ span: 24 }}>
+        <TextInput name="parameterName" placeholder="Parametre Adı" />
+      </FormItem>
+      <FormItem colSpan={{ span: 24 }}>
+        <Textarea name="description" placeholder="Parametre Açıklaması" />
+      </FormItem>
+      <FormItem colSpan={{ span: 24 }}>
+        <Textarea name="value" placeholder="Parametre Değeri" />
+      </FormItem>
+      <FormItem colSpan={{ span: 24 }}>
+        <DatePicker name="startDate" placeholder="Başlangıç Tarihi" />
+      </FormItem>
+      <FormItem colSpan={{ span: 24 }}>
+        <DatePicker name="expireDate" placeholder="Expire Tarihi" />
+      </FormItem>
+      <FormItem colSpan={{ span: 24 }}>
+        <TextInput name="dataType" placeholder="Data Type" />
+      </FormItem>
+      <FormItem colSpan={{ span: 24 }}>
+        <RadioGroup
+          value={table}
+          onChange={changeSelectedTable}
+          items={[
+            { value: "INFO", textLabel: "Info" },
+            { value: "SYSTEM", textLabel: "System" },
+          ]}
+        />
+      </FormItem>
+    </Form>
+  );
+};
 
-
-
-package com.ykb.corebanking.tellerline.receipt.controller;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.when;
-
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-
-import com.ykb.corebaking.tellerline.receipt.exception.ReceiptException;
-import com.ykb.corebanking.tellerline.receipt.controller.response.ResponseAdcReceiptDisplayList;
-import com.ykb.corebanking.tellerline.receipt.controller.response.ResponseAdcReceiptListing;
-import com.ykb.corebanking.tellerline.receipt.remote.service.interfaces.IAdcElectronicReceiptService;
-import com.ykb.corebanking.tellerline.receipt.service.interfaces.IReceiptAlternativeDistributionChannelsService;
-import com.ykb.corebanking.tellerline.receipt.service.interfaces.IReceiptDisplayService;
-import com.ykb.corebanking.tellerline.receipt.service.interfaces.IReceiptLogService;
-import com.ykb.corebanking.tellerline.receipt.util.ReceiptAlternativeDistributionChannelsServiceTestUtil;
-import com.ykb.corebanking.tellerline.receipt.util.query.exception.QueryException;
-
-@ExtendWith(SpringExtension.class)
-class ReceiptAlternativeDistributionChannelsControllerTest {
-
-	@InjectMocks
-	ReceiptAlternativeDistributionChannelsController controller;
-	
-	@Mock
-	IReceiptAlternativeDistributionChannelsService service;
-	
-	@Mock
-	IReceiptDisplayService receiptDisplayService;
-	
-	@Mock
-	IReceiptLogService receiptLogService;
-	
-	@Mock
-	IAdcElectronicReceiptService adcElectronicReceiptService;
-
-	@Test
-	void whenInquired_shouldReturnHttpStatusOk() {
-		when(service.getReceiptList(Mockito.any())).thenReturn(ReceiptAlternativeDistributionChannelsServiceTestUtil.getResponseReceiptAdcInquiry_Successfull());
-		ResponseEntity<ResponseAdcReceiptListing> httpResponse = controller.inquireReceipt(ReceiptAlternativeDistributionChannelsServiceTestUtil.getRequestReceiptAdcInquiry_Fully());
-		assertThat(httpResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-		assertTrue(httpResponse.getBody().getIsSuccessful());
-	}
-	
-	@Test
-    void whenAdcGetDisplay_shouldReturnHttpStatusOk() throws ReceiptException, QueryException{
-        when(receiptDisplayService.display(Mockito.any())).thenReturn(ReceiptAlternativeDistributionChannelsServiceTestUtil.getResponseReceiptDisplay());
-        when(service.getReceiptDisplayList(Mockito.any())).thenReturn(ReceiptAlternativeDistributionChannelsServiceTestUtil.getResponseAdcReceiptDisplay());
-        ResponseEntity<ResponseAdcReceiptDisplayList> httpResponse = controller.adcGetDisplay(ReceiptAlternativeDistributionChannelsServiceTestUtil.getRequestReceiptDisplayAdc());
-        assertThat(httpResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertFalse(httpResponse.getBody().getResponseAdcReceiptDisplay().get(0).getIsSuccessful());
-        
-    }
-    @Test
-    void whenAdcGetDisplay_shouldReturnInternalServerError() throws Exception{
-        when(receiptDisplayService.display(Mockito.any())).thenReturn(ReceiptAlternativeDistributionChannelsServiceTestUtil.getResponseReceiptDisplay());
-        when(service.getReceiptDisplayList(Mockito.any())).thenThrow(ReceiptException.class);
-        ResponseEntity<ResponseAdcReceiptDisplayList> httpResponse = controller.adcGetDisplay(ReceiptAlternativeDistributionChannelsServiceTestUtil.getRequestReceiptDisplayAdc());
-        assertThat(httpResponse.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
-        
-    }
-	
-}
+export default CashTrxnParameterModalForm;
