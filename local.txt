@@ -1,1 +1,25 @@
-2024-12-19T11:28:25.000+00:00
+function validateObjectFields(obj) {
+    for (const [key, value] of Object.entries(obj)) {
+        // Geçerli olmayan bir alan kontrolü
+        if (value == null || (typeof value === "string" && value.trim() === "")) {
+            return `${key} boş olamaz`; // Hatalı alan için mesaj döner
+        }
+    }
+    // Tüm alanlar geçerliyse undefined döner
+    return null;
+}
+
+// Kullanım Örneği
+const obj = {
+    name: "John",
+    age: null,
+    address: "  ", // Sadece boşluk
+};
+
+const validationResult = validateObjectFields(obj);
+
+if (validationResult) {
+    console.error(validationResult); // age boş olamaz
+} else {
+    console.log("Tüm alanlar geçerli, işleme devam ediliyor...");
+}
