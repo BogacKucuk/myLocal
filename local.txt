@@ -1,22 +1,9 @@
-const myToggle = (e) => {
-	console.log(e);
-}
-  
-<Checkbox class="bogac" onChange={myToggle} checked={true}>Test Checkbox</Checkbox>
-
-{
-    "target": {
-        "prefixCls": "ykb-ui__sc-1pk6cbh-2",
-        "className": "",
-        "checked": false,
-        "class": "bogac",
-        "defaultChecked": false,
-        "disabled": false,
-        "style": {},
-        "type": "checkbox"
-    },
-    "nativeEvent": {
-        "isTrusted": true
+const toggleChecked = (id) => {
+  const updatedChecks = checks.map(item => {
+    if (item.id === id) {
+      return { ...item, checked: !item.checked };
     }
-}
-
+    return item;
+  });
+  setChecks(updatedChecks);
+};
