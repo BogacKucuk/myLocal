@@ -1,69 +1,22 @@
-@Test
-void whenCall_createCashTrxnParameter_success() {
-    // Mock the service response
-    ResponseCashTrxnCreateParameter mockCreateResponse = new ResponseCashTrxnCreateParameter();
-    mockCreateResponse.setParameterName("newParameter");
-    CashTrxnParameterDTO mockDTO = new CashTrxnParameterDTO();
-    mockDTO.setParameterName("newParameter");
-    mockDTO.setValue("newValue");
-    mockCreateResponse.setParameterDTO(mockDTO);
+const myToggle = (e) => {
+	console.log(e);
+}
+  
+<Checkbox class="bogac" onChange={myToggle} checked={true}>Test Checkbox</Checkbox>
 
-    // Mock the client behavior
-    when(client.createCashTrxnParameter(Mockito.any(RequestCashTrxnCreateParameter.class)))
-            .thenReturn(mockCreateResponse);
-
-    // Create a mock request
-    RequestCashTrxnCreateParameter request = new RequestCashTrxnCreateParameter();
-    request.setTable("testTable");
-    CashTrxnParameterDTO requestDTO = new CashTrxnParameterDTO();
-    requestDTO.setParameterName("newParameter");
-    requestDTO.setValue("newValue");
-    request.setParameterDTO(requestDTO);
-
-    // Call the service method
-    ResponseCashTrxnCreateParameter response = service.createCashTrxnParameter(request);
-
-    // Assert the response
-    assertNotNull(response);
-    assertEquals("newParameter", response.getParameterName());
-    assertNotNull(response.getParameterDTO());
-    assertEquals("newValue", response.getParameterDTO().getValue());
-
-    // Verify that the client was called once
-    Mockito.verify(client, Mockito.times(1)).createCashTrxnParameter(request);
+{
+    "target": {
+        "prefixCls": "ykb-ui__sc-1pk6cbh-2",
+        "className": "",
+        "checked": false,
+        "class": "bogac",
+        "defaultChecked": false,
+        "disabled": false,
+        "style": {},
+        "type": "checkbox"
+    },
+    "nativeEvent": {
+        "isTrusted": true
+    }
 }
 
-@Test
-void whenCall_updateCashTrxnParameter_success() {
-    // Mock the service response
-    ResponseCashTrxnUpdateParameter mockUpdateResponse = new ResponseCashTrxnUpdateParameter();
-    mockUpdateResponse.setParameterName("existingParameter");
-    CashTrxnParameterDTO mockDTO = new CashTrxnParameterDTO();
-    mockDTO.setParameterName("existingParameter");
-    mockDTO.setValue("updatedValue");
-    mockUpdateResponse.setCashTrxnParameterDTO(mockDTO);
-
-    // Mock the client behavior
-    when(client.updateCashTrxnParameter(Mockito.any(RequestCashTrxnUpdateParameter.class)))
-            .thenReturn(mockUpdateResponse);
-
-    // Create a mock request
-    RequestCashTrxnUpdateParameter request = new RequestCashTrxnUpdateParameter();
-    request.setTable("testTable");
-    CashTrxnParameterDTO requestDTO = new CashTrxnParameterDTO();
-    requestDTO.setParameterName("existingParameter");
-    requestDTO.setValue("updatedValue");
-    request.setCashTrxnParameterDTO(requestDTO);
-
-    // Call the service method
-    ResponseCashTrxnUpdateParameter response = service.updateCashTrxnParameter(request);
-
-    // Assert the response
-    assertNotNull(response);
-    assertEquals("existingParameter", response.getParameterName());
-    assertNotNull(response.getCashTrxnParameterDTO());
-    assertEquals("updatedValue", response.getCashTrxnParameterDTO().getValue());
-
-    // Verify that the client was called once
-    Mockito.verify(client, Mockito.times(1)).updateCashTrxnParameter(request);
-}
