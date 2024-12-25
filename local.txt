@@ -1,40 +1,151 @@
-@Test
-void whenInquired_withAccountAndCurrency_shouldModifyAccountField() {
-    var request = ReceiptAlternativeDistributionChannelsServiceTestUtil.getRequestReceiptAdcInquiry_Fully();
-    request.setAccount("123456");
-    request.setCurrency("USD");
-    
-    when(service.getReceiptList(Mockito.any())).thenReturn(ReceiptAlternativeDistributionChannelsServiceTestUtil.getResponseReceiptAdcInquiry_Successfull());
-    ResponseEntity<ResponseAdcReceiptListing> httpResponse = controller.inquireReceipt(request);
+package com.ykb.corebanking.tellerline.receipt.response;
 
-    assertThat(httpResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-    assertTrue(httpResponse.getBody().getIsSuccessful());
-    assertThat(request.getAccount()).isEqualTo("123456    USD"); // Değişiklik
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+public class ResponseAdcWrapperSendMail {
+    private Long errorCode;
+    private Boolean isSuccessful=Boolean.FALSE;
+    private String errorMessage="";
 }
 
-@Test
-void whenAdcGetDisplay_withAccountAndCurrency_shouldModifyAccountNoField() throws ReceiptException, QueryException {
-    var request = ReceiptAlternativeDistributionChannelsServiceTestUtil.getRequestReceiptDisplayAdc();
-    request.getRequestReceiptAdcCriteriaList().get(0).setAccount("123456");
-    request.getRequestReceiptAdcCriteriaList().get(0).setCurrency("EUR");
-    
-    when(service.getReceiptDisplayList(Mockito.any())).thenReturn(ReceiptAlternativeDistributionChannelsServiceTestUtil.getResponseAdcReceiptDisplay());
-    ResponseEntity<ResponseAdcReceiptDisplayList> httpResponse = controller.adcGetDisplay(request);
 
-    assertThat(httpResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-    assertFalse(httpResponse.getBody().getResponseAdcReceiptDisplay().get(0).getIsSuccessful());
-    assertThat(request.getRequestReceiptAdcCriteriaList().get(0).getAccountNo()).isEqualTo("123456    EUR"); // Değişiklik
+package com.ykb.corebanking.tellerline.receipt.request;
+
+import java.util.List;
+
+import com.ykb.corebanking.tellerline.receipt.dto.AdcProcessReceiptDTO;
+
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+public class RequestReceiptSendMail {
+	
+	private String subjectParameterList;
+	private String branchCode;
+	private String customerName;
+	private String customerTypeList;
+	private Integer clientno;
+	private String mailType;
+	private String receiptEmailAddress;
+	private String jobName;
+	private List<AdcProcessReceiptDTO> processReceiptList;
 }
 
-@Test
-void whenSendEmailAdc_withAccountAndCurrency_shouldModifyAccountNoField() {
-    var request = ReceiptAlternativeDistributionChannelsServiceTestUtil.getRequestReceiptSendMailAdc();
-    request.getProcessReceiptList().get(0).setAccount("654321");
-    request.getProcessReceiptList().get(0).setCurrency("GBP");
 
-    when(receiptMailWrapperService.sendMail(Mockito.any())).thenReturn(ReceiptAlternativeDistributionChannelsServiceTestUtil.getResponseSendMailAdc());
-    ResponseEntity<ResponseAdcWrapperSendMail> httpResponse = controller.sendEmailAdc(request);
+package com.ykb.corebanking.tellerline.receipt.util;
 
-    assertThat(httpResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-    assertThat(request.getProcessReceiptList().get(0).getAccountNo()).isEqualTo("654321    GBP"); // Değişiklik
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.math.BigDecimal;
+import java.sql.Date;
+import java.util.List;
+
+import com.ykb.corebanking.tellerline.receipt.controller.request.RequestAdcReceiptDisplay;
+import com.ykb.corebanking.tellerline.receipt.controller.request.RequestAdcReceiptListing;
+import com.ykb.corebanking.tellerline.receipt.controller.request.RequestReceiptAdcCriteria;
+import com.ykb.corebanking.tellerline.receipt.controller.response.ResponseAdcReceiptDisplay;
+import com.ykb.corebanking.tellerline.receipt.controller.response.ResponseAdcReceiptListing;
+import com.ykb.corebanking.tellerline.receipt.controller.response.ResponseReceiptDisplay;
+import com.ykb.corebanking.tellerline.receipt.dto.ReceiptAdcReceiptListingDTO;
+import com.ykb.corebanking.tellerline.receipt.dto.ReceiptDTO;
+import com.ykb.corebanking.tellerline.receipt.dto.ReceiptDisplayAndPrintDTO;
+import com.ykb.corebanking.tellerline.receipt.dto.ReceiptLocationInfoDTO;
+
+public class ReceiptAlternativeDistributionChannelsServiceTestUtil {
+
+    public static RequestAdcReceiptListing getRequestReceiptAdcInquiry_Fully() {
+        RequestAdcReceiptListing request = new RequestAdcReceiptListing();
+        request.setReceiptId("22336688779");
+        request.setPageSize(1);
+        request.setBeginRelDate(Calendar.getInstance().getTime());
+        request.setArchiveCount(1);
+        request.setCapstCount(1);
+        return request;
+    }
+    
+    public static RequestAdcReceiptListing getRequestReceiptAdcInquiry_FullyArchiveCountNull() {
+        RequestAdcReceiptListing request = new RequestAdcReceiptListing();
+        request.setReceiptId("22336688779");
+        request.setPageSize(1);
+        request.setBeginRelDate(Calendar.getInstance().getTime());
+        return request;
+    }
+
+    public static ResponseAdcReceiptListing getResponseReceiptAdcInquiry_Successfull() {
+        ResponseAdcReceiptListing response = new ResponseAdcReceiptListing();
+        ReceiptAdcReceiptListingDTO r = new ReceiptAdcReceiptListingDTO();
+        r.setProcessDate("01.01.2022");
+        List<ReceiptAdcReceiptListingDTO> list = new ArrayList<>();
+        list.add(r);
+        response.setResultList(list);
+        response.setIsSuccessful(Boolean.TRUE);
+        return response;
+    }
+
+    public static List<ResponseReceiptDisplay> getResponseReceiptDisplay() {
+        List<ResponseReceiptDisplay> responseReceiptDisplayList = new ArrayList<>();
+        ResponseReceiptDisplay responseReceiptDisplay = new ResponseReceiptDisplay();
+        responseReceiptDisplay.setValidationError(Boolean.FALSE);
+        responseReceiptDisplayList.add(responseReceiptDisplay);
+        return responseReceiptDisplayList;
+    }
+
+    public static List<ResponseAdcReceiptDisplay> getResponseAdcReceiptDisplay() {
+        List<ResponseAdcReceiptDisplay> responseAdcReceiptDisplayList = new ArrayList<>();
+        ResponseAdcReceiptDisplay responseAdcReceiptDisplay = ResponseAdcReceiptDisplay.builder().isSuccessful(Boolean.FALSE).build();
+        responseAdcReceiptDisplayList.add(responseAdcReceiptDisplay);
+        return responseAdcReceiptDisplayList;
+    }
+    public static List<ReceiptDisplayAndPrintDTO> getReceiptDisplayAndPrintDTOsFound() {
+        List<ReceiptDisplayAndPrintDTO> list = new ArrayList<>();
+        ReceiptDisplayAndPrintDTO receiptDTO = new ReceiptDisplayAndPrintDTO();
+        receiptDTO.setReceiptDTO(getReceiptDTO());
+        ReceiptLocationInfoDTO receiptLocationInfo = new ReceiptLocationInfoDTO();
+        receiptLocationInfo.setReceiptFound(true);
+        receiptDTO.setReceiptLocationInfo(receiptLocationInfo);
+        list.add(receiptDTO);
+        return list;
+    }
+    
+    public static ReceiptDisplayAndPrintDTO getReceiptDisplayAndPrintDTOFound() {
+        ReceiptDisplayAndPrintDTO receiptDTO = new ReceiptDisplayAndPrintDTO();
+        receiptDTO.setReceiptDTO(getReceiptDTO());
+        ReceiptLocationInfoDTO receiptLocationInfo = new ReceiptLocationInfoDTO();
+        receiptLocationInfo.setReceiptFound(true);
+        receiptDTO.setReceiptLocationInfo(receiptLocationInfo);
+        return receiptDTO;
+    }
+    
+    public static ReceiptDisplayAndPrintDTO getReceiptDisplayAndPrintDTONotFound() {
+        ReceiptDisplayAndPrintDTO receiptDTO = new ReceiptDisplayAndPrintDTO();
+        receiptDTO.setReceiptDTO(getReceiptDTO());
+        ReceiptLocationInfoDTO receiptLocationInfo = new ReceiptLocationInfoDTO();
+        receiptLocationInfo.setReceiptFound(false);
+        receiptDTO.setReceiptLocationInfo(receiptLocationInfo);
+        return receiptDTO;
+    }
+
+    public static ReceiptDTO getReceiptDTO() {
+        return ReceiptDTO.builder().id("2401654658822").account("80036169    YTL").ctype("AUTO").dtype("GNR").processCode("DKNTSABIT").receiptBranch("139").clientNo(39405791)
+                .clientIdentityNumber(Long.parseLong("30220898934")).clientTaxNumber("9700298675").processRelDay(24015).contractNo(Long.parseLong("240158174319")).iban("TR370006701000000080036169")
+                .description("021022GNRISK FARKI /    ").amount(new BigDecimal(-20000.00)).postNo(2).channel("602").reverse("N").userCode("SYSTEM-GEN").build();
+    }
+    public static RequestAdcReceiptDisplay getRequestReceiptDisplayAdc() {
+        RequestAdcReceiptDisplay request = new RequestAdcReceiptDisplay();
+        List<RequestReceiptAdcCriteria> requestReceiptCriteriaList = new ArrayList<>();
+        RequestReceiptAdcCriteria requestReceiptCriteria = new RequestReceiptAdcCriteria();
+        requestReceiptCriteria.setReceiptID("2409557826797");
+        requestReceiptCriteria.setTransactionDate(new Date(System.currentTimeMillis()));
+        requestReceiptCriteria.setIsVirtualReceipt(true);
+        requestReceiptCriteriaList.add(requestReceiptCriteria);
+        request.setRequestReceiptAdcCriteriaList(requestReceiptCriteriaList);
+        request.setChannelCode("401");
+        request.setUserCode("U073485");
+        return request;
+    }
 }
