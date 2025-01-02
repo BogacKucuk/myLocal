@@ -1,29 +1,248 @@
+// 1) hasCommissionAmount = true, isCommissionNotTakenFromTransactionAmount = true,
+//    isCurrencyEqualToAccountCurrency = true  => Branch A
 @Test
-void testCalculateAmountTextAndIsKgvIncluded_WithCommission() throws Exception {
-    // Arrange
+void testCalculateAmount_CommissionNotTaken_CurrencySame() throws Exception {
     CashTransactionDetailDTO detailDTO = new CashTransactionDetailDTO();
-    detailDTO.setAmount(BigDecimal.valueOf(1000));
+    detailDTO.setAmount(BigDecimal.valueOf(2000));
+    detailDTO.setCommissionAmount(BigDecimal.valueOf(50)); // hasCommissionAmount => true
     detailDTO.setCurrency("TL");
     detailDTO.setAccountCurrency("TL");
-    detailDTO.setCommissionAmount(BigDecimal.valueOf(50));
+    detailDTO.setKmvAmount(BigDecimal.ZERO); // KMV yok => hasKmvAmountGreaterThanZero => false
 
-    CashTransactionStoredRequest storedRequest = new CashTransactionStoredRequest();
-    storedRequest.setTakeCommissionFromTransactionAmount(Boolean.FALSE);
-    detailDTO.setCashTransactionStoredRequest(storedRequest);
+    // Komisyon işlem tutarından düşülmesin => true
+    CashTransactionStoredRequest request = new CashTransactionStoredRequest();
+    request.setTakeCommissionFromTransactionAmount(Boolean.FALSE);
+    detailDTO.setCashTransactionStoredRequest(request);
 
-    List<CashTransactionDetailDTO> detailDTOList = Collections.singletonList(detailDTO);
+    List<CashTransactionDetailDTO> detailList = Collections.singletonList(detailDTO);
 
+    // Private metoda reflection ile erişim
     Method method = CustomerNotificationService.class
-            .getDeclaredMethod("calculateAmountTextAndIsKgvIncluded", List.class);
+        .getDeclaredMethod("calculateAmountTextAndIsKgvIncluded", List.class);
     method.setAccessible(true);
 
-    // Act
-    CustomerNotificationService.AmountCalculationResult calculationResult =
-            (CustomerNotificationService.AmountCalculationResult) method.invoke(customerNotificationService, detailDTOList);
+    CustomerNotificationService.AmountCalculationResult result =
+        (CustomerNotificationService.AmountCalculationResult) method.invoke(customerNotificationService, detailList);
 
-    // Assert
-    assertNotNull(calculationResult.getAmountText());
-    // Komisyon var ama KMV yok + currency == accountCurrency => isKgvIncluded=false
-    // Bu satırı assertFalse olarak düzeltelim
-    assertFalse(calculationResult.getIsKgvIncluded());
+    // Beklenenler:
+    // -> Branch A tetiklenecek
+    // -> isKgvIncluded = false (kodda bu senaryoda set edilmiyor)
+    // -> amountText içinde "2000" ve "50" ... "TL" gibi parçalar geçebilir
+    assertNotNull(result.getAmountText());
+    assertFalse(result.getIsKgvIncluded(), "isKgvIncluded false bekleniyor");
+    // Diğer assert'ları da isteğe göre eklersiniz.
+}
+
+// 2) hasCommissionAmount = true, isCommissionNotTakenFromTransactionAmount = true,
+//    hasKmvAmountGreaterThanZero = true  => Branch B
+@Test
+void testCalculateAmount_CommissionNotTaken_WithKmv() throws Exception {
+    CashTransactionDetailDTO detailDTO = new CashTransactionDetailDTO();
+    detailDTO.setAmount(BigDecimal.valueOf(1000));
+    detailDTO.setCommissionAmount(BigDecimal.valueOf(50)); // hasCommissionAmount => true
+    // Bu sefer currency != accountCurrency yapalım ki
+    // isCurrencyEqualToAccountCurrency => false
+    detailDTO.setCurrency("USD");
+    detailDTO.setAccountCurrency("TL");
+
+    // KMV > 0 olsun => hasKmvAmountGreaterThanZero => true => Branch B
+    detailDTO.setKmvAmount(BigDecimal.valueOf(100));
+
+    CashTransactionStoredRequest request = new CashTransactionStoredRequest();
+    request.setTakeCommissionFromTransactionAmount(Boolean.FALSE);
+    detailDTO.setCashTransactionStoredRequest(request);
+
+    List<CashTransactionDetailDTO> detailList = Collections.singletonList(detailDTO);
+
+    Method method = CustomerNotificationService.class
+        .getDeclaredMethod("calculateAmountTextAndIsKgvIncluded", List.class);
+    method.setAccessible(true);
+
+    CustomerNotificationService.AmountCalculationResult result =
+        (CustomerNotificationService.AmountCalculationResult) method.invoke(customerNotificationService, detailList);
+
+    // -> Branch B tetiklenecek
+    // -> isKgvIncluded = true (kod bunu set ediyor)
+    assertTrue(result.getIsKgvIncluded(), "KMV > 0 ve para birimi farklı => isKgvIncluded true beklenir");
+    assertNotNull(result.getAmountText());
+}
+
+// 3) hasCommissionAmount = true, isCommissionNotTakenFromTransactionAmount = true,
+//    currency != accountCurrency, KMV = 0 => Branch C
+@Test
+void testCalculateAmount_CommissionNotTaken_CurrencyDifferent_NoKmv() throws Exception {
+    CashTransactionDetailDTO detailDTO = new CashTransactionDetailDTO();
+    detailDTO.setAmount(BigDecimal.valueOf(1500));
+    detailDTO.setCommissionAmount(BigDecimal.valueOf(100)); 
+    detailDTO.setCurrency("USD");
+    detailDTO.setAccountCurrency("TL");
+    // KMV = 0 => hasKmvAmountGreaterThanZero = false
+    detailDTO.setKmvAmount(BigDecimal.ZERO);
+
+    CashTransactionStoredRequest request = new CashTransactionStoredRequest();
+    request.setTakeCommissionFromTransactionAmount(Boolean.FALSE);
+    detailDTO.setCashTransactionStoredRequest(request);
+
+    List<CashTransactionDetailDTO> detailList = Collections.singletonList(detailDTO);
+
+    Method method = CustomerNotificationService.class
+        .getDeclaredMethod("calculateAmountTextAndIsKgvIncluded", List.class);
+    method.setAccessible(true);
+
+    CustomerNotificationService.AmountCalculationResult result =
+        (CustomerNotificationService.AmountCalculationResult) method.invoke(customerNotificationService, detailList);
+
+    // -> Branch C
+    // -> isKgvIncluded = false
+    assertFalse(result.getIsKgvIncluded());
+    assertNotNull(result.getAmountText());
+}
+
+// 4) hasCommissionAmount = true, isCommissionNotTakenFromTransactionAmount = false => (else bloğu)
+//    isCurrencyEqualToAccountCurrency => Branch D1
+@Test
+void testCalculateAmount_CommissionTaken_CurrencySame() throws Exception {
+    CashTransactionDetailDTO detailDTO = new CashTransactionDetailDTO();
+    detailDTO.setAmount(BigDecimal.valueOf(1000));
+    detailDTO.setCommissionAmount(BigDecimal.valueOf(200));
+    detailDTO.setCurrency("TL");
+    detailDTO.setAccountCurrency("TL");
+    detailDTO.setKmvAmount(BigDecimal.ZERO);
+
+    CashTransactionStoredRequest request = new CashTransactionStoredRequest();
+    // Bu sefer komisyon işlem tutarından alınsın => true
+    request.setTakeCommissionFromTransactionAmount(Boolean.TRUE);
+    detailDTO.setCashTransactionStoredRequest(request);
+
+    List<CashTransactionDetailDTO> detailList = Collections.singletonList(detailDTO);
+
+    Method method = CustomerNotificationService.class
+        .getDeclaredMethod("calculateAmountTextAndIsKgvIncluded", List.class);
+    method.setAccessible(true);
+
+    CustomerNotificationService.AmountCalculationResult result =
+        (CustomerNotificationService.AmountCalculationResult) method.invoke(customerNotificationService, detailList);
+
+    // -> Branch D1
+    assertFalse(result.getIsKgvIncluded());
+    assertNotNull(result.getAmountText());
+}
+
+// 5) hasCommissionAmount = true, isCommissionNotTakenFromTransactionAmount = false => (else bloğu)
+//    hasKmvAmountGreaterThanZero => Branch D2
+@Test
+void testCalculateAmount_CommissionTaken_WithKmv() throws Exception {
+    CashTransactionDetailDTO detailDTO = new CashTransactionDetailDTO();
+    detailDTO.setAmount(BigDecimal.valueOf(2500));
+    detailDTO.setCommissionAmount(BigDecimal.valueOf(100));
+    // currency != accountCurrency => false
+    detailDTO.setCurrency("EUR");
+    detailDTO.setAccountCurrency("TL");
+    detailDTO.setKmvAmount(BigDecimal.valueOf(50)); // KMV > 0
+
+    CashTransactionStoredRequest request = new CashTransactionStoredRequest();
+    request.setTakeCommissionFromTransactionAmount(Boolean.TRUE);
+    detailDTO.setCashTransactionStoredRequest(request);
+
+    List<CashTransactionDetailDTO> detailList = Collections.singletonList(detailDTO);
+
+    Method method = CustomerNotificationService.class
+        .getDeclaredMethod("calculateAmountTextAndIsKgvIncluded", List.class);
+    method.setAccessible(true);
+
+    CustomerNotificationService.AmountCalculationResult result =
+        (CustomerNotificationService.AmountCalculationResult) method.invoke(customerNotificationService, detailList);
+
+    // -> Branch D2
+    // -> isKgvIncluded = true
+    assertTrue(result.getIsKgvIncluded());
+    assertNotNull(result.getAmountText());
+}
+
+// 6) hasCommissionAmount = false => else bloğu => Branch E 
+//    isCurrencyEqualToAccountCurrency => E1
+@Test
+void testCalculateAmount_NoCommission_CurrencySame() throws Exception {
+    CashTransactionDetailDTO detailDTO = new CashTransactionDetailDTO();
+    detailDTO.setAmount(BigDecimal.valueOf(3000));
+    // Komisyon = null veya 0 => hasCommissionAmount => false
+    detailDTO.setCommissionAmount(BigDecimal.ZERO);
+    detailDTO.setCurrency("TL");
+    detailDTO.setAccountCurrency("TL");
+    detailDTO.setKmvAmount(BigDecimal.ZERO);
+
+    CashTransactionStoredRequest request = new CashTransactionStoredRequest();
+    request.setTakeCommissionFromTransactionAmount(Boolean.FALSE);
+    detailDTO.setCashTransactionStoredRequest(request);
+
+    List<CashTransactionDetailDTO> detailList = Collections.singletonList(detailDTO);
+
+    Method method = CustomerNotificationService.class
+        .getDeclaredMethod("calculateAmountTextAndIsKgvIncluded", List.class);
+    method.setAccessible(true);
+
+    CustomerNotificationService.AmountCalculationResult result =
+        (CustomerNotificationService.AmountCalculationResult) method.invoke(customerNotificationService, detailList);
+
+    // -> Branch E1
+    assertFalse(result.getIsKgvIncluded());
+    assertNotNull(result.getAmountText());
+}
+
+// 7) hasCommissionAmount = false => else bloğu => E2
+//    currency != accountCurrency && KMV > 0
+@Test
+void testCalculateAmount_NoCommission_CurrencyDifferent_WithKmv() throws Exception {
+    CashTransactionDetailDTO detailDTO = new CashTransactionDetailDTO();
+    detailDTO.setAmount(BigDecimal.valueOf(5000));
+    detailDTO.setCommissionAmount(BigDecimal.ZERO);
+    detailDTO.setCurrency("USD");
+    detailDTO.setAccountCurrency("TL");
+    detailDTO.setKmvAmount(BigDecimal.valueOf(500)); // > 0 => E2
+
+    CashTransactionStoredRequest request = new CashTransactionStoredRequest();
+    request.setTakeCommissionFromTransactionAmount(Boolean.FALSE);
+    detailDTO.setCashTransactionStoredRequest(request);
+
+    List<CashTransactionDetailDTO> detailList = Collections.singletonList(detailDTO);
+
+    Method method = CustomerNotificationService.class
+        .getDeclaredMethod("calculateAmountTextAndIsKgvIncluded", List.class);
+    method.setAccessible(true);
+
+    CustomerNotificationService.AmountCalculationResult result =
+        (CustomerNotificationService.AmountCalculationResult) method.invoke(customerNotificationService, detailList);
+
+    // -> Branch E2 => isKgvIncluded = true
+    assertTrue(result.getIsKgvIncluded());
+    assertNotNull(result.getAmountText());
+}
+
+// 8) hasCommissionAmount = false => else bloğu => E3
+//    currency != accountCurrency && KMV = 0
+@Test
+void testCalculateAmount_NoCommission_CurrencyDifferent_NoKmv() throws Exception {
+    CashTransactionDetailDTO detailDTO = new CashTransactionDetailDTO();
+    detailDTO.setAmount(BigDecimal.valueOf(750));
+    detailDTO.setCommissionAmount(BigDecimal.ZERO);
+    detailDTO.setCurrency("USD");
+    detailDTO.setAccountCurrency("TL");
+    detailDTO.setKmvAmount(BigDecimal.ZERO);
+
+    CashTransactionStoredRequest request = new CashTransactionStoredRequest();
+    request.setTakeCommissionFromTransactionAmount(Boolean.FALSE);
+    detailDTO.setCashTransactionStoredRequest(request);
+
+    List<CashTransactionDetailDTO> detailList = Collections.singletonList(detailDTO);
+
+    Method method = CustomerNotificationService.class
+        .getDeclaredMethod("calculateAmountTextAndIsKgvIncluded", List.class);
+    method.setAccessible(true);
+
+    CustomerNotificationService.AmountCalculationResult result =
+        (CustomerNotificationService.AmountCalculationResult) method.invoke(customerNotificationService, detailList);
+
+    // -> Branch E3 => isKgvIncluded = false
+    assertFalse(result.getIsKgvIncluded());
+    assertNotNull(result.getAmountText());
 }
