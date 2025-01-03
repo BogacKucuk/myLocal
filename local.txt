@@ -1,32 +1,15 @@
-react projemde aşağıdaki gibi bir örnek geliştirme yaptım. iki tane checkbox var. checked state'leri state'te  tutuluyor. toggle metodu checkbox'ın idsine göre state'i true veya false olarak güncelliyor. bu örnek geliştirmeyi aklında tut. bundan sonra buna benzer bir geliştirmede sorun yaşadım onu çözeceğiz
+    @Override
+    public void sendToNotificationQueue(CashTransactionDTO cashTransactionDTO, List<CashTransactionDetailDTO> cashTransactionDetailDTOList) throws AccountException {
+        CustomerNotificationDTO customerNotificationDTO = getParameters(cashTransactionDTO, cashTransactionDetailDTOList);
+        notificationProducer.sendMessageToNotificationQueue(customerNotificationDTO);
 
-
-// state
-
-  let myCheckData = [
-    {id: "check1", checked: true},
-    {id: "check2", checked: false},
-  ];
-  const [checkStates, setCheckStates] = useState(myCheckData);
-
-
-// toggle fonksiyonları
-  const checktoggle = (component) => {
-    console.log(component.target);
-    toggleChecked(component.target.id);
-  }
-
-  const toggleChecked = (id) => {
-    const updatedChecks = checkStates.map(item => {
-      if (item.id === id) {
-        return { ...item, checked: !item.checked };
-      }
-      return item;
-    });
-    setCheckStates(updatedChecks);
-  };
-
-
-// render edilen komponentler
-<Checkbox id="check1" onChange={checktoggle} checked={checkStates[0].checked}>Test1</Checkbox>
-<Checkbox id="check2" onChange={checktoggle} checked={checkStates[1].checked}>Test2</Checkbox>
+        // push notification
+        CustomerNotificationDTO pushNotificationDTO = customerNotificationDTO;
+        if (PROCESS_CODE.DEPOSIT.getProcessCode().equals(cashTransactionDTO.getProcessCode())) {
+            pushNotificationDTO.getTransactionHeader().setJobCode(NotificationConstants.PARYAT_PUSH_SHORTNAME);
+        }
+        else {
+            pushNotificationDTO.getTransactionHeader().setJobCode(NotificationConstants.PARCEK_PUSH_SHORTNAME);
+        }
+        notificationProducer.sendMessageToNotificationQueue(pushNotificationDTO);
+    }
