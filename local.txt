@@ -1,15 +1,147 @@
-    @Override
-    public void sendToNotificationQueue(CashTransactionDTO cashTransactionDTO, List<CashTransactionDetailDTO> cashTransactionDetailDTOList) throws AccountException {
-        CustomerNotificationDTO customerNotificationDTO = getParameters(cashTransactionDTO, cashTransactionDetailDTOList);
-        notificationProducer.sendMessageToNotificationQueue(customerNotificationDTO);
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
+// ...
 
-        // push notification
-        CustomerNotificationDTO pushNotificationDTO = customerNotificationDTO;
-        if (PROCESS_CODE.DEPOSIT.getProcessCode().equals(cashTransactionDTO.getProcessCode())) {
-            pushNotificationDTO.getTransactionHeader().setJobCode(NotificationConstants.PARYAT_PUSH_SHORTNAME);
-        }
-        else {
-            pushNotificationDTO.getTransactionHeader().setJobCode(NotificationConstants.PARCEK_PUSH_SHORTNAME);
-        }
-        notificationProducer.sendMessageToNotificationQueue(pushNotificationDTO);
+@ExtendWith(SpringExtension.class)
+class CustomerNotificationServiceTest {
+
+    @InjectMocks
+    CustomerNotificationService customerNotificationService;
+
+    @Mock
+    AccountClient accountClient;
+
+    @Mock
+    CustomerNotificationProducer notificationProducer;
+    
+    // Argümanları yakalamak için Captor oluşturuyoruz (isterseniz lokalde de oluşturabilirsiniz):
+    @Captor
+    ArgumentCaptor<CustomerNotificationDTO> notificationCaptor;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
     }
+
+    // ... diğer testleriniz ...
+
+    @Test
+    void testSendToNotificationQueue_DepositPushNotification() throws Exception {
+        // Arrange
+        CashTransactionDTO cashTransactionDTO = new CashTransactionDTO();
+        cashTransactionDTO.setId(10L);
+        cashTransactionDTO.setProcessCode("DEPOSIT");
+        cashTransactionDTO.setCreateDate(new Date());
+        cashTransactionDTO.setUpdateDate(new Date());
+        cashTransactionDTO.setCreatedBy("testUser");
+        cashTransactionDTO.setUpdatedBy("testUser");
+
+        // Normal parametreler
+        ClientDTO clientDTO = new ClientDTO();
+        clientDTO.setClientNo(99999L);
+        CashTransactionStoredRequest storedRequest = new CashTransactionStoredRequest();
+        storedRequest.setClientInfo(clientDTO);
+
+        CashTransactionDetailDTO detailDTO = new CashTransactionDetailDTO();
+        detailDTO.setAccountNo("accDeposit");
+        detailDTO.setAccountCurrency("TL");
+        detailDTO.setCurrency("TL");
+        detailDTO.setAmount(BigDecimal.valueOf(2000));
+        detailDTO.setCashTransactionStoredRequest(storedRequest);
+        List<CashTransactionDetailDTO> detailDTOList = Collections.singletonList(detailDTO);
+
+        // AccountClient dönen mock'lar
+        BalanceDTO balanceDTO = new BalanceDTO();
+        balanceDTO.setAvailableBalance(BigDecimal.valueOf(10000));
+        balanceDTO.setValueBalance(BigDecimal.valueOf(12000));
+        ResponseBalanceInfo balanceInfo = new ResponseBalanceInfo();
+        balanceInfo.setBalanceDTO(balanceDTO);
+        when(accountClient.getBalanceInfo(anyString(), anyBoolean()))
+            .thenReturn(ResponseEntity.ok(balanceInfo));
+
+        AccountInfoResponse accountInfoResponse = new AccountInfoResponse();
+        accountInfoResponse.setIban("TRXXXXXX");
+        accountInfoResponse.setIsFlexibleAccount(Boolean.FALSE);
+        when(accountClient.getAccountByAccountNoWithoutException(anyString()))
+            .thenReturn(ResponseEntity.ok(accountInfoResponse));
+
+        // Act
+        customerNotificationService.sendToNotificationQueue(cashTransactionDTO, detailDTOList);
+
+        // Assert
+        // notificationProducer'ın iki kere çağrıldığını doğrulayacağız
+        // (1. normal notification, 2. push notification)
+        verify(notificationProducer, times(2)).sendMessageToNotificationQueue(notificationCaptor.capture());
+
+        // Yakalanan argümanları alalım:
+        List<CustomerNotificationDTO> allNotifications = notificationCaptor.getAllValues();
+        assertEquals(2, allNotifications.size());
+
+        // İlk gönderilen notification:
+        CustomerNotificationDTO firstNotification = allNotifications.get(0);
+        // DEPOSIT/withdraw fark etmeden, normal queue'ya giden
+        // jobCode vs. ilk seferde PARYAT vs. PARCEK olabilir. Kodu test edebilirsiniz.
+
+        // İkinci gönderilen notification (push notification):
+        CustomerNotificationDTO secondNotification = allNotifications.get(1);
+        // DEPOSIT olduğu için "PARYAT_PUSH_SHORTNAME" set edilmeli
+        assertEquals(NotificationConstants.PARYAT_PUSH_SHORTNAME,
+                     secondNotification.getTransactionHeader().getJobCode(),
+                     "DEPOSIT için pushNotificationDTO jobCode PARYAT_PUSH_SHORTNAME olmalı");
+    }
+
+    @Test
+    void testSendToNotificationQueue_WithdrawPushNotification() throws Exception {
+        // Arrange
+        CashTransactionDTO cashTransactionDTO = new CashTransactionDTO();
+        cashTransactionDTO.setId(11L);
+        cashTransactionDTO.setProcessCode("WITHDRAW");
+        cashTransactionDTO.setCreateDate(new Date());
+        cashTransactionDTO.setUpdateDate(new Date());
+        cashTransactionDTO.setCreatedBy("testUser2");
+        cashTransactionDTO.setUpdatedBy("testUser2");
+
+        // Diğer parametreler
+        ClientDTO clientDTO = new ClientDTO();
+        clientDTO.setClientNo(1234L);
+        CashTransactionStoredRequest storedRequest = new CashTransactionStoredRequest();
+        storedRequest.setClientInfo(clientDTO);
+
+        CashTransactionDetailDTO detailDTO = new CashTransactionDetailDTO();
+        detailDTO.setAccountNo("accWithdraw");
+        detailDTO.setAccountCurrency("TL");
+        detailDTO.setCurrency("TL");
+        detailDTO.setAmount(BigDecimal.valueOf(3000));
+        detailDTO.setCashTransactionStoredRequest(storedRequest);
+        List<CashTransactionDetailDTO> detailDTOList = Collections.singletonList(detailDTO);
+
+        // Mock accountClient
+        BalanceDTO balanceDTO = new BalanceDTO();
+        balanceDTO.setAvailableBalance(BigDecimal.valueOf(5000));
+        balanceDTO.setValueBalance(BigDecimal.valueOf(8000));
+        ResponseBalanceInfo balanceInfo = new ResponseBalanceInfo();
+        balanceInfo.setBalanceDTO(balanceDTO);
+        when(accountClient.getBalanceInfo(anyString(), anyBoolean()))
+            .thenReturn(ResponseEntity.ok(balanceInfo));
+
+        AccountInfoResponse accountInfoResponse = new AccountInfoResponse();
+        accountInfoResponse.setIban("TRYYYYYY");
+        accountInfoResponse.setIsFlexibleAccount(Boolean.TRUE);
+        when(accountClient.getAccountByAccountNoWithoutException(anyString()))
+            .thenReturn(ResponseEntity.ok(accountInfoResponse));
+
+        // Act
+        customerNotificationService.sendToNotificationQueue(cashTransactionDTO, detailDTOList);
+
+        // Assert
+        verify(notificationProducer, times(2)).sendMessageToNotificationQueue(notificationCaptor.capture());
+        List<CustomerNotificationDTO> allNotifications = notificationCaptor.getAllValues();
+        assertEquals(2, allNotifications.size());
+
+        // 2. mesaj => push notification => WITHDRAW => PARCEK_PUSH_SHORTNAME
+        CustomerNotificationDTO secondNotification = allNotifications.get(1);
+        assertEquals(NotificationConstants.PARCEK_PUSH_SHORTNAME,
+                     secondNotification.getTransactionHeader().getJobCode(),
+                     "WITHDRAW için pushNotificationDTO jobCode PARCEK_PUSH_SHORTNAME olmalı");
+    }
+}
