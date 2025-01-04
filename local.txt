@@ -1,36 +1,11 @@
-@Override
-public void sendToNotificationQueue(CashTransactionDTO cashTransactionDTO, List<CashTransactionDetailDTO> cashTransactionDetailDTOList) throws AccountException {
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.retry.annotation.Retryable;
+import org.springframework.web.bind.annotation.GetMapping;
 
-    // 1) Normal notification
-    CustomerNotificationDTO customerNotificationDTO = getParameters(cashTransactionDTO, cashTransactionDetailDTOList);
-    notificationProducer.sendMessageToNotificationQueue(customerNotificationDTO);
+@FeignClient(name = "exampleClient", url = "http://example.com")
+public interface ExampleClient {
 
-    // 2) Push notification => YENI DTO
-    CustomerNotificationDTO pushNotificationDTO = new CustomerNotificationDTO();
-    // Dilerseniz BeanUtils.copyProperties(customerNotificationDTO, pushNotificationDTO) gibi bir kütüphane de kullanabilirsiniz.
-    // Manuel kopyalamak isterseniz:
-    pushNotificationDTO.setTransactionHeader(new TransactionHeader());
-    pushNotificationDTO.getTransactionHeader().setClientNo(customerNotificationDTO.getTransactionHeader().getClientNo());
-    pushNotificationDTO.getTransactionHeader().setCreateDate(customerNotificationDTO.getTransactionHeader().getCreateDate());
-    pushNotificationDTO.getTransactionHeader().setCreatedBy(customerNotificationDTO.getTransactionHeader().getCreatedBy());
-    pushNotificationDTO.getTransactionHeader().setId(customerNotificationDTO.getTransactionHeader().getId());
-    pushNotificationDTO.getTransactionHeader().setIsJobCreated(customerNotificationDTO.getTransactionHeader().getIsJobCreated());
-    pushNotificationDTO.getTransactionHeader().setUpdateDate(customerNotificationDTO.getTransactionHeader().getUpdateDate());
-    pushNotificationDTO.getTransactionHeader().setUpdatedBy(customerNotificationDTO.getTransactionHeader().getUpdatedBy());
-
-    // vb. transactionHeader'ın geri kalan set'leri
-    // transactionDetails aynı olabilir, isterseniz:
-    pushNotificationDTO.setTransactionDetails(customerNotificationDTO.getTransactionDetails());
-
-    // Şimdi push jobCode'u setleyin:
-    if (PROCESS_CODE.DEPOSIT.getProcessCode().equals(cashTransactionDTO.getProcessCode())) {
-        pushNotificationDTO.getTransactionHeader().setJobCode(NotificationConstants.PARYAT_PUSH_SHORTNAME);
-    } else {
-        pushNotificationDTO.getTransactionHeader().setJobCode(NotificationConstants.PARCEK_PUSH_SHORTNAME);
-    }
-
-    // 2. mesaj
-    notificationProducer.sendMessageToNotificationQueue(pushNotificationDTO);
+    @GetMapping("/data")
+    @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
+    String getData();
 }
-
-
