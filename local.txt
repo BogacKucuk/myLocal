@@ -1,40 +1,301 @@
-@Test
-void testCalculateAmount_WithCommission_Externally_NoTax() throws Exception {
-    CashTransactionDTO dto = new CashTransactionDTO();
-    dto.setProcessCode(PROCESS_CODE.DEPOSIT.getProcessCode());
+package com.ykb.corebanking.vault.money.deposit.withdraw.service.impl;
 
-    CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
-    detail.setAmount(BigDecimal.valueOf(1000));
-    detail.setAccountAmount(BigDecimal.valueOf(1000));
-    detail.setCommissionAmount(BigDecimal.valueOf(50));   // komisyon var
-    detail.setKmvAmount(BigDecimal.ZERO);                 // KMV yok
-    detail.setCurrency("TL");
-    detail.setAccountCurrency("TL");
+import com.ykb.corebanking.vault.money.deposit.withdraw.constant.NAPConstant.PROCESS_CODE;
+import com.ykb.corebanking.vault.money.deposit.withdraw.dto.*;
+import com.ykb.corebanking.vault.money.deposit.withdraw.request.CashTransactionStoredRequest;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.MockitoAnnotations;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-    CashTransactionStoredRequest req = new CashTransactionStoredRequest();
-    // Komisyon tutardan alınmıyor => false => "haricen alınıyor"
-    req.setTakeCommissionFromTransactionAmount(false);
-    // Vergi/tax da yok
-    req.setTakeTaxFromAccount(false);
-    detail.setCashTransactionStoredRequest(req);
+import java.lang.reflect.Method;
+import java.math.BigDecimal;
+import java.util.Collections;
+import java.util.Date;
 
-    Method method = CustomerNotificationService.class.getDeclaredMethod(
-            "calculateAmountTextAndIsKgvIncluded", CashTransactionDTO.class, List.class);
-    method.setAccessible(true);
+import static org.junit.jupiter.api.Assertions.*;
 
-    CustomerNotificationService.AmountCalculationResult result =
-            (CustomerNotificationService.AmountCalculationResult) method.invoke(
-                    customerNotificationService,
-                    dto,
-                    Collections.singletonList(detail)
-            );
+@ExtendWith(SpringExtension.class)
+class CustomerNotificationServiceTest {
 
-    // "1000,00 TL" vb. metin olabilir (Alman formatı)
-    assertTrue(result.getAmountText().contains("1.000,00"));
-    assertTrue(result.getAmountText().contains("TL"));
+    private CustomerNotificationService customerNotificationService;
 
-    // Kod mantığına göre isKgvIncluded = false
-    // Çünkü haricen komisyon + tax=false => isKgvIncluded hiç true yapılmıyor
-    assertFalse(result.getIsKgvIncluded(), 
-        "Haricen komisyon + vergi(tax) yok => isKgvIncluded=false beklenir");
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+        customerNotificationService = new CustomerNotificationService(null, null);
+    }
+
+    /**
+     * Senaryo A:
+     *  - Komisyon = 0 => "else" (komisyon yok)
+     *  - KMV = 0, takeTaxFromAccount=false => "isKgvIncluded" = false
+     *  - currency == accountCurrency
+     *  - processCode = WITHDRAW
+     */
+    @Test
+    void testCalculateAmount_NoCommission_NoKmv_SameCurrency_Withdraw() throws Exception {
+        CashTransactionDTO dto = new CashTransactionDTO();
+        dto.setProcessCode(PROCESS_CODE.WITHDRAW.getProcessCode());
+
+        CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
+        detail.setAmount(BigDecimal.valueOf(1000));
+        detail.setAccountAmount(BigDecimal.valueOf(1000));
+        detail.setKmvAmount(BigDecimal.ZERO);        // => no KMV
+        detail.setCommissionAmount(BigDecimal.ZERO); // => no commission
+        detail.setCurrency("TL");
+        detail.setAccountCurrency("TL");
+
+        CashTransactionStoredRequest req = new CashTransactionStoredRequest();
+        req.setTakeCommissionFromTransactionAmount(false);
+        req.setTakeTaxFromAccount(false); // => hasKmvAmountGreaterThanZero -> false
+        detail.setCashTransactionStoredRequest(req);
+
+        // Reflection ile metod
+        Method method = CustomerNotificationService.class.getDeclaredMethod(
+                "calculateAmountTextAndIsKgvIncluded",
+                CashTransactionDTO.class, 
+                java.util.List.class
+        );
+        method.setAccessible(true);
+
+        CustomerNotificationService.AmountCalculationResult result =
+                (CustomerNotificationService.AmountCalculationResult) 
+                        method.invoke(customerNotificationService, dto, Collections.singletonList(detail));
+
+        // Beklenti: isKgvIncluded = false
+        // amountText "1000,00 TL" gibi
+        assertFalse(result.getIsKgvIncluded());
+        assertTrue(result.getAmountText().contains("1.000,00"));
+        assertTrue(result.getAmountText().contains("TL"));
+    }
+
+    /**
+     * Senaryo B:
+     *  - Komisyon = 0
+     *  - KMV > 0 + takeTaxFromAccount=true => isKgvIncluded=true
+     *  - currency != accountCurrency
+     *  - processCode = DEPOSIT (fark etmez, ama ek coverage sağlarız)
+     */
+    @Test
+    void testCalculateAmount_NoCommission_KmvExists_DiffCurrency_Deposit() throws Exception {
+        CashTransactionDTO dto = new CashTransactionDTO();
+        dto.setProcessCode(PROCESS_CODE.DEPOSIT.getProcessCode());
+
+        CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
+        detail.setAmount(BigDecimal.valueOf(2000));
+        detail.setAccountAmount(BigDecimal.valueOf(3000));
+        // KMV > 0
+        detail.setKmvAmount(BigDecimal.valueOf(100));
+        detail.setCommissionAmount(BigDecimal.ZERO);
+        detail.setCurrency("USD");
+        detail.setAccountCurrency("EUR");
+
+        // Vergi account'tan => true
+        CashTransactionStoredRequest req = new CashTransactionStoredRequest();
+        req.setTakeCommissionFromTransactionAmount(false);
+        req.setTakeTaxFromAccount(true); 
+        detail.setCashTransactionStoredRequest(req);
+
+        Method method = CustomerNotificationService.class.getDeclaredMethod(
+                "calculateAmountTextAndIsKgvIncluded",
+                CashTransactionDTO.class,
+                java.util.List.class
+        );
+        method.setAccessible(true);
+
+        CustomerNotificationService.AmountCalculationResult result =
+                (CustomerNotificationService.AmountCalculationResult)
+                        method.invoke(customerNotificationService, dto, Collections.singletonList(detail));
+
+        // KMV > 0 + takeTaxFromAccount=true => isKgvIncluded=true
+        assertTrue(result.getIsKgvIncluded());
+        // amountText "2.000,00 USD karşılığı 3.100,00 EUR" gibi bir şey olabilir
+        assertNotNull(result.getAmountText());
+    }
+
+    /**
+     * Senaryo C:
+     *  - Komisyon > 0
+     *  - "haricen alınıyor" => takeCommissionFromTransactionAmount=false
+     *  - currency == accountCurrency
+     *  - KMV = 0 => isKgvIncluded=false
+     */
+    @Test
+    void testCalculateAmount_WithCommission_ExternalCurrencySame_NoKmv() throws Exception {
+        CashTransactionDTO dto = new CashTransactionDTO();
+        dto.setProcessCode(PROCESS_CODE.DEPOSIT.getProcessCode());
+
+        CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
+        detail.setAmount(BigDecimal.valueOf(800));
+        detail.setAccountAmount(BigDecimal.valueOf(800));
+        detail.setKmvAmount(BigDecimal.ZERO);
+        detail.setCommissionAmount(BigDecimal.valueOf(50)); // Komisyon > 0
+        detail.setCurrency("TL");
+        detail.setAccountCurrency("TL");
+
+        CashTransactionStoredRequest req = new CashTransactionStoredRequest();
+        // haricen => false
+        req.setTakeCommissionFromTransactionAmount(false);
+        req.setTakeTaxFromAccount(false);
+        detail.setCashTransactionStoredRequest(req);
+
+        Method method = CustomerNotificationService.class.getDeclaredMethod(
+                "calculateAmountTextAndIsKgvIncluded",
+                CashTransactionDTO.class,
+                java.util.List.class
+        );
+        method.setAccessible(true);
+
+        CustomerNotificationService.AmountCalculationResult result =
+                (CustomerNotificationService.AmountCalculationResult)
+                        method.invoke(customerNotificationService, dto, Collections.singletonList(detail));
+
+        // Kod mantığı: para birimi aynı, KMV yok, => isKgvIncluded=false
+        // "800,00 TL"...
+        assertFalse(result.getIsKgvIncluded());
+        assertTrue(result.getAmountText().contains("800,00 TL"));
+    }
+
+    /**
+     * Senaryo D:
+     *  - Komisyon > 0
+     *  - "haricen alınıyor"
+     *  - currency != accountCurrency
+     *  - KMV > 0 + takeTaxFromAccount=true => isKgvIncluded=true
+     */
+    @Test
+    void testCalculateAmount_WithCommission_ExternalCurrencyDiff_KmvIncluded() throws Exception {
+        CashTransactionDTO dto = new CashTransactionDTO();
+        dto.setProcessCode(PROCESS_CODE.DEPOSIT.getProcessCode());
+
+        CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
+        detail.setAmount(BigDecimal.valueOf(800));
+        detail.setAccountAmount(BigDecimal.valueOf(1000));
+        detail.setKmvAmount(BigDecimal.valueOf(100)); // > 0
+        detail.setCommissionAmount(BigDecimal.valueOf(50));
+        detail.setCurrency("USD");
+        detail.setAccountCurrency("EUR");
+
+        CashTransactionStoredRequest req = new CashTransactionStoredRequest();
+        // haricen => false
+        req.setTakeCommissionFromTransactionAmount(false);
+        // KMV => true
+        req.setTakeTaxFromAccount(true);
+        detail.setCashTransactionStoredRequest(req);
+
+        Method method = CustomerNotificationService.class.getDeclaredMethod(
+                "calculateAmountTextAndIsKgvIncluded",
+                CashTransactionDTO.class,
+                java.util.List.class
+        );
+        method.setAccessible(true);
+
+        CustomerNotificationService.AmountCalculationResult result =
+                (CustomerNotificationService.AmountCalculationResult)
+                        method.invoke(customerNotificationService, dto, Collections.singletonList(detail));
+
+        // isKgvIncluded = true
+        assertTrue(result.getIsKgvIncluded());
+        // amountText vs. check
+        assertNotNull(result.getAmountText());
+    }
+
+    /**
+     * Senaryo E:
+     *  - Komisyon > 0
+     *  - "tutardan alınıyor" => takeCommissionFromTransactionAmount=true
+     *  - processCode = WITHDRAW => totalAccountAmount += commission
+     *  - currency == accountCurrency
+     *  - KMV = 0
+     */
+    @Test
+    void testCalculateAmount_WithCommission_TakenFromAmount_Withdraw_SameCurrency_NoKmv() throws Exception {
+        CashTransactionDTO dto = new CashTransactionDTO();
+        dto.setProcessCode(PROCESS_CODE.WITHDRAW.getProcessCode()); // withdraw
+
+        CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
+        detail.setAmount(BigDecimal.valueOf(1000));
+        detail.setAccountAmount(BigDecimal.valueOf(900));
+        detail.setKmvAmount(BigDecimal.ZERO);
+        detail.setCommissionAmount(BigDecimal.valueOf(50));
+        detail.setCurrency("TL");
+        detail.setAccountCurrency("TL");
+
+        CashTransactionStoredRequest req = new CashTransactionStoredRequest();
+        // tutardan => true
+        req.setTakeCommissionFromTransactionAmount(true);
+        req.setTakeTaxFromAccount(false);
+        detail.setCashTransactionStoredRequest(req);
+
+        Method method = CustomerNotificationService.class.getDeclaredMethod(
+                "calculateAmountTextAndIsKgvIncluded",
+                CashTransactionDTO.class,
+                java.util.List.class
+        );
+        method.setAccessible(true);
+
+        CustomerNotificationService.AmountCalculationResult result =
+                (CustomerNotificationService.AmountCalculationResult)
+                        method.invoke(customerNotificationService, dto, Collections.singletonList(detail));
+
+        // Bu yolda isKgvIncluded=false (KMV yok)
+        assertFalse(result.getIsKgvIncluded());
+        // amountText vs. check
+        // "950,00 TL" veya "900+50" mantığını yansıtabilir (kodda totalAccountAmount += commission)
+        assertNotNull(result.getAmountText());
+    }
+
+    /**
+     * Senaryo F:
+     *  - Komisyon > 0
+     *  - "tutardan alınıyor"
+     *  - processCode=DEPOSIT (ama "tutardan" artış mantığı sadece WITHDRAW'da var)
+     *  - currency != accountCurrency
+     *  - KMV>0, takeTaxFromAccount=true => isKgvIncluded=true
+     */
+    @Test
+    void testCalculateAmount_WithCommission_TakenFromAmount_Deposit_DiffCurrency_Kmv() throws Exception {
+        CashTransactionDTO dto = new CashTransactionDTO();
+        dto.setProcessCode(PROCESS_CODE.DEPOSIT.getProcessCode());
+
+        CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
+        detail.setAmount(BigDecimal.valueOf(1500));
+        detail.setAccountAmount(BigDecimal.valueOf(1200));
+        detail.setKmvAmount(BigDecimal.valueOf(300)); 
+        detail.setCommissionAmount(BigDecimal.valueOf(50));
+        detail.setCurrency("USD");
+        detail.setAccountCurrency("EUR");
+
+        CashTransactionStoredRequest req = new CashTransactionStoredRequest();
+        // tutardan => true
+        req.setTakeCommissionFromTransactionAmount(true);
+        // kmv => true
+        req.setTakeTaxFromAccount(true);
+        detail.setCashTransactionStoredRequest(req);
+
+        Method method = CustomerNotificationService.class.getDeclaredMethod(
+                "calculateAmountTextAndIsKgvIncluded",
+                CashTransactionDTO.class,
+                java.util.List.class
+        );
+        method.setAccessible(true);
+
+        CustomerNotificationService.AmountCalculationResult result =
+                (CustomerNotificationService.AmountCalculationResult)
+                        method.invoke(customerNotificationService, dto, Collections.singletonList(detail));
+
+        // isKgvIncluded = true
+        assertTrue(result.getIsKgvIncluded());
+        assertNotNull(result.getAmountText());
+    }
+
+    /**
+     * Burada `processCode=WITHDRAW` + currency != same + KMV=0 + komisyon=0...
+     * Gibi farklı bir dal daha test edebilirsiniz.
+     * 
+     * İhtiyaç oldukça ek senaryolar yazıp coverage’ı yükseltmeye devam edebilirsiniz.
+     */
+
 }
