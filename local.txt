@@ -1,11 +1,164 @@
+package com.ykb.corebanking.tellerline.receiptbatch.service.impl;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
+
+import com.ykb.corebanking.tellerline.receiptbatch.clients.PostOfficeClient;
+import com.ykb.corebanking.tellerline.receiptbatch.common.exceptions.PostOfficeInhouseSendingException;
+import com.ykb.corebanking.tellerline.receiptbatch.common.exceptions.PostOfficeOnlineSendingException;
+import com.ykb.corebanking.tellerline.receiptbatch.clients.request.RequestCreateOnlineSending;
+import com.ykb.corebanking.tellerline.receiptbatch.clients.request.RequestInhouseSending;
+import com.ykb.corebanking.tellerline.receiptbatch.clients.response.ResponseCreateOnlineSending;
+import com.ykb.corebanking.tellerline.receiptbatch.clients.response.ResponseInhouseSending;
+import com.ykb.corebanking.tellerline.receiptbatch.service.IPostOfficeDomainService;
+import com.ykb.corebanking.tellerline.receiptbatch.util.LoggerUtil;
+
+@Service
+public class PostOfficeDomainService implements IPostOfficeDomainService {
+    @Autowired
+    private PostOfficeClient postOfficeClient;
+
+    @Override
+    public ResponseCreateOnlineSending createOnlineSending(RequestCreateOnlineSending request) throws PostOfficeOnlineSendingException {
+        try {
+            ResponseCreateOnlineSending responseCreateOnlineSending;
+            if (request != null) {
+                ResponseEntity<ResponseCreateOnlineSending> responseEntity = postOfficeClient.createOnlineSending(request);
+                if (responseEntity != null && HttpStatus.OK.equals(responseEntity.getStatusCode()) && responseEntity.getBody() != null) {
+                    responseCreateOnlineSending = responseEntity.getBody();
+                } else {
+                    throw new PostOfficeOnlineSendingException("Postane servisinden sonuç alınamadı.");
+                }
+            } else {
+                throw new PostOfficeOnlineSendingException("Postane servisine boş input gönderildiği için hata oluştu.");
+            }
+            return responseCreateOnlineSending;
+        } catch (Exception e) {
+            throw new PostOfficeOnlineSendingException(LoggerUtil.findRootCause(e, "Postane servisi çağrımı sırasında hata oluştu."));
+        }
+    }
+
+    @Override
+    public ResponseInhouseSending createInhouseSending(RequestInhouseSending request) throws PostOfficeInhouseSendingException {
+        try {
+            ResponseInhouseSending responseInhouseSending;
+            if (request != null) {
+                ResponseEntity<ResponseInhouseSending> responseEntity = postOfficeClient.createInhouseSending(request);
+                if (responseEntity != null && HttpStatus.OK.equals(responseEntity.getStatusCode()) && responseEntity.getBody() != null) {
+                    responseInhouseSending = responseEntity.getBody();
+                } else {
+                    throw new PostOfficeInhouseSendingException("Postane servisinden sonuç alınamadı.");
+                }
+            } else {
+                throw new PostOfficeInhouseSendingException("Postane servisine boş input gönderildiği için hata oluştu.");
+            }
+            return responseInhouseSending;
+        } catch (Exception e) {
+            throw new PostOfficeInhouseSendingException(LoggerUtil.findRootCause(e, "Postane servisi çağrımı sırasında hata oluştu."));
+        }
+    }
+}
+
+
+package com.ykb.corebanking.tellerline.receiptbatch.clients;
+
 import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.retry.annotation.Retryable;
-import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
 
-@FeignClient(name = "exampleClient", url = "http://example.com")
-public interface ExampleClient {
+import com.ykb.architecture.micro.error.feign.decoder.MicroErrorDecoder;
+import com.ykb.corebanking.tellerline.receiptbatch.clients.request.RequestCreateOnlineSending;
+import com.ykb.corebanking.tellerline.receiptbatch.clients.request.RequestInhouseSending;
+import com.ykb.corebanking.tellerline.receiptbatch.clients.response.ResponseCreateOnlineSending;
+import com.ykb.corebanking.tellerline.receiptbatch.clients.response.ResponseInhouseSending;
 
-    @GetMapping("/data")
-    @Retryable(value = {Exception.class}, maxAttempts = 3, backoff = @Backoff(delay = 2000))
-    String getData();
+
+@FeignClient(name = "POST.OFFICE.outgoing-notification", configuration = {MicroErrorDecoder.class})
+public interface PostOfficeClient {
+
+    @PostMapping("/OnlineSending/Send")
+    ResponseEntity<ResponseCreateOnlineSending> createOnlineSending(RequestCreateOnlineSending request);
+
+    @PostMapping("/InhouseSending/Send")
+    ResponseEntity<ResponseInhouseSending> createInhouseSending(RequestInhouseSending request);
+}
+
+
+package com.ykb.corebanking.tellerline.receiptbatch.clients.response;
+
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+public class ResponseInhouseSending {
+    private Integer type;
+    private String  sendingGuid;
+}
+
+
+
+package com.ykb.corebanking.tellerline.receiptbatch.clients.request;
+
+import com.ykb.corebanking.tellerline.receiptbatch.dto.AttachmentDTO;
+import com.ykb.corebanking.tellerline.receiptbatch.dto.DestinationDTO;
+import com.ykb.corebanking.tellerline.receiptbatch.dto.TableParameterDTO;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.util.List;
+import java.util.Map;
+
+@Getter
+@Setter
+public class RequestInhouseSending {
+    private String                         userName;
+    private Integer                        clientNo;
+    private String                         sendingName;
+    private List<DestinationDTO>           destinationList;
+    private Map<String, String>            parameterList;
+    private Map<String, TableParameterDTO> tableParameterList;
+    private List<AttachmentDTO>            attachmentList;
+}
+
+
+package com.ykb.corebanking.tellerline.receiptbatch.clients.response;
+
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+public class ResponseCreateOnlineSending {
+    private Integer type;
+    private String  sendingGuid;
+}
+
+package com.ykb.corebanking.tellerline.receiptbatch.clients.request;
+
+import com.ykb.corebanking.tellerline.receiptbatch.dto.AntiCorruptionFieldDTO;
+import com.ykb.corebanking.tellerline.receiptbatch.dto.AttachmentDTO;
+import com.ykb.corebanking.tellerline.receiptbatch.dto.DestinationDTO;
+import com.ykb.corebanking.tellerline.receiptbatch.dto.TableParameterDTO;
+import lombok.Getter;
+import lombok.Setter;
+
+import java.util.List;
+import java.util.Map;
+
+@Getter
+@Setter
+public class RequestCreateOnlineSending {
+    private String                         userName;
+    private Integer                        clientNo;
+    private String                         sendingName;
+    private List<DestinationDTO>           destinationList;
+    private Map<String, String>            parameterList;
+    private Map<String, TableParameterDTO> tableParameterList;
+    private List<AttachmentDTO>            attachmentList;
+    private Map<String, String>            referenceList;
+    private String                         incomingSmsId;
+    private AntiCorruptionFieldDTO         antiCorruptionField;
 }
