@@ -1,3 +1,17 @@
+[INFO] 
+[INFO] Results:
+[INFO] 
+[ERROR] Failures: 
+[ERROR]   PostOfficeDomainServiceTest.createInhouseSending_clientThrowsException_throwsPostOfficeInhouseSendingException:212 expected: <true> but was: <false>
+[ERROR]   PostOfficeDomainServiceTest.createOnlineSending_clientThrowsException_throwsPostOfficeOnlineSendingException:136 expected: <true> but was: <false>
+[INFO] 
+[ERROR] Tests run: 10, Failures: 2, Errors: 0, Skipped: 0
+[INFO] 
+
+
+
+
+
 package com.ykb.corebanking.tellerline.receiptbatch.service.impl;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -13,7 +27,6 @@ import com.ykb.corebanking.tellerline.receiptbatch.common.exceptions.PostOfficeO
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.TestConfiguration;
 import org.springframework.boot.test.mock.mockito.MockBean;
@@ -64,5 +77,229 @@ class PostOfficeDomainServiceTest {
         validInhouseResponse.setSendingGuid("guid-456");
     }
 
-    // ... Test metodları aynı kalır ...
+    @Test
+    void createOnlineSending_success() throws PostOfficeOnlineSendingException {
+        ResponseEntity<ResponseCreateOnlineSending> responseEntity =
+                new ResponseEntity<>(validOnlineResponse, HttpStatus.OK);
+
+        when(postOfficeClient.createOnlineSending(validOnlineRequest)).thenReturn(responseEntity);
+
+        ResponseCreateOnlineSending response = postOfficeDomainService.createOnlineSending(validOnlineRequest);
+
+        assertNotNull(response);
+        assertEquals("guid-123", response.getSendingGuid());
+        verify(postOfficeClient, times(1)).createOnlineSending(validOnlineRequest);
+    }
+
+    @Test
+    void createOnlineSending_nullRequest_throwsException() {
+        PostOfficeOnlineSendingException exception = assertThrows(
+                PostOfficeOnlineSendingException.class,
+                () -> postOfficeDomainService.createOnlineSending(null)
+        );
+
+        assertEquals("Postane servisine boş input gönderildiği için hata oluştu.", exception.getMessage());
+        verify(postOfficeClient, never()).createOnlineSending(any());
+    }
+
+    @Test
+    void createOnlineSending_nonOkStatus_throwsException() {
+        ResponseEntity<ResponseCreateOnlineSending> responseEntity =
+                new ResponseEntity<>(validOnlineResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+
+        when(postOfficeClient.createOnlineSending(validOnlineRequest)).thenReturn(responseEntity);
+
+        PostOfficeOnlineSendingException exception = assertThrows(
+                PostOfficeOnlineSendingException.class,
+                () -> postOfficeDomainService.createOnlineSending(validOnlineRequest)
+        );
+
+        assertEquals("Postane servisinden sonuç alınamadı.", exception.getMessage());
+        verify(postOfficeClient, times(1)).createOnlineSending(validOnlineRequest);
+    }
+
+    @Test
+    void createOnlineSending_nullResponseBody_throwsException() {
+        ResponseEntity<ResponseCreateOnlineSending> responseEntity =
+                new ResponseEntity<>(null, HttpStatus.OK);
+
+        when(postOfficeClient.createOnlineSending(validOnlineRequest)).thenReturn(responseEntity);
+
+        PostOfficeOnlineSendingException exception = assertThrows(
+                PostOfficeOnlineSendingException.class,
+                () -> postOfficeDomainService.createOnlineSending(validOnlineRequest)
+        );
+
+        assertEquals("Postane servisinden sonuç alınamadı.", exception.getMessage());
+        verify(postOfficeClient, times(1)).createOnlineSending(validOnlineRequest);
+    }
+
+    @Test
+    void createOnlineSending_clientThrowsException_throwsPostOfficeOnlineSendingException() {
+        when(postOfficeClient.createOnlineSending(validOnlineRequest))
+                .thenThrow(new RuntimeException("Feign client error"));
+
+        PostOfficeOnlineSendingException exception = assertThrows(
+                PostOfficeOnlineSendingException.class,
+                () -> postOfficeDomainService.createOnlineSending(validOnlineRequest)
+        );
+
+        // Gerçek mesajı doğrulamak için aşağıdaki satırı kullanabilirsiniz
+        // System.out.println(exception.getMessage());
+
+        assertTrue(exception.getMessage().contains("Postane servisi çağrımı sırasında hata oluştu."));
+        verify(postOfficeClient, times(1)).createOnlineSending(validOnlineRequest);
+    }
+
+    // Tests for createInhouseSending
+
+    @Test
+    void createInhouseSending_success() throws PostOfficeInhouseSendingException {
+        ResponseEntity<ResponseInhouseSending> responseEntity =
+                new ResponseEntity<>(validInhouseResponse, HttpStatus.OK);
+
+        when(postOfficeClient.createInhouseSending(validInhouseRequest)).thenReturn(responseEntity);
+
+        ResponseInhouseSending response = postOfficeDomainService.createInhouseSending(validInhouseRequest);
+
+        assertNotNull(response);
+        assertEquals("guid-456", response.getSendingGuid());
+        verify(postOfficeClient, times(1)).createInhouseSending(validInhouseRequest);
+    }
+
+    @Test
+    void createInhouseSending_nullRequest_throwsException() {
+        PostOfficeInhouseSendingException exception = assertThrows(
+                PostOfficeInhouseSendingException.class,
+                () -> postOfficeDomainService.createInhouseSending(null)
+        );
+
+        assertEquals("Postane servisine boş input gönderildiği için hata oluştu.", exception.getMessage());
+        verify(postOfficeClient, never()).createInhouseSending(any());
+    }
+
+    @Test
+    void createInhouseSending_nonOkStatus_throwsException() {
+        ResponseEntity<ResponseInhouseSending> responseEntity =
+                new ResponseEntity<>(validInhouseResponse, HttpStatus.BAD_REQUEST);
+
+        when(postOfficeClient.createInhouseSending(validInhouseRequest)).thenReturn(responseEntity);
+
+        PostOfficeInhouseSendingException exception = assertThrows(
+                PostOfficeInhouseSendingException.class,
+                () -> postOfficeDomainService.createInhouseSending(validInhouseRequest)
+        );
+
+        assertEquals("Postane servisinden sonuç alınamadı.", exception.getMessage());
+        verify(postOfficeClient, times(1)).createInhouseSending(validInhouseRequest);
+    }
+
+    @Test
+    void createInhouseSending_nullResponseBody_throwsException() {
+        ResponseEntity<ResponseInhouseSending> responseEntity =
+                new ResponseEntity<>(null, HttpStatus.OK);
+
+        when(postOfficeClient.createInhouseSending(validInhouseRequest)).thenReturn(responseEntity);
+
+        PostOfficeInhouseSendingException exception = assertThrows(
+                PostOfficeInhouseSendingException.class,
+                () -> postOfficeDomainService.createInhouseSending(validInhouseRequest)
+        );
+
+        assertEquals("Postane servisinden sonuç alınamadı.", exception.getMessage());
+        verify(postOfficeClient, times(1)).createInhouseSending(validInhouseRequest);
+    }
+
+    @Test
+    void createInhouseSending_clientThrowsException_throwsPostOfficeInhouseSendingException() {
+        when(postOfficeClient.createInhouseSending(validInhouseRequest))
+                .thenThrow(new RuntimeException("Feign client error"));
+
+        PostOfficeInhouseSendingException exception = assertThrows(
+                PostOfficeInhouseSendingException.class,
+                () -> postOfficeDomainService.createInhouseSending(validInhouseRequest)
+        );
+
+        // Gerçek mesajı doğrulamak için aşağıdaki satırı kullanabilirsiniz
+        // System.out.println(exception.getMessage());
+
+        assertTrue(exception.getMessage().contains("Postane servisi çağrımı sırasında hata oluştu."));
+        verify(postOfficeClient, times(1)).createInhouseSending(validInhouseRequest);
+    }
 }
+
+package com.ykb.corebanking.tellerline.receiptbatch.util;
+
+import com.google.common.base.Splitter;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.aspectj.lang.ProceedingJoinPoint;
+import org.aspectj.lang.reflect.MethodSignature;
+
+import java.io.PrintWriter;
+import java.io.StringWriter;
+import java.lang.reflect.Method;
+import com.ykb.corebanking.tellerline.receiptbatch.log.annotation.Loggable;
+
+
+public class LoggerUtil {
+
+    private LoggerUtil() {
+
+    }
+
+    public static String getExceptionTrace(Exception ex) {
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        ex.printStackTrace(pw);
+        return sw.toString();
+    }
+
+    public static String getTrimmedExceptionTrace(Exception ex) {
+        return Splitter.fixedLength(4000).splitToList(getExceptionTrace(ex)).get(0);
+    }
+    
+    public static Loggable getAnnotation(ProceedingJoinPoint proceedingJoinPoint) {
+        MethodSignature signature = (MethodSignature) proceedingJoinPoint.getSignature();
+        Method method = signature.getMethod();
+        return method.getAnnotation(Loggable.class);
+    }
+
+    public static String getServiceName(ProceedingJoinPoint proceedingJoinPoint) {
+        MethodSignature signature = (MethodSignature) proceedingJoinPoint.getSignature();
+        String[] packageNameParts = signature.getDeclaringTypeName().split("\\.");
+        return packageNameParts[packageNameParts.length - 1];
+    }
+
+    public static String getMethodName(ProceedingJoinPoint proceedingJoinPoint) {
+        MethodSignature signature = (MethodSignature) proceedingJoinPoint.getSignature();
+        Method method = signature.getMethod();
+        return method.getName();
+    }
+
+    public static String getThrowableTrace(Throwable t) {
+        StringWriter sw = new StringWriter();
+        PrintWriter pw = new PrintWriter(sw);
+        t.printStackTrace(pw);
+        return sw.toString();
+    }
+    
+    public static String findRootCause(Exception ex) {
+        if (ex != null) {
+            Throwable throwable = ExceptionUtils.getRootCause(ex);
+            return throwable != null ? throwable.getMessage() : null;
+        }
+        return null;
+    }
+
+    public static String findRootCause(Exception ex, String defaultMessage) {
+        String rootCause = findRootCause(ex);
+        if (!CoreStringUtils.hasText(rootCause)) {
+            return defaultMessage;
+        }
+        return rootCause;
+    }
+
+
+}
+
+
