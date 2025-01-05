@@ -1,721 +1,200 @@
 package com.ykb.corebanking.tellerline.receiptbatch.service.impl;
 
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.Mockito.*;
+
 import com.ykb.architecture.micro.error.exception.MicroException;
 import com.ykb.corebanking.tellerline.receiptbatch.clients.dto.HesparAccountServiceDTO;
 import com.ykb.corebanking.tellerline.receiptbatch.dto.ExpenseJobPrepareDTO;
 import com.ykb.corebanking.tellerline.receiptbatch.service.IReceiptExpenseJobBaseService;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Bean;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import java.util.List;
-import java.util.Map;
-import java.util.stream.Collectors;
-
-@Service
-public class ReceiptExpenseJobBaseService implements IReceiptExpenseJobBaseService {
-
-    @Autowired
-    CommissionFromExpenseAccount commissionFromExpenseAccount;
-    @Autowired
-    CommissionSendReceiptAccount commissionSendReceiptAccount;
-    @Autowired
-    CommissionAccountFromHespar commissionAccountFromHespar;
-    @Autowired
-    CommissionFirstAccountFromHespar commissionFirstAccountFromHespar;
-    @Autowired
-    HesparAccountService hesparAccountService;
-    @Autowired
-    ReceiptExpenseJobParameterService receiptExpenseJobParameterService;
-
-    @Override
-    public void getCommission(List<ExpenseJobPrepareDTO> clientList) throws MicroException {
-        Map<Integer, List<HesparAccountServiceDTO>> hesparAccountList = hesparAccountService.getHesparAccountListBulk(clientList.stream().map(ExpenseJobPrepareDTO::getClientNo).collect(Collectors.toList()));
-        String currentPeriod = receiptExpenseJobParameterService.getCurrentPeriod();
-        List<String> statusList = receiptExpenseJobParameterService.getCurrentStatusList();
-        List<ExpenseJobPrepareDTO> remainingList1 = commissionFromExpenseAccount.findAccountAndGetCommission(clientList, hesparAccountList, currentPeriod, statusList);
-        List<ExpenseJobPrepareDTO> remainingList2 = commissionSendReceiptAccount.findAccountAndGetCommission(remainingList1, hesparAccountList, currentPeriod, statusList);
-        List<ExpenseJobPrepareDTO> remainingList3 = commissionAccountFromHespar.findAccountAndGetCommission(remainingList2, hesparAccountList, currentPeriod, statusList);
-
-        commissionFirstAccountFromHespar.findAccountAndGetCommission(remainingList3, hesparAccountList, currentPeriod, statusList);
-    }
-
-}
-
-
-package com.ykb.corebanking.tellerline.receiptbatch.dto;
-
-import lombok.*;
-
-@Getter
-@Setter
-public class ExpenseJobPrepareDTO {
-    private Integer clientNo;
-    private String  sbuType;
-    private Integer slipCount;
-}
-
-
-package com.ykb.corebanking.tellerline.receiptbatch.service.impl;
-
-import com.ykb.corebanking.tellerline.receiptbatch.clients.dto.CommissionInformationResponseDTO;
-import com.ykb.corebanking.tellerline.receiptbatch.clients.dto.HesparAccountServiceDTO;
-import com.ykb.corebanking.tellerline.receiptbatch.clients.request.RequestCreateProvision;
-import com.ykb.corebanking.tellerline.receiptbatch.clients.response.*;
-import com.ykb.corebanking.tellerline.receiptbatch.dto.CustomerExpenseInfoDTO;
-import com.ykb.corebanking.tellerline.receiptbatch.dto.ExpenseJobPrepareDTO;
-import com.ykb.corebanking.tellerline.receiptbatch.request.RequestReceiptLogger;
-import com.ykb.corebanking.tellerline.receiptbatch.request.RequestUpdateCustomerReceiptDataStatus;
-import com.ykb.corebanking.tellerline.receiptbatch.service.IExpenseJobAccountService;
-import com.ykb.corebanking.tellerline.receiptbatch.util.ControlUtil;
-import com.ykb.corebanking.tellerline.receiptbatch.util.ExpenseJobUtil;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-@Service
-public class CommissionFromExpenseAccount implements IExpenseJobAccountService {
-
-    @Autowired
-    private ReceiptExpenseJobProvisionService receiptExpenseJobProvisionService;
-    @Autowired
-    private ReceiptExpenseJobReceiptService receiptExpenseJobReceiptService;
-    @Autowired
-    private ReceiptExpenseJobCommissionService receiptExpenseJobCommissionService;
-    @Autowired
-    private HesparAccountService hesparAccountService;
-    @Autowired
-    private CustomerReceiptDataService customerReceiptDataService;
-    @Autowired
-    private ReceiptBatchLogService logger;
-
-    @Override
-    public List<ExpenseJobPrepareDTO> findAccountAndGetCommission(List<ExpenseJobPrepareDTO> clientList, Map<Integer, List<HesparAccountServiceDTO>> hesparAccountList, String currentPeriod, List<String> statusList) {
-        List<ExpenseJobPrepareDTO> remainingClients = new ArrayList<>();
-        List<CustomerExpenseInfoDTO> expenseInfoList = new ArrayList<>();
-
-
-        //musteriler icin borc blokesi bulunmayip, statusu aktif, tanimli masraf hesabi olanlar bulunur
-        for (ExpenseJobPrepareDTO client : clientList) {
-
-            //musterinin masraf hesabini al
-            ResponseCustomerCommissionAccountDefinition customerExpenseAccount = receiptExpenseJobCommissionService.getCustomerExpenseAccount(client);
-
-            if (ControlUtil.isNotNull(customerExpenseAccount)) {
-                //masraf hesabinin bilgilerini al
-                ResponseAccountNumberWithCurrencyClient accountInfo = hesparAccountService.getAccountInfo(customerExpenseAccount.getCommissionAccountNo());
-                if (ControlUtil.isNotNull(accountInfo)) {
-                    CustomerExpenseInfoDTO dto = new CustomerExpenseInfoDTO();
-                    dto.setExpenseResponse(customerExpenseAccount);
-                    dto.setAccountInfo(accountInfo);
-                    dto.setPrepareDTO(client);
-                    expenseInfoList.add(dto);
-                } else {
-                    //acount info gelmezse, remaininge ekle
-                    remainingClients.add(client);
-                }
-            } else {
-                //masraf hesabi yok, remaininge ekle
-                remainingClients.add(client);
-            }
-        }
-
-        if (Boolean.FALSE.equals(expenseInfoList.isEmpty())) {
-            //komisyon bulk sorgulanir
-            ResponseCommissionInformation commissionInquiryResponse = receiptExpenseJobCommissionService.getBulkCommissionInfoFromExpense(expenseInfoList);
-            //komisyon alinir, dekont olusturulur ve statu CS'ye cekilir, komisyon alinamayan hesaplar tahgece duser.
-            if (commissionInquiryResponse != null) {
-                for (CommissionInformationResponseDTO commissionInfo : commissionInquiryResponse.getResponseCommissionInformationList()) {
-                    RequestCreateProvision pendingRequest = new RequestCreateProvision();
-                    try {
-                        //komisyon ve dekont olustur
-                        pendingRequest = receiptExpenseJobProvisionService.createPendingRequest(commissionInfo, Boolean.TRUE);
-                        ResponseCreateProvision provisionResponse = receiptExpenseJobProvisionService.getCommissionFromInquiry(pendingRequest);
-                        //TAHGEC senaryosunda dekont olusturma
-                        if (Boolean.TRUE.equals(ExpenseJobUtil.checkReceiptRequired(provisionResponse))) {
-                            receiptExpenseJobReceiptService.createReceipt(provisionResponse, commissionInfo);
-                        }
-
-                        //statuyu CS'ye setle
-                        String accountNo = commissionInfo.getCommissionOutputAccountingApiDTOList().get(0).getAccountNo();
-                        RequestUpdateCustomerReceiptDataStatus updateRequest = new RequestUpdateCustomerReceiptDataStatus();
-                        updateRequest.setCommissionAccountNo(accountNo);
-                        updateRequest.setClientNo(ExpenseJobUtil.getClientNoFromHespar(accountNo, hesparAccountList));
-                        updateRequest.setContractNo(provisionResponse.getContractNo());
-                        updateRequest.setCurrentPeriod(currentPeriod);
-                        updateRequest.setStatusList(statusList);
-                        customerReceiptDataService.updateCustomerReceiptDataStatus(updateRequest);
-                    } catch (Exception ex) {
-                        try {
-                            receiptExpenseJobProvisionService.getCommissionFromInquiryCompensate(pendingRequest);
-                        } catch (Exception e) {
-                            createBatchLogForAlert(logger, pendingRequest, e);
-                        }
-
-                        String accountNo = commissionInfo.getCommissionOutputAccountingApiDTOList().get(0).getAccountNo();
-                        Integer remainingClientNo = ExpenseJobUtil.getClientNoFromHespar(accountNo, hesparAccountList);
-
-                        //statuyu CE'ye setle
-                        RequestUpdateCustomerReceiptDataStatus updateRequest = new RequestUpdateCustomerReceiptDataStatus();
-                        updateRequest.setClientNo(remainingClientNo);
-                        updateRequest.setCurrentPeriod(currentPeriod);
-                        updateRequest.setStatusList(statusList);
-                        updateRequest.setErrorMessage("Masraf Hesabından tahsilat sırasında hata oluştu" + ex.getMessage());
-                        customerReceiptDataService.updateCustomerReceiptDataStatus(updateRequest);
-
-                        //remaininge ekle
-                        remainingClients.add(ExpenseJobUtil.findPrepareDTOFromClient(remainingClientNo, clientList));
-                    }
-                }
-            } else {
-                //komisyon sorgulama hatasi, masraf hesabı bulunan herkesi remaininge ekle
-                //statuyu CE'ye setle
-                expenseInfoList.forEach(client -> {
-                    remainingClients.add(client.getPrepareDTO());
-                    RequestUpdateCustomerReceiptDataStatus updateRequest = new RequestUpdateCustomerReceiptDataStatus();
-                    updateRequest.setClientNo(client.getPrepareDTO().getClientNo());
-                    updateRequest.setCurrentPeriod(currentPeriod);
-                    updateRequest.setStatusList(statusList);
-                    customerReceiptDataService.updateCustomerReceiptDataStatus(updateRequest);
-                });
-            }
-        }
-
-        return remainingClients;
-    }
-
-
-}
-
-
-package com.ykb.corebanking.tellerline.receiptbatch.service.impl;
-
-import com.ykb.corebanking.tellerline.receiptbatch.clients.dto.CommissionInformationResponseDTO;
-import com.ykb.corebanking.tellerline.receiptbatch.clients.dto.HesparAccountServiceDTO;
-import com.ykb.corebanking.tellerline.receiptbatch.clients.request.RequestCreateProvision;
-import com.ykb.corebanking.tellerline.receiptbatch.clients.response.ResponseApiReceiptDTO;
-import com.ykb.corebanking.tellerline.receiptbatch.clients.response.ResponseCommissionInformation;
-import com.ykb.corebanking.tellerline.receiptbatch.clients.response.ResponseCreateProvision;
-import com.ykb.corebanking.tellerline.receiptbatch.dto.ExpenseJobPrepareDTO;
-import com.ykb.corebanking.tellerline.receiptbatch.request.RequestUpdateCustomerReceiptDataStatus;
-import com.ykb.corebanking.tellerline.receiptbatch.service.IExpenseJobAccountService;
-import com.ykb.corebanking.tellerline.receiptbatch.util.ControlUtil;
-import com.ykb.corebanking.tellerline.receiptbatch.util.ExpenseJobUtil;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
-
-@Service
-public class CommissionSendReceiptAccount implements IExpenseJobAccountService {
-
-    @Autowired
-    private CustomerReceiptDataService customerReceiptDataService;
-    @Autowired
-    private ReceiptExpenseJobCommissionService receiptExpenseJobCommissionService;
-    @Autowired
-    private ReceiptExpenseJobProvisionService receiptExpenseJobProvisionService;
-    @Autowired
-    private ReceiptExpenseJobReceiptService receiptExpenseJobReceiptService;
-    @Autowired
-    private ReceiptBatchLogService logger;
-
-    @Override
-    public List<ExpenseJobPrepareDTO> findAccountAndGetCommission(List<ExpenseJobPrepareDTO> clientList, Map<Integer, List<HesparAccountServiceDTO>> hesparAccountList, String currentPeriod, List<String> statusList) {
-        List<ExpenseJobPrepareDTO> remainingClients = new ArrayList<>();
-
-        //clientList => phase 1'da ce statusune cekilen kayitlar ve hic islenmemis kayitlar
-        for (ExpenseJobPrepareDTO client : clientList) {
-            List<String> accountList = customerReceiptDataService.getCustomerReceiptAccounts(client.getClientNo(), currentPeriod);
-            List<HesparAccountServiceDTO> availableAccountList = findAvailableReceiptAccountList(accountList, hesparAccountList.get(client.getClientNo()));
-            if (ControlUtil.isEmpty(availableAccountList)) {
-                remainingClients.add(client);
-                continue;
-            }
-            ResponseCommissionInformation commissionInformation = receiptExpenseJobCommissionService.getBulkCommissionInfoFromHespar(availableAccountList, client);
-            if (commissionInformation != null) {
-                boolean isProvisionCompleted = Boolean.FALSE;
-                for (CommissionInformationResponseDTO commissionInfo : commissionInformation.getResponseCommissionInformationList()) {
-                    RequestCreateProvision pendingRequest = new RequestCreateProvision();
-                    try {
-                        pendingRequest = receiptExpenseJobProvisionService.createPendingRequest(commissionInfo, Boolean.FALSE);
-                        ResponseCreateProvision provisionResponse = receiptExpenseJobProvisionService.getCommissionFromInquiry(pendingRequest);
-                        if (Boolean.TRUE.equals(ExpenseJobUtil.checkReceiptRequired(provisionResponse))) {
-
-                            receiptExpenseJobReceiptService.createReceipt(provisionResponse, commissionInfo);
-
-                            //statuyu CS'ye setle
-                            String accountNo = commissionInfo.getCommissionOutputAccountingApiDTOList().get(0).getAccountNo();
-                            RequestUpdateCustomerReceiptDataStatus updateRequest = new RequestUpdateCustomerReceiptDataStatus();
-                            updateRequest.setCommissionAccountNo(accountNo);
-                            updateRequest.setContractNo(provisionResponse.getContractNo());
-                            updateRequest.setStatusList(statusList);
-                            updateRequest.setCurrentPeriod(currentPeriod);
-                            updateRequest.setClientNo(client.getClientNo());
-                            customerReceiptDataService.updateCustomerReceiptDataStatus(updateRequest);
-
-                            isProvisionCompleted = Boolean.TRUE;
-                            break;
-                        }
-                    } catch (Exception ex) {
-                        try {
-                            receiptExpenseJobProvisionService.getCommissionFromInquiryCompensate(pendingRequest);
-                        } catch (Exception e) {
-                            createBatchLogForAlert(logger, pendingRequest, e);
-                        }
-                    }
-                }
-
-                if (!isProvisionCompleted) {
-                    remainingClients.add(client);
-                    //statu update yok
-                }
-            } else {
-                remainingClients.add(client);
-                //statu update yok
-            }
-        }
-
-        return remainingClients;
-    }
-
-    private List<HesparAccountServiceDTO> findAvailableReceiptAccountList(List<String> accountList, List<HesparAccountServiceDTO> hesparAccountList) {
-        if (!ControlUtil.isEmpty(hesparAccountList)) {
-            List<HesparAccountServiceDTO> foundAccountList = new ArrayList<>();
-            for (String receiptAccount : accountList) {
-                Optional<HesparAccountServiceDTO> optionalDTO = hesparAccountList.stream().filter(account -> account.getFullAccountNumber().equals(receiptAccount)).findFirst();
-                if (optionalDTO.isPresent()) {
-                    HesparAccountServiceDTO dto = optionalDTO.get();
-                    //check if account is ok
-                    if (Boolean.TRUE.equals(ExpenseJobUtil.checkIfAccountAvailable(dto))) {
-                        foundAccountList.add(dto);
-                    }
-                }
-            }
-
-            return foundAccountList;
-        }
-
-        return new ArrayList<>();
-
-    }
-
-
-}
-
-
-package com.ykb.corebanking.tellerline.receiptbatch.service.impl;
-
-import com.ykb.corebanking.tellerline.receiptbatch.clients.dto.CommissionInformationResponseDTO;
-import com.ykb.corebanking.tellerline.receiptbatch.clients.dto.HesparAccountServiceDTO;
-import com.ykb.corebanking.tellerline.receiptbatch.clients.request.RequestCreateProvision;
-import com.ykb.corebanking.tellerline.receiptbatch.clients.response.ResponseCommissionInformation;
-import com.ykb.corebanking.tellerline.receiptbatch.clients.response.ResponseCreateProvision;
-import com.ykb.corebanking.tellerline.receiptbatch.dto.ExpenseJobPrepareDTO;
-import com.ykb.corebanking.tellerline.receiptbatch.request.RequestUpdateCustomerReceiptDataStatus;
-import com.ykb.corebanking.tellerline.receiptbatch.service.IExpenseJobAccountService;
-import com.ykb.corebanking.tellerline.receiptbatch.util.ControlUtil;
-import com.ykb.corebanking.tellerline.receiptbatch.util.ExpenseJobUtil;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-@Service
-public class CommissionAccountFromHespar implements IExpenseJobAccountService {
-
-    @Autowired
-    ReceiptExpenseJobCommissionService receiptExpenseJobCommissionService;
-    @Autowired
-    ReceiptExpenseJobProvisionService receiptExpenseJobProvisionService;
-    @Autowired
-    ReceiptExpenseJobReceiptService receiptExpenseJobReceiptService;
-    @Autowired
-    private CustomerReceiptDataService customerReceiptDataService;
-    @Autowired
-    private ReceiptBatchLogService logger;
-
-    @Override
-    public List<ExpenseJobPrepareDTO> findAccountAndGetCommission(List<ExpenseJobPrepareDTO> clientList, Map<Integer, List<HesparAccountServiceDTO>> hesparAccountList, String currentPeriod, List<String> statusList) {
-        List<ExpenseJobPrepareDTO> remainingClients = new ArrayList<>();
-        String errorMessage = "";
-        //client list => phase2de gonderim yapilan uygun hesabi bulunamayanlar + gonderim yapilan hesaplardan yeterli bakiyesi bulunmayanlar
-        for (ExpenseJobPrepareDTO client : clientList) {
-            List<HesparAccountServiceDTO> availableAccountList = findAvailableReceiptAccountList(hesparAccountList.get(client.getClientNo()));
-            if (ControlUtil.isEmpty(availableAccountList)) {
-                remainingClients.add(client);
-                continue;
-            }
-            ResponseCommissionInformation commissionInformation = receiptExpenseJobCommissionService.getBulkCommissionInfoFromHespar(availableAccountList, client);
-            if (commissionInformation != null) {
-                boolean isProvisionCompleted = Boolean.FALSE;
-                for (CommissionInformationResponseDTO commissionInfo : commissionInformation.getResponseCommissionInformationList()) {
-                    RequestCreateProvision pendingRequest = new RequestCreateProvision();
-                    try {
-                        pendingRequest = receiptExpenseJobProvisionService.createPendingRequest(commissionInfo, Boolean.FALSE);
-                        ResponseCreateProvision provisionResponse = receiptExpenseJobProvisionService.getCommissionFromInquiry(pendingRequest);
-                        if (Boolean.TRUE.equals(ExpenseJobUtil.checkReceiptRequired(provisionResponse))) {
-                            receiptExpenseJobReceiptService.createReceipt(provisionResponse, commissionInfo);
-                            //statuyu CS'ye setle
-                            String accountNo = commissionInfo.getCommissionOutputAccountingApiDTOList().get(0).getAccountNo();
-                            RequestUpdateCustomerReceiptDataStatus updateRequest = new RequestUpdateCustomerReceiptDataStatus();
-                            updateRequest.setCommissionAccountNo(accountNo);
-                            updateRequest.setContractNo(provisionResponse.getContractNo());
-                            updateRequest.setStatusList(statusList);
-                            updateRequest.setCurrentPeriod(currentPeriod);
-                            updateRequest.setClientNo(ExpenseJobUtil.getClientNoFromHespar(accountNo, hesparAccountList));
-                            customerReceiptDataService.updateCustomerReceiptDataStatus(updateRequest);
-                            isProvisionCompleted = Boolean.TRUE;
-                            break;
-                        }
-                    } catch (Exception ex) {
-                        try {
-                            receiptExpenseJobProvisionService.getCommissionFromInquiryCompensate(pendingRequest);
-                        } catch (Exception e) {
-                            createBatchLogForAlert(logger, pendingRequest, e);
-                        }
-                    }
-                }
-
-                if (!isProvisionCompleted) {
-                    remainingClients.add(client);
-
-                    //hicbir hesabın bakiyesi yok, statu CE'ye çekilir
-                    RequestUpdateCustomerReceiptDataStatus updateRequest = new RequestUpdateCustomerReceiptDataStatus();
-                    updateRequest.setStatusList(statusList);
-                    updateRequest.setCurrentPeriod(currentPeriod);
-                    updateRequest.setClientNo(client.getClientNo());
-                    updateRequest.setErrorMessage(errorMessage);
-                    customerReceiptDataService.updateCustomerReceiptDataStatus(updateRequest);
-                }
-            } else {
-                remainingClients.add(client);
-
-                // komisyon bilgisi alınamadı uygun hesap yok, CE'ye çek
-                RequestUpdateCustomerReceiptDataStatus updateRequest = new RequestUpdateCustomerReceiptDataStatus();
-                updateRequest.setStatusList(statusList);
-                updateRequest.setCurrentPeriod(currentPeriod);
-                updateRequest.setClientNo(client.getClientNo());
-                updateRequest.setErrorMessage("Hiçbir hesabından borç tahsil edilemedi.");
-                customerReceiptDataService.updateCustomerReceiptDataStatus(updateRequest);
-            }
-        }
-
-        return remainingClients;
-    }
-
-    private List<HesparAccountServiceDTO> findAvailableReceiptAccountList(List<HesparAccountServiceDTO> accountList) {
-        if (!ControlUtil.isEmpty(accountList)) {
-            List<HesparAccountServiceDTO> availableAccounts = new ArrayList<>();
-            for (HesparAccountServiceDTO account : accountList) {
-                if (Boolean.TRUE.equals(ExpenseJobUtil.checkIfAccountAvailable(account))) {
-                    availableAccounts.add(account);
-                }
-            }
-            return availableAccounts;
-        } else {
-            return new ArrayList<>();
-        }
-    }
-
-}
-
-
-package com.ykb.corebanking.tellerline.receiptbatch.service.impl;
-
-import com.ykb.corebanking.tellerline.receiptbatch.clients.dto.CommissionInformationResponseDTO;
-import com.ykb.corebanking.tellerline.receiptbatch.clients.dto.HesparAccountServiceDTO;
-import com.ykb.corebanking.tellerline.receiptbatch.clients.request.RequestCreateProvision;
-import com.ykb.corebanking.tellerline.receiptbatch.clients.response.ResponseCommissionInformation;
-import com.ykb.corebanking.tellerline.receiptbatch.clients.response.ResponseCreateProvision;
-import com.ykb.corebanking.tellerline.receiptbatch.dto.CustomerHesparClientInfoDTO;
-import com.ykb.corebanking.tellerline.receiptbatch.dto.ExpenseJobPrepareDTO;
-import com.ykb.corebanking.tellerline.receiptbatch.request.RequestUpdateCustomerReceiptDataStatus;
-import com.ykb.corebanking.tellerline.receiptbatch.service.IExpenseJobAccountService;
-import com.ykb.corebanking.tellerline.receiptbatch.util.ControlUtil;
-import com.ykb.corebanking.tellerline.receiptbatch.util.ExpenseJobUtil;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Map;
-
-@Service
-public class CommissionFirstAccountFromHespar implements IExpenseJobAccountService {
-
-    @Autowired
-    private ReceiptExpenseJobProvisionService receiptExpenseJobProvisionService;
-    @Autowired
-    private ReceiptExpenseJobReceiptService receiptExpenseJobReceiptService;
-    @Autowired
-    private ReceiptExpenseJobCommissionService receiptExpenseJobCommissionService;
-    @Autowired
-    private CustomerReceiptDataService customerReceiptDataService;
-    @Autowired
-    private ReceiptBatchLogService logger;
-
-    @Override
-    public List<ExpenseJobPrepareDTO> findAccountAndGetCommission(List<ExpenseJobPrepareDTO> clientList, Map<Integer, List<HesparAccountServiceDTO>> hesparAccountList, String currentPeriod, List<String> statusList) {
-        List<ExpenseJobPrepareDTO> remainingClients = new ArrayList<>();
-        List<CustomerHesparClientInfoDTO> clientInfoList = new ArrayList<>();
-        //client list => 3 phase'de de komisyon alinamamis tum hesaplar
-        for (ExpenseJobPrepareDTO client : clientList) {
-            if (ControlUtil.isNotNull(hesparAccountList) && !ControlUtil.isEmpty(hesparAccountList.get(client.getClientNo()))) {
-                HesparAccountServiceDTO availableAccount = getFirstAvailableAccount(hesparAccountList.get(client.getClientNo()));
-                if (ControlUtil.isNotNull(availableAccount)) {
-                    CustomerHesparClientInfoDTO infoDTO = new CustomerHesparClientInfoDTO();
-                    infoDTO.setHesparDTO(availableAccount);
-                    infoDTO.setPrepareDTO(client);
-                    clientInfoList.add(infoDTO);
-                } else {
-                    //available account yok
-                    remainingClients.add(client);
-                }
-            } else {
-                //available account yok
-                remainingClients.add(client);
-            }
-
-        }
-
-        if (Boolean.FALSE.equals(clientInfoList.isEmpty())) {
-            ResponseCommissionInformation commissionInquiryResponse = receiptExpenseJobCommissionService.getBulkCommissionInfoFromHesparAndClient(clientInfoList);
-
-            if (ControlUtil.isNotNull(commissionInquiryResponse)) {
-                for (CommissionInformationResponseDTO commissionInfo : commissionInquiryResponse.getResponseCommissionInformationList()) {
-                    RequestCreateProvision pendingRequest = new RequestCreateProvision();
-                    try {
-                        //komisyon ve dekont olustur
-                        pendingRequest = receiptExpenseJobProvisionService.createPendingRequest(commissionInfo, Boolean.TRUE);
-                        ResponseCreateProvision provisionResponse = receiptExpenseJobProvisionService.getCommissionFromInquiry(pendingRequest);
-                        if (Boolean.TRUE.equals(ExpenseJobUtil.checkReceiptRequired(provisionResponse))) {
-                            receiptExpenseJobReceiptService.createReceipt(provisionResponse, commissionInfo);
-                        }
-                        //statuyu CS'ye setle
-                        String accountNo = commissionInfo.getCommissionOutputAccountingApiDTOList().get(0).getAccountNo();
-                        RequestUpdateCustomerReceiptDataStatus updateRequest = new RequestUpdateCustomerReceiptDataStatus();
-                        updateRequest.setCommissionAccountNo(accountNo);
-                        updateRequest.setClientNo(ExpenseJobUtil.getClientNoFromHespar(accountNo, hesparAccountList));
-                        updateRequest.setContractNo(provisionResponse.getContractNo());
-                        updateRequest.setCurrentPeriod(currentPeriod);
-                        updateRequest.setStatusList(getStatusListToUpdate(statusList));
-                        customerReceiptDataService.updateCustomerReceiptDataStatus(updateRequest);
-                    } catch (Exception ex) {
-                        try {
-                            receiptExpenseJobProvisionService.getCommissionFromInquiryCompensate(pendingRequest);
-                        } catch (Exception e) {
-                            createBatchLogForAlert(logger, pendingRequest, e);
-                        }
-                    }
-                }
-            } else {
-                clientInfoList.forEach(c -> remainingClients.add(c.getPrepareDTO()));
-            }
-        }
-
-        // remainingler CC'ye cekilir
-        for (ExpenseJobPrepareDTO remainingClient : remainingClients) {
-            RequestUpdateCustomerReceiptDataStatus updateRequest = new RequestUpdateCustomerReceiptDataStatus();
-            updateRequest.setClientNo(remainingClient.getClientNo());
-            updateRequest.setStatusList(statusList);
-            updateRequest.setCurrentPeriod(currentPeriod);
-            customerReceiptDataService.updateCustomerReceiptDataStatusToCC(updateRequest);
-        }
-
-        return new ArrayList<>(); //remaining client yoktur (uygun hesap yoksa var mi? cemre abiye sor)
-    }
-
-    private HesparAccountServiceDTO getFirstAvailableAccount(List<HesparAccountServiceDTO> accountList) {
-        for (HesparAccountServiceDTO account : accountList) {
-            if (Boolean.TRUE.equals(ExpenseJobUtil.checkIfAccountAvailable(account))) {
-                return account;
-            }
-        }
-
-        return null;
-    }
-
-    private List<String> getStatusListToUpdate(List<String> statusList) {
-        List<String> statuListToUpdate = new ArrayList<>();
-        for (String status : statusList) {
-            statuListToUpdate.add(status);
-        }
-        statuListToUpdate.add("CE");
-        return statuListToUpdate;
-    }
-
-}
-
-
-package com.ykb.corebanking.tellerline.receiptbatch.service.impl;
-
-import com.ykb.architecture.micro.error.exception.MicroException;
-import com.ykb.corebanking.tellerline.receiptbatch.clients.HesparAccountClient;
-import com.ykb.corebanking.tellerline.receiptbatch.clients.dto.HesparAccountServiceDTO;
-import com.ykb.corebanking.tellerline.receiptbatch.clients.request.RequestHesparAccount;
-import com.ykb.corebanking.tellerline.receiptbatch.clients.response.ResponseAccountNumberWithCurrencyClient;
-import com.ykb.corebanking.tellerline.receiptbatch.clients.response.ResponseHesparAccount;
-import com.ykb.corebanking.tellerline.receiptbatch.exceptions.JobException;
-import com.ykb.corebanking.tellerline.receiptbatch.service.IHesparAccountService;
-import com.ykb.corebanking.tellerline.receiptbatch.util.ControlUtil;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
-import java.util.Map;
-
-@Service
-public class HesparAccountService implements IHesparAccountService {
-
-    @Autowired
-    private HesparAccountClient hesparAccountClient;
-
-
-    @Override
-    public Map<Integer, List<HesparAccountServiceDTO>> getHesparAccountListBulk(List<Integer> clientList) throws MicroException {
-        ResponseEntity<ResponseHesparAccount> response = hesparAccountClient.getHesparAccounts(createHesparRequest(clientList));
-        if (response.hasBody() && response.getBody() != null) {
-            return createHesparResponse(response.getBody());
-        } else {
-            throw new JobException(500L, "Hespar error");
-        }
-    }
-
-    @Override
-    public ResponseAccountNumberWithCurrencyClient getAccountInfo(String accountNumber) {
-        try {
-            ResponseEntity<ResponseAccountNumberWithCurrencyClient> response = hesparAccountClient.withoutExByAccount(accountNumber);
-            if(response.hasBody()) {
-                return response.getBody();
-            } else {
-                return null;
-            }
-        } catch (Exception ex) {
-            return null;
-        }
-    }
-
-    private RequestHesparAccount createHesparRequest(List<Integer> clientList) {
-        RequestHesparAccount bulkRequest = new RequestHesparAccount();
-        bulkRequest.setCustomerNumberList(clientList);
-        bulkRequest.setChannelCode("SYSTEM-GEN");
-        bulkRequest.setTransactionCode("GSE.DKNTTOPLU");
-
-        return bulkRequest;
-    }
-
-    private Map<Integer, List<HesparAccountServiceDTO>> createHesparResponse(ResponseHesparAccount response) {
-        Map<Integer, List<HesparAccountServiceDTO>> clientToAccountList = new HashMap<>();
-        if (response != null) {
-            response.getAccountList().forEach((account) -> {
-                if (clientToAccountList.containsKey(account.getCustomerNumber())) {
-                    clientToAccountList.get(account.getCustomerNumber()).add(account);
-                } else {
-                    List<HesparAccountServiceDTO> tempList = new ArrayList<>();
-                    tempList.add(account);
-                    clientToAccountList.put(account.getCustomerNumber(), tempList);
-
-                }
-            });
-        }
-
-        return clientToAccountList;
-    }
-}
-
-
-package com.ykb.corebanking.tellerline.receiptbatch.service.impl;
-
-import com.ykb.corebanking.tellerline.receiptbatch.dto.ExpenseJobTransformerDTO;
-import com.ykb.corebanking.tellerline.receiptbatch.dto.ReceiptParameterDefinitionDTO;
-import com.ykb.corebanking.tellerline.receiptbatch.service.IReceiptExpenseJobParameterService;
-import com.ykb.corebanking.tellerline.receiptbatch.util.CoreStringUtils;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
 import java.util.*;
 
-@Service
-public class ReceiptExpenseJobParameterService implements IReceiptExpenseJobParameterService {
+@ExtendWith(SpringExtension.class)
+class ReceiptExpenseJobBaseServiceTest {
+
+    @TestConfiguration
+    static class ReceiptExpenseJobBaseServiceTestContextConfiguration {
+        @Bean
+        public ReceiptExpenseJobBaseService receiptExpenseJobBaseService() {
+            return new ReceiptExpenseJobBaseService();
+        }
+    }
 
     @Autowired
-    private ReceiptParameterDefinitionService receiptParameterDefinitionService;
+    private ReceiptExpenseJobBaseService receiptExpenseJobBaseService;
 
-    private static final String STATUS_LIST_PARAMETER = "app.harmoni.glb.receiptbatch.expensejob.statuslist";
-    private static final String CLIENT_LIST_PARAMETER = "app.harmoni.glb.receiptbatch.expensejob.clientlist";
-    private static final String PERIOD_PARAMETER = "app.harmoni.glb.receiptbatch.expensejob.period";
-    private static final String PARAMETER_OFF = "OFF";
+    @MockBean
+    private CommissionFromExpenseAccount commissionFromExpenseAccount;
 
-    @Override
-    public ExpenseJobTransformerDTO getExpenseJobTransformerDTO() {
-        ExpenseJobTransformerDTO dto = new ExpenseJobTransformerDTO();
+    @MockBean
+    private CommissionSendReceiptAccount commissionSendReceiptAccount;
 
-        ReceiptParameterDefinitionDTO statusList = receiptParameterDefinitionService.getApplicationParameterByName(STATUS_LIST_PARAMETER);
-        ReceiptParameterDefinitionDTO clientList = receiptParameterDefinitionService.getApplicationParameterByName(CLIENT_LIST_PARAMETER);
-        ReceiptParameterDefinitionDTO period = receiptParameterDefinitionService.getApplicationParameterByName(PERIOD_PARAMETER);
+    @MockBean
+    private CommissionAccountFromHespar commissionAccountFromHespar;
 
-        if (clientList != null && CoreStringUtils.hasText(clientList.getValue()) && !PARAMETER_OFF.equals(clientList.getValue())) {
-            dto.setClientList(parseClientList(clientList));
-        }
-        if (statusList != null && CoreStringUtils.hasText(statusList.getValue()) && !PARAMETER_OFF.equals(statusList.getValue())) {
-            dto.setStatusList(parseStatusList(statusList));
-        } else {
-            List<String> defaultStatusList = new ArrayList<>();
-            defaultStatusList.add("ES");
-            dto.setStatusList(defaultStatusList);
-        }
+    @MockBean
+    private CommissionFirstAccountFromHespar commissionFirstAccountFromHespar;
 
-        if (period != null && CoreStringUtils.hasText(period.getValue()) && !PARAMETER_OFF.equals(period.getValue())) {
-            dto.setPeriod(period.getValue());
-        } else {
-            LocalDate today = LocalDate.now();
-            LocalDate oneMonthAgo = today.minusMonths(1);
+    @MockBean
+    private HesparAccountService hesparAccountService;
 
-            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMM");
-            String formattedDate = oneMonthAgo.format(formatter);
-            dto.setPeriod(formattedDate);
-        }
-        return dto;
+    @MockBean
+    private ReceiptExpenseJobParameterService receiptExpenseJobParameterService;
+
+    private List<ExpenseJobPrepareDTO> validClientList;
+    private Map<Integer, List<HesparAccountServiceDTO>> validHesparAccountList;
+    private String currentPeriod;
+    private List<String> statusList;
+
+    @BeforeEach
+    void setUp() {
+        // Initialize test data
+        ExpenseJobPrepareDTO client1 = new ExpenseJobPrepareDTO();
+        client1.setClientNo(1);
+        client1.setSbuType("SBU1");
+        client1.setSlipCount(10);
+
+        ExpenseJobPrepareDTO client2 = new ExpenseJobPrepareDTO();
+        client2.setClientNo(2);
+        client2.setSbuType("SBU2");
+        client2.setSlipCount(20);
+
+        validClientList = Arrays.asList(client1, client2);
+
+        HesparAccountServiceDTO hesparAccount1 = new HesparAccountServiceDTO();
+        hesparAccount1.setCustomerNumber(1);
+        hesparAccount1.setFullAccountNumber("ACC-001");
+
+        HesparAccountServiceDTO hesparAccount2 = new HesparAccountServiceDTO();
+        hesparAccount2.setCustomerNumber(2);
+        hesparAccount2.setFullAccountNumber("ACC-002");
+
+        validHesparAccountList = new HashMap<>();
+        validHesparAccountList.put(1, Arrays.asList(hesparAccount1));
+        validHesparAccountList.put(2, Arrays.asList(hesparAccount2));
+
+        currentPeriod = "202501";
+        statusList = Arrays.asList("ES", "CS");
     }
 
-    @Override
-    public String getCurrentPeriod() {
-        ReceiptParameterDefinitionDTO dto = receiptParameterDefinitionService.getApplicationParameterByName(PERIOD_PARAMETER);
-        return dto.getValue();
+    @Test
+    void getCommission_success() throws MicroException {
+        // Mock dependencies
+        when(hesparAccountService.getHesparAccountListBulk(anyList())).thenReturn(validHesparAccountList);
+        when(receiptExpenseJobParameterService.getCurrentPeriod()).thenReturn(currentPeriod);
+        when(receiptExpenseJobParameterService.getCurrentStatusList()).thenReturn(statusList);
+
+        // Mock each commission service to return the same list (no remaining clients)
+        when(commissionFromExpenseAccount.findAccountAndGetCommission(validClientList, validHesparAccountList, currentPeriod, statusList))
+                .thenReturn(Collections.emptyList());
+
+        when(commissionSendReceiptAccount.findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList()))
+                .thenReturn(Collections.emptyList());
+
+        when(commissionAccountFromHespar.findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList()))
+                .thenReturn(Collections.emptyList());
+
+        when(commissionFirstAccountFromHespar.findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList()))
+                .thenReturn(Collections.emptyList());
+
+        // Execute the method
+        receiptExpenseJobBaseService.getCommission(validClientList);
+
+        // Verify interactions
+        verify(hesparAccountService, times(1)).getHesparAccountListBulk(validClientList.stream().map(ExpenseJobPrepareDTO::getClientNo).toList());
+        verify(receiptExpenseJobParameterService, times(1)).getCurrentPeriod();
+        verify(receiptExpenseJobParameterService, times(1)).getCurrentStatusList();
+
+        verify(commissionFromExpenseAccount, times(1)).findAccountAndGetCommission(validClientList, validHesparAccountList, currentPeriod, statusList);
+        verify(commissionSendReceiptAccount, times(1)).findAccountAndGetCommission(Collections.emptyList(), validHesparAccountList, currentPeriod, statusList);
+        verify(commissionAccountFromHespar, times(1)).findAccountAndGetCommission(Collections.emptyList(), validHesparAccountList, currentPeriod, statusList);
+        verify(commissionFirstAccountFromHespar, times(1)).findAccountAndGetCommission(Collections.emptyList(), validHesparAccountList, currentPeriod, statusList);
     }
 
-    @Override
-    public List<String> getCurrentStatusList() {
-        ReceiptParameterDefinitionDTO dto = receiptParameterDefinitionService.getApplicationParameterByName(STATUS_LIST_PARAMETER);
-        return Arrays.stream(dto.getValue().split(";")).toList();
+    @Test
+    void getCommission_emptyClientList() throws MicroException {
+        // Mock dependencies
+        when(hesparAccountService.getHesparAccountListBulk(anyList())).thenReturn(Collections.emptyMap());
+        when(receiptExpenseJobParameterService.getCurrentPeriod()).thenReturn(currentPeriod);
+        when(receiptExpenseJobParameterService.getCurrentStatusList()).thenReturn(statusList);
+
+        // Execute the method with empty client list
+        receiptExpenseJobBaseService.getCommission(Collections.emptyList());
+
+        // Verify that hesparAccountService was called with empty list
+        verify(hesparAccountService, times(1)).getHesparAccountListBulk(Collections.emptyList());
+        verify(receiptExpenseJobParameterService, times(1)).getCurrentPeriod();
+        verify(receiptExpenseJobParameterService, times(1)).getCurrentStatusList();
+
+        // Verify that commission services were never called since client list is empty
+        verify(commissionFromExpenseAccount, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
+        verify(commissionSendReceiptAccount, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
+        verify(commissionAccountFromHespar, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
+        verify(commissionFirstAccountFromHespar, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
     }
 
-    private List<String> parseStatusList(ReceiptParameterDefinitionDTO parameter) {
-        if (parameter != null && CoreStringUtils.hasText(parameter.getValue())) {
-            return Arrays.stream(parameter.getValue().split(";")).toList();
-        }
-        return Collections.emptyList();
+    @Test
+    void getCommission_hesparServiceThrowsException() throws MicroException {
+        // Mock hesparAccountService to throw exception
+        when(hesparAccountService.getHesparAccountListBulk(anyList())).thenThrow(new MicroException("Hespar service error"));
+
+        // Execute and assert exception
+        MicroException exception = assertThrows(MicroException.class, () -> {
+            receiptExpenseJobBaseService.getCommission(validClientList);
+        });
+
+        assertEquals("Hespar service error", exception.getMessage());
+
+        // Verify interactions
+        verify(hesparAccountService, times(1)).getHesparAccountListBulk(validClientList.stream().map(ExpenseJobPrepareDTO::getClientNo).toList());
+
+        // Other services should not be called
+        verify(receiptExpenseJobParameterService, never()).getCurrentPeriod();
+        verify(receiptExpenseJobParameterService, never()).getCurrentStatusList();
+        verify(commissionFromExpenseAccount, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
+        verify(commissionSendReceiptAccount, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
+        verify(commissionAccountFromHespar, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
+        verify(commissionFirstAccountFromHespar, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
     }
 
-    private List<Integer> parseClientList(ReceiptParameterDefinitionDTO parameter) {
-        if (parameter != null && CoreStringUtils.hasText(parameter.getValue())) {
-            List<String> stringList = Arrays.stream(parameter.getValue().split(";")).toList();
-            return stringList.stream().map(Integer::parseInt).toList();
-        }
-        return Collections.emptyList();
-    }
+    @Test
+    void getCommission_commissionFromExpenseAccountThrowsException() throws MicroException {
+        // Mock dependencies
+        when(hesparAccountService.getHesparAccountListBulk(anyList())).thenReturn(validHesparAccountList);
+        when(receiptExpenseJobParameterService.getCurrentPeriod()).thenReturn(currentPeriod);
+        when(receiptExpenseJobParameterService.getCurrentStatusList()).thenReturn(statusList);
 
+        // Mock commissionFromExpenseAccount to throw exception
+        when(commissionFromExpenseAccount.findAccountAndGetCommission(validClientList, validHesparAccountList, currentPeriod, statusList))
+                .thenThrow(new RuntimeException("CommissionFromExpenseAccount error"));
+
+        // Execute and assert exception
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            receiptExpenseJobBaseService.getCommission(validClientList);
+        });
+
+        assertEquals("CommissionFromExpenseAccount error", exception.getMessage());
+
+        // Verify interactions
+        verify(hesparAccountService, times(1)).getHesparAccountListBulk(validClientList.stream().map(ExpenseJobPrepareDTO::getClientNo).toList());
+        verify(receiptExpenseJobParameterService, times(1)).getCurrentPeriod();
+        verify(receiptExpenseJobParameterService, times(1)).getCurrentStatusList();
+
+        verify(commissionFromExpenseAccount, times(1)).findAccountAndGetCommission(validClientList, validHesparAccountList, currentPeriod, statusList);
+
+        // Other commission services should not be called due to exception
+        verify(commissionSendReceiptAccount, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
+        verify(commissionAccountFromHespar, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
+        verify(commissionFirstAccountFromHespar, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
+    }
 }
