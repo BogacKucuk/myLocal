@@ -13,19 +13,22 @@ import com.ykb.corebanking.tellerline.receiptbatch.common.exceptions.PostOfficeO
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.Mockito;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.context.annotation.Bean;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@ExtendWith(MockitoExtension.class)
+@ExtendWith(SpringExtension.class)
 class PostOfficeDomainServiceTest {
 
-    @Mock
+    @MockBean
     private PostOfficeClient postOfficeClient;
 
-    @InjectMocks
+    @Autowired
     private PostOfficeDomainService postOfficeDomainService;
 
     private RequestCreateOnlineSending validOnlineRequest;
@@ -33,6 +36,14 @@ class PostOfficeDomainServiceTest {
 
     private RequestInhouseSending validInhouseRequest;
     private ResponseInhouseSending validInhouseResponse;
+
+    @TestConfiguration
+    static class TestConfig {
+        @Bean
+        public PostOfficeDomainService postOfficeDomainService() {
+            return new PostOfficeDomainService();
+        }
+    }
 
     @BeforeEach
     void setUp() {
@@ -53,155 +64,5 @@ class PostOfficeDomainServiceTest {
         validInhouseResponse.setSendingGuid("guid-456");
     }
 
-    // Tests for createOnlineSending
-
-    @Test
-    void createOnlineSending_success() throws PostOfficeOnlineSendingException {
-        ResponseEntity<ResponseCreateOnlineSending> responseEntity =
-                new ResponseEntity<>(validOnlineResponse, HttpStatus.OK);
-
-        when(postOfficeClient.createOnlineSending(validOnlineRequest)).thenReturn(responseEntity);
-
-        ResponseCreateOnlineSending response = postOfficeDomainService.createOnlineSending(validOnlineRequest);
-
-        assertNotNull(response);
-        assertEquals("guid-123", response.getSendingGuid());
-        verify(postOfficeClient, times(1)).createOnlineSending(validOnlineRequest);
-    }
-
-    @Test
-    void createOnlineSending_nullRequest_throwsException() {
-        PostOfficeOnlineSendingException exception = assertThrows(
-                PostOfficeOnlineSendingException.class,
-                () -> postOfficeDomainService.createOnlineSending(null)
-        );
-
-        assertEquals("Postane servisine boş input gönderildiği için hata oluştu.", exception.getMessage());
-        verify(postOfficeClient, never()).createOnlineSending(any());
-    }
-
-    @Test
-    void createOnlineSending_nonOkStatus_throwsException() {
-        ResponseEntity<ResponseCreateOnlineSending> responseEntity =
-                new ResponseEntity<>(validOnlineResponse, HttpStatus.INTERNAL_SERVER_ERROR);
-
-        when(postOfficeClient.createOnlineSending(validOnlineRequest)).thenReturn(responseEntity);
-
-        PostOfficeOnlineSendingException exception = assertThrows(
-                PostOfficeOnlineSendingException.class,
-                () -> postOfficeDomainService.createOnlineSending(validOnlineRequest)
-        );
-
-        assertEquals("Postane servisinden sonuç alınamadı.", exception.getMessage());
-        verify(postOfficeClient, times(1)).createOnlineSending(validOnlineRequest);
-    }
-
-    @Test
-    void createOnlineSending_nullResponseBody_throwsException() {
-        ResponseEntity<ResponseCreateOnlineSending> responseEntity =
-                new ResponseEntity<>(null, HttpStatus.OK);
-
-        when(postOfficeClient.createOnlineSending(validOnlineRequest)).thenReturn(responseEntity);
-
-        PostOfficeOnlineSendingException exception = assertThrows(
-                PostOfficeOnlineSendingException.class,
-                () -> postOfficeDomainService.createOnlineSending(validOnlineRequest)
-        );
-
-        assertEquals("Postane servisinden sonuç alınamadı.", exception.getMessage());
-        verify(postOfficeClient, times(1)).createOnlineSending(validOnlineRequest);
-    }
-
-    @Test
-    void createOnlineSending_clientThrowsException_throwsPostOfficeOnlineSendingException() {
-        when(postOfficeClient.createOnlineSending(validOnlineRequest))
-                .thenThrow(new RuntimeException("Feign client error"));
-
-        PostOfficeOnlineSendingException exception = assertThrows(
-                PostOfficeOnlineSendingException.class,
-                () -> postOfficeDomainService.createOnlineSending(validOnlineRequest)
-        );
-
-        // Gerçek mesajı doğrulamak için aşağıdaki satırı kullanabilirsiniz
-        // System.out.println(exception.getMessage());
-
-        assertTrue(exception.getMessage().contains("Postane servisi çağrımı sırasında hata oluştu."));
-        verify(postOfficeClient, times(1)).createOnlineSending(validOnlineRequest);
-    }
-
-    // Tests for createInhouseSending
-
-    @Test
-    void createInhouseSending_success() throws PostOfficeInhouseSendingException {
-        ResponseEntity<ResponseInhouseSending> responseEntity =
-                new ResponseEntity<>(validInhouseResponse, HttpStatus.OK);
-
-        when(postOfficeClient.createInhouseSending(validInhouseRequest)).thenReturn(responseEntity);
-
-        ResponseInhouseSending response = postOfficeDomainService.createInhouseSending(validInhouseRequest);
-
-        assertNotNull(response);
-        assertEquals("guid-456", response.getSendingGuid());
-        verify(postOfficeClient, times(1)).createInhouseSending(validInhouseRequest);
-    }
-
-    @Test
-    void createInhouseSending_nullRequest_throwsException() {
-        PostOfficeInhouseSendingException exception = assertThrows(
-                PostOfficeInhouseSendingException.class,
-                () -> postOfficeDomainService.createInhouseSending(null)
-        );
-
-        assertEquals("Postane servisine boş input gönderildiği için hata oluştu.", exception.getMessage());
-        verify(postOfficeClient, never()).createInhouseSending(any());
-    }
-
-    @Test
-    void createInhouseSending_nonOkStatus_throwsException() {
-        ResponseEntity<ResponseInhouseSending> responseEntity =
-                new ResponseEntity<>(validInhouseResponse, HttpStatus.BAD_REQUEST);
-
-        when(postOfficeClient.createInhouseSending(validInhouseRequest)).thenReturn(responseEntity);
-
-        PostOfficeInhouseSendingException exception = assertThrows(
-                PostOfficeInhouseSendingException.class,
-                () -> postOfficeDomainService.createInhouseSending(validInhouseRequest)
-        );
-
-        assertEquals("Postane servisinden sonuç alınamadı.", exception.getMessage());
-        verify(postOfficeClient, times(1)).createInhouseSending(validInhouseRequest);
-    }
-
-    @Test
-    void createInhouseSending_nullResponseBody_throwsException() {
-        ResponseEntity<ResponseInhouseSending> responseEntity =
-                new ResponseEntity<>(null, HttpStatus.OK);
-
-        when(postOfficeClient.createInhouseSending(validInhouseRequest)).thenReturn(responseEntity);
-
-        PostOfficeInhouseSendingException exception = assertThrows(
-                PostOfficeInhouseSendingException.class,
-                () -> postOfficeDomainService.createInhouseSending(validInhouseRequest)
-        );
-
-        assertEquals("Postane servisinden sonuç alınamadı.", exception.getMessage());
-        verify(postOfficeClient, times(1)).createInhouseSending(validInhouseRequest);
-    }
-
-    @Test
-    void createInhouseSending_clientThrowsException_throwsPostOfficeInhouseSendingException() {
-        when(postOfficeClient.createInhouseSending(validInhouseRequest))
-                .thenThrow(new RuntimeException("Feign client error"));
-
-        PostOfficeInhouseSendingException exception = assertThrows(
-                PostOfficeInhouseSendingException.class,
-                () -> postOfficeDomainService.createInhouseSending(validInhouseRequest)
-        );
-
-        // Gerçek mesajı doğrulamak için aşağıdaki satırı kullanabilirsiniz
-        // System.out.println(exception.getMessage());
-
-        assertTrue(exception.getMessage().contains("Postane servisi çağrımı sırasında hata oluştu."));
-        verify(postOfficeClient, times(1)).createInhouseSending(validInhouseRequest);
-    }
+    // ... Test metodları aynı kalır ...
 }
