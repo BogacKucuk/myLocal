@@ -1,200 +1,85 @@
-package com.ykb.corebanking.tellerline.receiptbatch.service.impl;
+//
+// Source code recreated from a .class file by IntelliJ IDEA
+// (powered by FernFlower decompiler)
+//
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+package com.ykb.architecture.micro.error.exception;
 
-import com.ykb.architecture.micro.error.exception.MicroException;
-import com.ykb.corebanking.tellerline.receiptbatch.clients.dto.HesparAccountServiceDTO;
-import com.ykb.corebanking.tellerline.receiptbatch.dto.ExpenseJobPrepareDTO;
-import com.ykb.corebanking.tellerline.receiptbatch.service.IReceiptExpenseJobBaseService;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mockito;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.TestConfiguration;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.context.annotation.Bean;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import com.ykb.architecture.micro.error.exception.data.ExceptionData;
+import com.ykb.architecture.micro.error.exception.data.ExceptionDataWithParameter;
+import java.util.HashMap;
+import java.util.Map;
 
-import java.util.*;
+public abstract class MicroException extends Exception {
+    private static final long serialVersionUID = 1L;
+    private ExceptionData data;
+    private Map<String, String> parameters;
 
-@ExtendWith(SpringExtension.class)
-class ReceiptExpenseJobBaseServiceTest {
+    public MicroException(ExceptionData data) {
+        super(data.getErrorMessage());
+        this.parameters = new HashMap();
+        this.data = data;
+    }
 
-    @TestConfiguration
-    static class ReceiptExpenseJobBaseServiceTestContextConfiguration {
-        @Bean
-        public ReceiptExpenseJobBaseService receiptExpenseJobBaseService() {
-            return new ReceiptExpenseJobBaseService();
+    public MicroException(ExceptionData data, Exception exception) {
+        super(data.getErrorMessage(), exception);
+        this.parameters = new HashMap();
+        this.data = data;
+    }
+
+    public MicroException(ExceptionData data, Map<String, String> parameters) {
+        this(data);
+        this.parameters = parameters;
+    }
+
+    public MicroException(Long errorCode) {
+        this(new ExceptionData(errorCode));
+    }
+
+    public MicroException(Long errorCode, String errorMessage) {
+        this(new ExceptionData(errorCode, errorMessage));
+    }
+
+    public MicroException(Long errorCode, String errorMessage, Exception exception) {
+        this(new ExceptionData(errorCode, errorMessage), exception);
+    }
+
+    public Long getErrorCode() {
+        return this.data != null ? this.data.getErrorCode() : null;
+    }
+
+    public ExceptionData getExceptionData() {
+        return this.data;
+    }
+
+    public Map<String, String> getParameters() {
+        return this.parameters;
+    }
+
+    public String getParameter(String key) {
+        return (String)this.parameters.get(key);
+    }
+
+    public void setErrorMessage(String errorMessage) {
+        if (this.data == null) {
+            this.data = new ExceptionData();
         }
+
     }
 
-    @Autowired
-    private ReceiptExpenseJobBaseService receiptExpenseJobBaseService;
-
-    @MockBean
-    private CommissionFromExpenseAccount commissionFromExpenseAccount;
-
-    @MockBean
-    private CommissionSendReceiptAccount commissionSendReceiptAccount;
-
-    @MockBean
-    private CommissionAccountFromHespar commissionAccountFromHespar;
-
-    @MockBean
-    private CommissionFirstAccountFromHespar commissionFirstAccountFromHespar;
-
-    @MockBean
-    private HesparAccountService hesparAccountService;
-
-    @MockBean
-    private ReceiptExpenseJobParameterService receiptExpenseJobParameterService;
-
-    private List<ExpenseJobPrepareDTO> validClientList;
-    private Map<Integer, List<HesparAccountServiceDTO>> validHesparAccountList;
-    private String currentPeriod;
-    private List<String> statusList;
-
-    @BeforeEach
-    void setUp() {
-        // Initialize test data
-        ExpenseJobPrepareDTO client1 = new ExpenseJobPrepareDTO();
-        client1.setClientNo(1);
-        client1.setSbuType("SBU1");
-        client1.setSlipCount(10);
-
-        ExpenseJobPrepareDTO client2 = new ExpenseJobPrepareDTO();
-        client2.setClientNo(2);
-        client2.setSbuType("SBU2");
-        client2.setSlipCount(20);
-
-        validClientList = Arrays.asList(client1, client2);
-
-        HesparAccountServiceDTO hesparAccount1 = new HesparAccountServiceDTO();
-        hesparAccount1.setCustomerNumber(1);
-        hesparAccount1.setFullAccountNumber("ACC-001");
-
-        HesparAccountServiceDTO hesparAccount2 = new HesparAccountServiceDTO();
-        hesparAccount2.setCustomerNumber(2);
-        hesparAccount2.setFullAccountNumber("ACC-002");
-
-        validHesparAccountList = new HashMap<>();
-        validHesparAccountList.put(1, Arrays.asList(hesparAccount1));
-        validHesparAccountList.put(2, Arrays.asList(hesparAccount2));
-
-        currentPeriod = "202501";
-        statusList = Arrays.asList("ES", "CS");
+    public void addParameter(String key, String value) {
+        value = value == null ? "" : value;
+        this.parameters.put(key, value.toString());
     }
 
-    @Test
-    void getCommission_success() throws MicroException {
-        // Mock dependencies
-        when(hesparAccountService.getHesparAccountListBulk(anyList())).thenReturn(validHesparAccountList);
-        when(receiptExpenseJobParameterService.getCurrentPeriod()).thenReturn(currentPeriod);
-        when(receiptExpenseJobParameterService.getCurrentStatusList()).thenReturn(statusList);
-
-        // Mock each commission service to return the same list (no remaining clients)
-        when(commissionFromExpenseAccount.findAccountAndGetCommission(validClientList, validHesparAccountList, currentPeriod, statusList))
-                .thenReturn(Collections.emptyList());
-
-        when(commissionSendReceiptAccount.findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList()))
-                .thenReturn(Collections.emptyList());
-
-        when(commissionAccountFromHespar.findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList()))
-                .thenReturn(Collections.emptyList());
-
-        when(commissionFirstAccountFromHespar.findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList()))
-                .thenReturn(Collections.emptyList());
-
-        // Execute the method
-        receiptExpenseJobBaseService.getCommission(validClientList);
-
-        // Verify interactions
-        verify(hesparAccountService, times(1)).getHesparAccountListBulk(validClientList.stream().map(ExpenseJobPrepareDTO::getClientNo).toList());
-        verify(receiptExpenseJobParameterService, times(1)).getCurrentPeriod();
-        verify(receiptExpenseJobParameterService, times(1)).getCurrentStatusList();
-
-        verify(commissionFromExpenseAccount, times(1)).findAccountAndGetCommission(validClientList, validHesparAccountList, currentPeriod, statusList);
-        verify(commissionSendReceiptAccount, times(1)).findAccountAndGetCommission(Collections.emptyList(), validHesparAccountList, currentPeriod, statusList);
-        verify(commissionAccountFromHespar, times(1)).findAccountAndGetCommission(Collections.emptyList(), validHesparAccountList, currentPeriod, statusList);
-        verify(commissionFirstAccountFromHespar, times(1)).findAccountAndGetCommission(Collections.emptyList(), validHesparAccountList, currentPeriod, statusList);
+    public MicroException appendParameter(String key, String value) {
+        value = value == null ? "" : value;
+        this.parameters.put(key, value.toString());
+        return this;
     }
 
-    @Test
-    void getCommission_emptyClientList() throws MicroException {
-        // Mock dependencies
-        when(hesparAccountService.getHesparAccountListBulk(anyList())).thenReturn(Collections.emptyMap());
-        when(receiptExpenseJobParameterService.getCurrentPeriod()).thenReturn(currentPeriod);
-        when(receiptExpenseJobParameterService.getCurrentStatusList()).thenReturn(statusList);
-
-        // Execute the method with empty client list
-        receiptExpenseJobBaseService.getCommission(Collections.emptyList());
-
-        // Verify that hesparAccountService was called with empty list
-        verify(hesparAccountService, times(1)).getHesparAccountListBulk(Collections.emptyList());
-        verify(receiptExpenseJobParameterService, times(1)).getCurrentPeriod();
-        verify(receiptExpenseJobParameterService, times(1)).getCurrentStatusList();
-
-        // Verify that commission services were never called since client list is empty
-        verify(commissionFromExpenseAccount, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
-        verify(commissionSendReceiptAccount, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
-        verify(commissionAccountFromHespar, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
-        verify(commissionFirstAccountFromHespar, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
-    }
-
-    @Test
-    void getCommission_hesparServiceThrowsException() throws MicroException {
-        // Mock hesparAccountService to throw exception
-        when(hesparAccountService.getHesparAccountListBulk(anyList())).thenThrow(new MicroException("Hespar service error"));
-
-        // Execute and assert exception
-        MicroException exception = assertThrows(MicroException.class, () -> {
-            receiptExpenseJobBaseService.getCommission(validClientList);
-        });
-
-        assertEquals("Hespar service error", exception.getMessage());
-
-        // Verify interactions
-        verify(hesparAccountService, times(1)).getHesparAccountListBulk(validClientList.stream().map(ExpenseJobPrepareDTO::getClientNo).toList());
-
-        // Other services should not be called
-        verify(receiptExpenseJobParameterService, never()).getCurrentPeriod();
-        verify(receiptExpenseJobParameterService, never()).getCurrentStatusList();
-        verify(commissionFromExpenseAccount, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
-        verify(commissionSendReceiptAccount, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
-        verify(commissionAccountFromHespar, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
-        verify(commissionFirstAccountFromHespar, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
-    }
-
-    @Test
-    void getCommission_commissionFromExpenseAccountThrowsException() throws MicroException {
-        // Mock dependencies
-        when(hesparAccountService.getHesparAccountListBulk(anyList())).thenReturn(validHesparAccountList);
-        when(receiptExpenseJobParameterService.getCurrentPeriod()).thenReturn(currentPeriod);
-        when(receiptExpenseJobParameterService.getCurrentStatusList()).thenReturn(statusList);
-
-        // Mock commissionFromExpenseAccount to throw exception
-        when(commissionFromExpenseAccount.findAccountAndGetCommission(validClientList, validHesparAccountList, currentPeriod, statusList))
-                .thenThrow(new RuntimeException("CommissionFromExpenseAccount error"));
-
-        // Execute and assert exception
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            receiptExpenseJobBaseService.getCommission(validClientList);
-        });
-
-        assertEquals("CommissionFromExpenseAccount error", exception.getMessage());
-
-        // Verify interactions
-        verify(hesparAccountService, times(1)).getHesparAccountListBulk(validClientList.stream().map(ExpenseJobPrepareDTO::getClientNo).toList());
-        verify(receiptExpenseJobParameterService, times(1)).getCurrentPeriod();
-        verify(receiptExpenseJobParameterService, times(1)).getCurrentStatusList();
-
-        verify(commissionFromExpenseAccount, times(1)).findAccountAndGetCommission(validClientList, validHesparAccountList, currentPeriod, statusList);
-
-        // Other commission services should not be called due to exception
-        verify(commissionSendReceiptAccount, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
-        verify(commissionAccountFromHespar, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
-        verify(commissionFirstAccountFromHespar, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
+    public ExceptionDataWithParameter convertToExceptionResponse() {
+        ExceptionData exceptionData = this.data != null ? new ExceptionData(this.data) : new ExceptionData();
+        return new ExceptionDataWithParameter(exceptionData, this.parameters);
     }
 }
