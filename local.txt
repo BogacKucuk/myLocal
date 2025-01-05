@@ -1,201 +1,721 @@
 package com.ykb.corebanking.tellerline.receiptbatch.service.impl;
 
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
+import com.ykb.architecture.micro.error.exception.MicroException;
+import com.ykb.corebanking.tellerline.receiptbatch.clients.dto.HesparAccountServiceDTO;
+import com.ykb.corebanking.tellerline.receiptbatch.dto.ExpenseJobPrepareDTO;
+import com.ykb.corebanking.tellerline.receiptbatch.service.IReceiptExpenseJobBaseService;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
-import com.ykb.corebanking.tellerline.receiptbatch.clients.PostOfficeClient;
-import com.ykb.corebanking.tellerline.receiptbatch.clients.request.RequestCreateOnlineSending;
-import com.ykb.corebanking.tellerline.receiptbatch.clients.request.RequestInhouseSending;
-import com.ykb.corebanking.tellerline.receiptbatch.clients.response.ResponseCreateOnlineSending;
-import com.ykb.corebanking.tellerline.receiptbatch.clients.response.ResponseInhouseSending;
-import com.ykb.corebanking.tellerline.receiptbatch.common.exceptions.PostOfficeInhouseSendingException;
-import com.ykb.corebanking.tellerline.receiptbatch.common.exceptions.PostOfficeOnlineSendingException;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
+import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
+
+@Service
+public class ReceiptExpenseJobBaseService implements IReceiptExpenseJobBaseService {
+
+    @Autowired
+    CommissionFromExpenseAccount commissionFromExpenseAccount;
+    @Autowired
+    CommissionSendReceiptAccount commissionSendReceiptAccount;
+    @Autowired
+    CommissionAccountFromHespar commissionAccountFromHespar;
+    @Autowired
+    CommissionFirstAccountFromHespar commissionFirstAccountFromHespar;
+    @Autowired
+    HesparAccountService hesparAccountService;
+    @Autowired
+    ReceiptExpenseJobParameterService receiptExpenseJobParameterService;
+
+    @Override
+    public void getCommission(List<ExpenseJobPrepareDTO> clientList) throws MicroException {
+        Map<Integer, List<HesparAccountServiceDTO>> hesparAccountList = hesparAccountService.getHesparAccountListBulk(clientList.stream().map(ExpenseJobPrepareDTO::getClientNo).collect(Collectors.toList()));
+        String currentPeriod = receiptExpenseJobParameterService.getCurrentPeriod();
+        List<String> statusList = receiptExpenseJobParameterService.getCurrentStatusList();
+        List<ExpenseJobPrepareDTO> remainingList1 = commissionFromExpenseAccount.findAccountAndGetCommission(clientList, hesparAccountList, currentPeriod, statusList);
+        List<ExpenseJobPrepareDTO> remainingList2 = commissionSendReceiptAccount.findAccountAndGetCommission(remainingList1, hesparAccountList, currentPeriod, statusList);
+        List<ExpenseJobPrepareDTO> remainingList3 = commissionAccountFromHespar.findAccountAndGetCommission(remainingList2, hesparAccountList, currentPeriod, statusList);
+
+        commissionFirstAccountFromHespar.findAccountAndGetCommission(remainingList3, hesparAccountList, currentPeriod, statusList);
+    }
+
+}
+
+
+package com.ykb.corebanking.tellerline.receiptbatch.dto;
+
+import lombok.*;
+
+@Getter
+@Setter
+public class ExpenseJobPrepareDTO {
+    private Integer clientNo;
+    private String  sbuType;
+    private Integer slipCount;
+}
+
+
+package com.ykb.corebanking.tellerline.receiptbatch.service.impl;
+
+import com.ykb.corebanking.tellerline.receiptbatch.clients.dto.CommissionInformationResponseDTO;
+import com.ykb.corebanking.tellerline.receiptbatch.clients.dto.HesparAccountServiceDTO;
+import com.ykb.corebanking.tellerline.receiptbatch.clients.request.RequestCreateProvision;
+import com.ykb.corebanking.tellerline.receiptbatch.clients.response.*;
+import com.ykb.corebanking.tellerline.receiptbatch.dto.CustomerExpenseInfoDTO;
+import com.ykb.corebanking.tellerline.receiptbatch.dto.ExpenseJobPrepareDTO;
+import com.ykb.corebanking.tellerline.receiptbatch.request.RequestReceiptLogger;
+import com.ykb.corebanking.tellerline.receiptbatch.request.RequestUpdateCustomerReceiptDataStatus;
+import com.ykb.corebanking.tellerline.receiptbatch.service.IExpenseJobAccountService;
+import com.ykb.corebanking.tellerline.receiptbatch.util.ControlUtil;
+import com.ykb.corebanking.tellerline.receiptbatch.util.ExpenseJobUtil;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+@Service
+public class CommissionFromExpenseAccount implements IExpenseJobAccountService {
+
+    @Autowired
+    private ReceiptExpenseJobProvisionService receiptExpenseJobProvisionService;
+    @Autowired
+    private ReceiptExpenseJobReceiptService receiptExpenseJobReceiptService;
+    @Autowired
+    private ReceiptExpenseJobCommissionService receiptExpenseJobCommissionService;
+    @Autowired
+    private HesparAccountService hesparAccountService;
+    @Autowired
+    private CustomerReceiptDataService customerReceiptDataService;
+    @Autowired
+    private ReceiptBatchLogService logger;
+
+    @Override
+    public List<ExpenseJobPrepareDTO> findAccountAndGetCommission(List<ExpenseJobPrepareDTO> clientList, Map<Integer, List<HesparAccountServiceDTO>> hesparAccountList, String currentPeriod, List<String> statusList) {
+        List<ExpenseJobPrepareDTO> remainingClients = new ArrayList<>();
+        List<CustomerExpenseInfoDTO> expenseInfoList = new ArrayList<>();
+
+
+        //musteriler icin borc blokesi bulunmayip, statusu aktif, tanimli masraf hesabi olanlar bulunur
+        for (ExpenseJobPrepareDTO client : clientList) {
+
+            //musterinin masraf hesabini al
+            ResponseCustomerCommissionAccountDefinition customerExpenseAccount = receiptExpenseJobCommissionService.getCustomerExpenseAccount(client);
+
+            if (ControlUtil.isNotNull(customerExpenseAccount)) {
+                //masraf hesabinin bilgilerini al
+                ResponseAccountNumberWithCurrencyClient accountInfo = hesparAccountService.getAccountInfo(customerExpenseAccount.getCommissionAccountNo());
+                if (ControlUtil.isNotNull(accountInfo)) {
+                    CustomerExpenseInfoDTO dto = new CustomerExpenseInfoDTO();
+                    dto.setExpenseResponse(customerExpenseAccount);
+                    dto.setAccountInfo(accountInfo);
+                    dto.setPrepareDTO(client);
+                    expenseInfoList.add(dto);
+                } else {
+                    //acount info gelmezse, remaininge ekle
+                    remainingClients.add(client);
+                }
+            } else {
+                //masraf hesabi yok, remaininge ekle
+                remainingClients.add(client);
+            }
+        }
+
+        if (Boolean.FALSE.equals(expenseInfoList.isEmpty())) {
+            //komisyon bulk sorgulanir
+            ResponseCommissionInformation commissionInquiryResponse = receiptExpenseJobCommissionService.getBulkCommissionInfoFromExpense(expenseInfoList);
+            //komisyon alinir, dekont olusturulur ve statu CS'ye cekilir, komisyon alinamayan hesaplar tahgece duser.
+            if (commissionInquiryResponse != null) {
+                for (CommissionInformationResponseDTO commissionInfo : commissionInquiryResponse.getResponseCommissionInformationList()) {
+                    RequestCreateProvision pendingRequest = new RequestCreateProvision();
+                    try {
+                        //komisyon ve dekont olustur
+                        pendingRequest = receiptExpenseJobProvisionService.createPendingRequest(commissionInfo, Boolean.TRUE);
+                        ResponseCreateProvision provisionResponse = receiptExpenseJobProvisionService.getCommissionFromInquiry(pendingRequest);
+                        //TAHGEC senaryosunda dekont olusturma
+                        if (Boolean.TRUE.equals(ExpenseJobUtil.checkReceiptRequired(provisionResponse))) {
+                            receiptExpenseJobReceiptService.createReceipt(provisionResponse, commissionInfo);
+                        }
+
+                        //statuyu CS'ye setle
+                        String accountNo = commissionInfo.getCommissionOutputAccountingApiDTOList().get(0).getAccountNo();
+                        RequestUpdateCustomerReceiptDataStatus updateRequest = new RequestUpdateCustomerReceiptDataStatus();
+                        updateRequest.setCommissionAccountNo(accountNo);
+                        updateRequest.setClientNo(ExpenseJobUtil.getClientNoFromHespar(accountNo, hesparAccountList));
+                        updateRequest.setContractNo(provisionResponse.getContractNo());
+                        updateRequest.setCurrentPeriod(currentPeriod);
+                        updateRequest.setStatusList(statusList);
+                        customerReceiptDataService.updateCustomerReceiptDataStatus(updateRequest);
+                    } catch (Exception ex) {
+                        try {
+                            receiptExpenseJobProvisionService.getCommissionFromInquiryCompensate(pendingRequest);
+                        } catch (Exception e) {
+                            createBatchLogForAlert(logger, pendingRequest, e);
+                        }
+
+                        String accountNo = commissionInfo.getCommissionOutputAccountingApiDTOList().get(0).getAccountNo();
+                        Integer remainingClientNo = ExpenseJobUtil.getClientNoFromHespar(accountNo, hesparAccountList);
+
+                        //statuyu CE'ye setle
+                        RequestUpdateCustomerReceiptDataStatus updateRequest = new RequestUpdateCustomerReceiptDataStatus();
+                        updateRequest.setClientNo(remainingClientNo);
+                        updateRequest.setCurrentPeriod(currentPeriod);
+                        updateRequest.setStatusList(statusList);
+                        updateRequest.setErrorMessage("Masraf Hesabından tahsilat sırasında hata oluştu" + ex.getMessage());
+                        customerReceiptDataService.updateCustomerReceiptDataStatus(updateRequest);
+
+                        //remaininge ekle
+                        remainingClients.add(ExpenseJobUtil.findPrepareDTOFromClient(remainingClientNo, clientList));
+                    }
+                }
+            } else {
+                //komisyon sorgulama hatasi, masraf hesabı bulunan herkesi remaininge ekle
+                //statuyu CE'ye setle
+                expenseInfoList.forEach(client -> {
+                    remainingClients.add(client.getPrepareDTO());
+                    RequestUpdateCustomerReceiptDataStatus updateRequest = new RequestUpdateCustomerReceiptDataStatus();
+                    updateRequest.setClientNo(client.getPrepareDTO().getClientNo());
+                    updateRequest.setCurrentPeriod(currentPeriod);
+                    updateRequest.setStatusList(statusList);
+                    customerReceiptDataService.updateCustomerReceiptDataStatus(updateRequest);
+                });
+            }
+        }
+
+        return remainingClients;
+    }
+
+
+}
+
+
+package com.ykb.corebanking.tellerline.receiptbatch.service.impl;
+
+import com.ykb.corebanking.tellerline.receiptbatch.clients.dto.CommissionInformationResponseDTO;
+import com.ykb.corebanking.tellerline.receiptbatch.clients.dto.HesparAccountServiceDTO;
+import com.ykb.corebanking.tellerline.receiptbatch.clients.request.RequestCreateProvision;
+import com.ykb.corebanking.tellerline.receiptbatch.clients.response.ResponseApiReceiptDTO;
+import com.ykb.corebanking.tellerline.receiptbatch.clients.response.ResponseCommissionInformation;
+import com.ykb.corebanking.tellerline.receiptbatch.clients.response.ResponseCreateProvision;
+import com.ykb.corebanking.tellerline.receiptbatch.dto.ExpenseJobPrepareDTO;
+import com.ykb.corebanking.tellerline.receiptbatch.request.RequestUpdateCustomerReceiptDataStatus;
+import com.ykb.corebanking.tellerline.receiptbatch.service.IExpenseJobAccountService;
+import com.ykb.corebanking.tellerline.receiptbatch.util.ControlUtil;
+import com.ykb.corebanking.tellerline.receiptbatch.util.ExpenseJobUtil;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+import java.util.Optional;
+
+@Service
+public class CommissionSendReceiptAccount implements IExpenseJobAccountService {
+
+    @Autowired
+    private CustomerReceiptDataService customerReceiptDataService;
+    @Autowired
+    private ReceiptExpenseJobCommissionService receiptExpenseJobCommissionService;
+    @Autowired
+    private ReceiptExpenseJobProvisionService receiptExpenseJobProvisionService;
+    @Autowired
+    private ReceiptExpenseJobReceiptService receiptExpenseJobReceiptService;
+    @Autowired
+    private ReceiptBatchLogService logger;
+
+    @Override
+    public List<ExpenseJobPrepareDTO> findAccountAndGetCommission(List<ExpenseJobPrepareDTO> clientList, Map<Integer, List<HesparAccountServiceDTO>> hesparAccountList, String currentPeriod, List<String> statusList) {
+        List<ExpenseJobPrepareDTO> remainingClients = new ArrayList<>();
+
+        //clientList => phase 1'da ce statusune cekilen kayitlar ve hic islenmemis kayitlar
+        for (ExpenseJobPrepareDTO client : clientList) {
+            List<String> accountList = customerReceiptDataService.getCustomerReceiptAccounts(client.getClientNo(), currentPeriod);
+            List<HesparAccountServiceDTO> availableAccountList = findAvailableReceiptAccountList(accountList, hesparAccountList.get(client.getClientNo()));
+            if (ControlUtil.isEmpty(availableAccountList)) {
+                remainingClients.add(client);
+                continue;
+            }
+            ResponseCommissionInformation commissionInformation = receiptExpenseJobCommissionService.getBulkCommissionInfoFromHespar(availableAccountList, client);
+            if (commissionInformation != null) {
+                boolean isProvisionCompleted = Boolean.FALSE;
+                for (CommissionInformationResponseDTO commissionInfo : commissionInformation.getResponseCommissionInformationList()) {
+                    RequestCreateProvision pendingRequest = new RequestCreateProvision();
+                    try {
+                        pendingRequest = receiptExpenseJobProvisionService.createPendingRequest(commissionInfo, Boolean.FALSE);
+                        ResponseCreateProvision provisionResponse = receiptExpenseJobProvisionService.getCommissionFromInquiry(pendingRequest);
+                        if (Boolean.TRUE.equals(ExpenseJobUtil.checkReceiptRequired(provisionResponse))) {
+
+                            receiptExpenseJobReceiptService.createReceipt(provisionResponse, commissionInfo);
+
+                            //statuyu CS'ye setle
+                            String accountNo = commissionInfo.getCommissionOutputAccountingApiDTOList().get(0).getAccountNo();
+                            RequestUpdateCustomerReceiptDataStatus updateRequest = new RequestUpdateCustomerReceiptDataStatus();
+                            updateRequest.setCommissionAccountNo(accountNo);
+                            updateRequest.setContractNo(provisionResponse.getContractNo());
+                            updateRequest.setStatusList(statusList);
+                            updateRequest.setCurrentPeriod(currentPeriod);
+                            updateRequest.setClientNo(client.getClientNo());
+                            customerReceiptDataService.updateCustomerReceiptDataStatus(updateRequest);
+
+                            isProvisionCompleted = Boolean.TRUE;
+                            break;
+                        }
+                    } catch (Exception ex) {
+                        try {
+                            receiptExpenseJobProvisionService.getCommissionFromInquiryCompensate(pendingRequest);
+                        } catch (Exception e) {
+                            createBatchLogForAlert(logger, pendingRequest, e);
+                        }
+                    }
+                }
+
+                if (!isProvisionCompleted) {
+                    remainingClients.add(client);
+                    //statu update yok
+                }
+            } else {
+                remainingClients.add(client);
+                //statu update yok
+            }
+        }
+
+        return remainingClients;
+    }
+
+    private List<HesparAccountServiceDTO> findAvailableReceiptAccountList(List<String> accountList, List<HesparAccountServiceDTO> hesparAccountList) {
+        if (!ControlUtil.isEmpty(hesparAccountList)) {
+            List<HesparAccountServiceDTO> foundAccountList = new ArrayList<>();
+            for (String receiptAccount : accountList) {
+                Optional<HesparAccountServiceDTO> optionalDTO = hesparAccountList.stream().filter(account -> account.getFullAccountNumber().equals(receiptAccount)).findFirst();
+                if (optionalDTO.isPresent()) {
+                    HesparAccountServiceDTO dto = optionalDTO.get();
+                    //check if account is ok
+                    if (Boolean.TRUE.equals(ExpenseJobUtil.checkIfAccountAvailable(dto))) {
+                        foundAccountList.add(dto);
+                    }
+                }
+            }
+
+            return foundAccountList;
+        }
+
+        return new ArrayList<>();
+
+    }
+
+
+}
+
+
+package com.ykb.corebanking.tellerline.receiptbatch.service.impl;
+
+import com.ykb.corebanking.tellerline.receiptbatch.clients.dto.CommissionInformationResponseDTO;
+import com.ykb.corebanking.tellerline.receiptbatch.clients.dto.HesparAccountServiceDTO;
+import com.ykb.corebanking.tellerline.receiptbatch.clients.request.RequestCreateProvision;
+import com.ykb.corebanking.tellerline.receiptbatch.clients.response.ResponseCommissionInformation;
+import com.ykb.corebanking.tellerline.receiptbatch.clients.response.ResponseCreateProvision;
+import com.ykb.corebanking.tellerline.receiptbatch.dto.ExpenseJobPrepareDTO;
+import com.ykb.corebanking.tellerline.receiptbatch.request.RequestUpdateCustomerReceiptDataStatus;
+import com.ykb.corebanking.tellerline.receiptbatch.service.IExpenseJobAccountService;
+import com.ykb.corebanking.tellerline.receiptbatch.util.ControlUtil;
+import com.ykb.corebanking.tellerline.receiptbatch.util.ExpenseJobUtil;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+@Service
+public class CommissionAccountFromHespar implements IExpenseJobAccountService {
+
+    @Autowired
+    ReceiptExpenseJobCommissionService receiptExpenseJobCommissionService;
+    @Autowired
+    ReceiptExpenseJobProvisionService receiptExpenseJobProvisionService;
+    @Autowired
+    ReceiptExpenseJobReceiptService receiptExpenseJobReceiptService;
+    @Autowired
+    private CustomerReceiptDataService customerReceiptDataService;
+    @Autowired
+    private ReceiptBatchLogService logger;
+
+    @Override
+    public List<ExpenseJobPrepareDTO> findAccountAndGetCommission(List<ExpenseJobPrepareDTO> clientList, Map<Integer, List<HesparAccountServiceDTO>> hesparAccountList, String currentPeriod, List<String> statusList) {
+        List<ExpenseJobPrepareDTO> remainingClients = new ArrayList<>();
+        String errorMessage = "";
+        //client list => phase2de gonderim yapilan uygun hesabi bulunamayanlar + gonderim yapilan hesaplardan yeterli bakiyesi bulunmayanlar
+        for (ExpenseJobPrepareDTO client : clientList) {
+            List<HesparAccountServiceDTO> availableAccountList = findAvailableReceiptAccountList(hesparAccountList.get(client.getClientNo()));
+            if (ControlUtil.isEmpty(availableAccountList)) {
+                remainingClients.add(client);
+                continue;
+            }
+            ResponseCommissionInformation commissionInformation = receiptExpenseJobCommissionService.getBulkCommissionInfoFromHespar(availableAccountList, client);
+            if (commissionInformation != null) {
+                boolean isProvisionCompleted = Boolean.FALSE;
+                for (CommissionInformationResponseDTO commissionInfo : commissionInformation.getResponseCommissionInformationList()) {
+                    RequestCreateProvision pendingRequest = new RequestCreateProvision();
+                    try {
+                        pendingRequest = receiptExpenseJobProvisionService.createPendingRequest(commissionInfo, Boolean.FALSE);
+                        ResponseCreateProvision provisionResponse = receiptExpenseJobProvisionService.getCommissionFromInquiry(pendingRequest);
+                        if (Boolean.TRUE.equals(ExpenseJobUtil.checkReceiptRequired(provisionResponse))) {
+                            receiptExpenseJobReceiptService.createReceipt(provisionResponse, commissionInfo);
+                            //statuyu CS'ye setle
+                            String accountNo = commissionInfo.getCommissionOutputAccountingApiDTOList().get(0).getAccountNo();
+                            RequestUpdateCustomerReceiptDataStatus updateRequest = new RequestUpdateCustomerReceiptDataStatus();
+                            updateRequest.setCommissionAccountNo(accountNo);
+                            updateRequest.setContractNo(provisionResponse.getContractNo());
+                            updateRequest.setStatusList(statusList);
+                            updateRequest.setCurrentPeriod(currentPeriod);
+                            updateRequest.setClientNo(ExpenseJobUtil.getClientNoFromHespar(accountNo, hesparAccountList));
+                            customerReceiptDataService.updateCustomerReceiptDataStatus(updateRequest);
+                            isProvisionCompleted = Boolean.TRUE;
+                            break;
+                        }
+                    } catch (Exception ex) {
+                        try {
+                            receiptExpenseJobProvisionService.getCommissionFromInquiryCompensate(pendingRequest);
+                        } catch (Exception e) {
+                            createBatchLogForAlert(logger, pendingRequest, e);
+                        }
+                    }
+                }
+
+                if (!isProvisionCompleted) {
+                    remainingClients.add(client);
+
+                    //hicbir hesabın bakiyesi yok, statu CE'ye çekilir
+                    RequestUpdateCustomerReceiptDataStatus updateRequest = new RequestUpdateCustomerReceiptDataStatus();
+                    updateRequest.setStatusList(statusList);
+                    updateRequest.setCurrentPeriod(currentPeriod);
+                    updateRequest.setClientNo(client.getClientNo());
+                    updateRequest.setErrorMessage(errorMessage);
+                    customerReceiptDataService.updateCustomerReceiptDataStatus(updateRequest);
+                }
+            } else {
+                remainingClients.add(client);
+
+                // komisyon bilgisi alınamadı uygun hesap yok, CE'ye çek
+                RequestUpdateCustomerReceiptDataStatus updateRequest = new RequestUpdateCustomerReceiptDataStatus();
+                updateRequest.setStatusList(statusList);
+                updateRequest.setCurrentPeriod(currentPeriod);
+                updateRequest.setClientNo(client.getClientNo());
+                updateRequest.setErrorMessage("Hiçbir hesabından borç tahsil edilemedi.");
+                customerReceiptDataService.updateCustomerReceiptDataStatus(updateRequest);
+            }
+        }
+
+        return remainingClients;
+    }
+
+    private List<HesparAccountServiceDTO> findAvailableReceiptAccountList(List<HesparAccountServiceDTO> accountList) {
+        if (!ControlUtil.isEmpty(accountList)) {
+            List<HesparAccountServiceDTO> availableAccounts = new ArrayList<>();
+            for (HesparAccountServiceDTO account : accountList) {
+                if (Boolean.TRUE.equals(ExpenseJobUtil.checkIfAccountAvailable(account))) {
+                    availableAccounts.add(account);
+                }
+            }
+            return availableAccounts;
+        } else {
+            return new ArrayList<>();
+        }
+    }
+
+}
+
+
+package com.ykb.corebanking.tellerline.receiptbatch.service.impl;
+
+import com.ykb.corebanking.tellerline.receiptbatch.clients.dto.CommissionInformationResponseDTO;
+import com.ykb.corebanking.tellerline.receiptbatch.clients.dto.HesparAccountServiceDTO;
+import com.ykb.corebanking.tellerline.receiptbatch.clients.request.RequestCreateProvision;
+import com.ykb.corebanking.tellerline.receiptbatch.clients.response.ResponseCommissionInformation;
+import com.ykb.corebanking.tellerline.receiptbatch.clients.response.ResponseCreateProvision;
+import com.ykb.corebanking.tellerline.receiptbatch.dto.CustomerHesparClientInfoDTO;
+import com.ykb.corebanking.tellerline.receiptbatch.dto.ExpenseJobPrepareDTO;
+import com.ykb.corebanking.tellerline.receiptbatch.request.RequestUpdateCustomerReceiptDataStatus;
+import com.ykb.corebanking.tellerline.receiptbatch.service.IExpenseJobAccountService;
+import com.ykb.corebanking.tellerline.receiptbatch.util.ControlUtil;
+import com.ykb.corebanking.tellerline.receiptbatch.util.ExpenseJobUtil;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Map;
+
+@Service
+public class CommissionFirstAccountFromHespar implements IExpenseJobAccountService {
+
+    @Autowired
+    private ReceiptExpenseJobProvisionService receiptExpenseJobProvisionService;
+    @Autowired
+    private ReceiptExpenseJobReceiptService receiptExpenseJobReceiptService;
+    @Autowired
+    private ReceiptExpenseJobCommissionService receiptExpenseJobCommissionService;
+    @Autowired
+    private CustomerReceiptDataService customerReceiptDataService;
+    @Autowired
+    private ReceiptBatchLogService logger;
+
+    @Override
+    public List<ExpenseJobPrepareDTO> findAccountAndGetCommission(List<ExpenseJobPrepareDTO> clientList, Map<Integer, List<HesparAccountServiceDTO>> hesparAccountList, String currentPeriod, List<String> statusList) {
+        List<ExpenseJobPrepareDTO> remainingClients = new ArrayList<>();
+        List<CustomerHesparClientInfoDTO> clientInfoList = new ArrayList<>();
+        //client list => 3 phase'de de komisyon alinamamis tum hesaplar
+        for (ExpenseJobPrepareDTO client : clientList) {
+            if (ControlUtil.isNotNull(hesparAccountList) && !ControlUtil.isEmpty(hesparAccountList.get(client.getClientNo()))) {
+                HesparAccountServiceDTO availableAccount = getFirstAvailableAccount(hesparAccountList.get(client.getClientNo()));
+                if (ControlUtil.isNotNull(availableAccount)) {
+                    CustomerHesparClientInfoDTO infoDTO = new CustomerHesparClientInfoDTO();
+                    infoDTO.setHesparDTO(availableAccount);
+                    infoDTO.setPrepareDTO(client);
+                    clientInfoList.add(infoDTO);
+                } else {
+                    //available account yok
+                    remainingClients.add(client);
+                }
+            } else {
+                //available account yok
+                remainingClients.add(client);
+            }
+
+        }
+
+        if (Boolean.FALSE.equals(clientInfoList.isEmpty())) {
+            ResponseCommissionInformation commissionInquiryResponse = receiptExpenseJobCommissionService.getBulkCommissionInfoFromHesparAndClient(clientInfoList);
+
+            if (ControlUtil.isNotNull(commissionInquiryResponse)) {
+                for (CommissionInformationResponseDTO commissionInfo : commissionInquiryResponse.getResponseCommissionInformationList()) {
+                    RequestCreateProvision pendingRequest = new RequestCreateProvision();
+                    try {
+                        //komisyon ve dekont olustur
+                        pendingRequest = receiptExpenseJobProvisionService.createPendingRequest(commissionInfo, Boolean.TRUE);
+                        ResponseCreateProvision provisionResponse = receiptExpenseJobProvisionService.getCommissionFromInquiry(pendingRequest);
+                        if (Boolean.TRUE.equals(ExpenseJobUtil.checkReceiptRequired(provisionResponse))) {
+                            receiptExpenseJobReceiptService.createReceipt(provisionResponse, commissionInfo);
+                        }
+                        //statuyu CS'ye setle
+                        String accountNo = commissionInfo.getCommissionOutputAccountingApiDTOList().get(0).getAccountNo();
+                        RequestUpdateCustomerReceiptDataStatus updateRequest = new RequestUpdateCustomerReceiptDataStatus();
+                        updateRequest.setCommissionAccountNo(accountNo);
+                        updateRequest.setClientNo(ExpenseJobUtil.getClientNoFromHespar(accountNo, hesparAccountList));
+                        updateRequest.setContractNo(provisionResponse.getContractNo());
+                        updateRequest.setCurrentPeriod(currentPeriod);
+                        updateRequest.setStatusList(getStatusListToUpdate(statusList));
+                        customerReceiptDataService.updateCustomerReceiptDataStatus(updateRequest);
+                    } catch (Exception ex) {
+                        try {
+                            receiptExpenseJobProvisionService.getCommissionFromInquiryCompensate(pendingRequest);
+                        } catch (Exception e) {
+                            createBatchLogForAlert(logger, pendingRequest, e);
+                        }
+                    }
+                }
+            } else {
+                clientInfoList.forEach(c -> remainingClients.add(c.getPrepareDTO()));
+            }
+        }
+
+        // remainingler CC'ye cekilir
+        for (ExpenseJobPrepareDTO remainingClient : remainingClients) {
+            RequestUpdateCustomerReceiptDataStatus updateRequest = new RequestUpdateCustomerReceiptDataStatus();
+            updateRequest.setClientNo(remainingClient.getClientNo());
+            updateRequest.setStatusList(statusList);
+            updateRequest.setCurrentPeriod(currentPeriod);
+            customerReceiptDataService.updateCustomerReceiptDataStatusToCC(updateRequest);
+        }
+
+        return new ArrayList<>(); //remaining client yoktur (uygun hesap yoksa var mi? cemre abiye sor)
+    }
+
+    private HesparAccountServiceDTO getFirstAvailableAccount(List<HesparAccountServiceDTO> accountList) {
+        for (HesparAccountServiceDTO account : accountList) {
+            if (Boolean.TRUE.equals(ExpenseJobUtil.checkIfAccountAvailable(account))) {
+                return account;
+            }
+        }
+
+        return null;
+    }
+
+    private List<String> getStatusListToUpdate(List<String> statusList) {
+        List<String> statuListToUpdate = new ArrayList<>();
+        for (String status : statusList) {
+            statuListToUpdate.add(status);
+        }
+        statuListToUpdate.add("CE");
+        return statuListToUpdate;
+    }
+
+}
+
+
+package com.ykb.corebanking.tellerline.receiptbatch.service.impl;
+
+import com.ykb.architecture.micro.error.exception.MicroException;
+import com.ykb.corebanking.tellerline.receiptbatch.clients.HesparAccountClient;
+import com.ykb.corebanking.tellerline.receiptbatch.clients.dto.HesparAccountServiceDTO;
+import com.ykb.corebanking.tellerline.receiptbatch.clients.request.RequestHesparAccount;
+import com.ykb.corebanking.tellerline.receiptbatch.clients.response.ResponseAccountNumberWithCurrencyClient;
+import com.ykb.corebanking.tellerline.receiptbatch.clients.response.ResponseHesparAccount;
+import com.ykb.corebanking.tellerline.receiptbatch.exceptions.JobException;
+import com.ykb.corebanking.tellerline.receiptbatch.service.IHesparAccountService;
+import com.ykb.corebanking.tellerline.receiptbatch.util.ControlUtil;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
 
-@ExtendWith(MockitoExtension.class) // MockitoExtension kullanıldı
-class PostOfficeDomainServiceTest {
+import java.util.ArrayList;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 
-    @Mock
-    private PostOfficeClient postOfficeClient;
+@Service
+public class HesparAccountService implements IHesparAccountService {
 
-    @InjectMocks
-    private PostOfficeDomainService postOfficeDomainService;
+    @Autowired
+    private HesparAccountClient hesparAccountClient;
 
-    private RequestCreateOnlineSending validOnlineRequest;
-    private ResponseCreateOnlineSending validOnlineResponse;
 
-    private RequestInhouseSending validInhouseRequest;
-    private ResponseInhouseSending validInhouseResponse;
-
-    @BeforeEach
-    void setUp() {
-        validOnlineRequest = new RequestCreateOnlineSending();
-        validOnlineRequest.setUserName("testUser");
-        // Diğer gerekli alanlar set edilebilir
-
-        validOnlineResponse = new ResponseCreateOnlineSending();
-        validOnlineResponse.setSendingGuid("guid-123");
-
-        validInhouseRequest = new RequestInhouseSending();
-        validInhouseRequest.setUserName("testUser");
-        // Diğer gerekli alanlar set edilebilir
-
-        validInhouseResponse = new ResponseInhouseSending();
-        validInhouseResponse.setSendingGuid("guid-456");
+    @Override
+    public Map<Integer, List<HesparAccountServiceDTO>> getHesparAccountListBulk(List<Integer> clientList) throws MicroException {
+        ResponseEntity<ResponseHesparAccount> response = hesparAccountClient.getHesparAccounts(createHesparRequest(clientList));
+        if (response.hasBody() && response.getBody() != null) {
+            return createHesparResponse(response.getBody());
+        } else {
+            throw new JobException(500L, "Hespar error");
+        }
     }
 
-    // Tests for createOnlineSending
-
-    @Test
-    void createOnlineSending_success() throws PostOfficeOnlineSendingException {
-        ResponseEntity<ResponseCreateOnlineSending> responseEntity =
-                new ResponseEntity<>(validOnlineResponse, HttpStatus.OK);
-
-        when(postOfficeClient.createOnlineSending(validOnlineRequest)).thenReturn(responseEntity);
-
-        ResponseCreateOnlineSending response = postOfficeDomainService.createOnlineSending(validOnlineRequest);
-
-        assertNotNull(response);
-        assertEquals("guid-123", response.getSendingGuid());
-        verify(postOfficeClient, times(1)).createOnlineSending(validOnlineRequest);
+    @Override
+    public ResponseAccountNumberWithCurrencyClient getAccountInfo(String accountNumber) {
+        try {
+            ResponseEntity<ResponseAccountNumberWithCurrencyClient> response = hesparAccountClient.withoutExByAccount(accountNumber);
+            if(response.hasBody()) {
+                return response.getBody();
+            } else {
+                return null;
+            }
+        } catch (Exception ex) {
+            return null;
+        }
     }
 
-    @Test
-    void createOnlineSending_nullRequest_throwsException() {
-        PostOfficeOnlineSendingException exception = assertThrows(
-                PostOfficeOnlineSendingException.class,
-                () -> postOfficeDomainService.createOnlineSending(null)
-        );
+    private RequestHesparAccount createHesparRequest(List<Integer> clientList) {
+        RequestHesparAccount bulkRequest = new RequestHesparAccount();
+        bulkRequest.setCustomerNumberList(clientList);
+        bulkRequest.setChannelCode("SYSTEM-GEN");
+        bulkRequest.setTransactionCode("GSE.DKNTTOPLU");
 
-        assertEquals("Postane servisine boş input gönderildiği için hata oluştu.", exception.getMessage());
-        verify(postOfficeClient, never()).createOnlineSending(any());
+        return bulkRequest;
     }
 
-    @Test
-    void createOnlineSending_nonOkStatus_throwsException() {
-        ResponseEntity<ResponseCreateOnlineSending> responseEntity =
-                new ResponseEntity<>(validOnlineResponse, HttpStatus.INTERNAL_SERVER_ERROR);
+    private Map<Integer, List<HesparAccountServiceDTO>> createHesparResponse(ResponseHesparAccount response) {
+        Map<Integer, List<HesparAccountServiceDTO>> clientToAccountList = new HashMap<>();
+        if (response != null) {
+            response.getAccountList().forEach((account) -> {
+                if (clientToAccountList.containsKey(account.getCustomerNumber())) {
+                    clientToAccountList.get(account.getCustomerNumber()).add(account);
+                } else {
+                    List<HesparAccountServiceDTO> tempList = new ArrayList<>();
+                    tempList.add(account);
+                    clientToAccountList.put(account.getCustomerNumber(), tempList);
 
-        when(postOfficeClient.createOnlineSending(validOnlineRequest)).thenReturn(responseEntity);
+                }
+            });
+        }
 
-        PostOfficeOnlineSendingException exception = assertThrows(
-                PostOfficeOnlineSendingException.class,
-                () -> postOfficeDomainService.createOnlineSending(validOnlineRequest)
-        );
+        return clientToAccountList;
+    }
+}
 
-        assertEquals("Postane servisinden sonuç alınamadı.", exception.getMessage());
-        verify(postOfficeClient, times(1)).createOnlineSending(validOnlineRequest);
+
+package com.ykb.corebanking.tellerline.receiptbatch.service.impl;
+
+import com.ykb.corebanking.tellerline.receiptbatch.dto.ExpenseJobTransformerDTO;
+import com.ykb.corebanking.tellerline.receiptbatch.dto.ReceiptParameterDefinitionDTO;
+import com.ykb.corebanking.tellerline.receiptbatch.service.IReceiptExpenseJobParameterService;
+import com.ykb.corebanking.tellerline.receiptbatch.util.CoreStringUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+
+@Service
+public class ReceiptExpenseJobParameterService implements IReceiptExpenseJobParameterService {
+
+    @Autowired
+    private ReceiptParameterDefinitionService receiptParameterDefinitionService;
+
+    private static final String STATUS_LIST_PARAMETER = "app.harmoni.glb.receiptbatch.expensejob.statuslist";
+    private static final String CLIENT_LIST_PARAMETER = "app.harmoni.glb.receiptbatch.expensejob.clientlist";
+    private static final String PERIOD_PARAMETER = "app.harmoni.glb.receiptbatch.expensejob.period";
+    private static final String PARAMETER_OFF = "OFF";
+
+    @Override
+    public ExpenseJobTransformerDTO getExpenseJobTransformerDTO() {
+        ExpenseJobTransformerDTO dto = new ExpenseJobTransformerDTO();
+
+        ReceiptParameterDefinitionDTO statusList = receiptParameterDefinitionService.getApplicationParameterByName(STATUS_LIST_PARAMETER);
+        ReceiptParameterDefinitionDTO clientList = receiptParameterDefinitionService.getApplicationParameterByName(CLIENT_LIST_PARAMETER);
+        ReceiptParameterDefinitionDTO period = receiptParameterDefinitionService.getApplicationParameterByName(PERIOD_PARAMETER);
+
+        if (clientList != null && CoreStringUtils.hasText(clientList.getValue()) && !PARAMETER_OFF.equals(clientList.getValue())) {
+            dto.setClientList(parseClientList(clientList));
+        }
+        if (statusList != null && CoreStringUtils.hasText(statusList.getValue()) && !PARAMETER_OFF.equals(statusList.getValue())) {
+            dto.setStatusList(parseStatusList(statusList));
+        } else {
+            List<String> defaultStatusList = new ArrayList<>();
+            defaultStatusList.add("ES");
+            dto.setStatusList(defaultStatusList);
+        }
+
+        if (period != null && CoreStringUtils.hasText(period.getValue()) && !PARAMETER_OFF.equals(period.getValue())) {
+            dto.setPeriod(period.getValue());
+        } else {
+            LocalDate today = LocalDate.now();
+            LocalDate oneMonthAgo = today.minusMonths(1);
+
+            DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyyMM");
+            String formattedDate = oneMonthAgo.format(formatter);
+            dto.setPeriod(formattedDate);
+        }
+        return dto;
     }
 
-    @Test
-    void createOnlineSending_nullResponseBody_throwsException() {
-        ResponseEntity<ResponseCreateOnlineSending> responseEntity =
-                new ResponseEntity<>(null, HttpStatus.OK);
-
-        when(postOfficeClient.createOnlineSending(validOnlineRequest)).thenReturn(responseEntity);
-
-        PostOfficeOnlineSendingException exception = assertThrows(
-                PostOfficeOnlineSendingException.class,
-                () -> postOfficeDomainService.createOnlineSending(validOnlineRequest)
-        );
-
-        assertEquals("Postane servisinden sonuç alınamadı.", exception.getMessage());
-        verify(postOfficeClient, times(1)).createOnlineSending(validOnlineRequest);
+    @Override
+    public String getCurrentPeriod() {
+        ReceiptParameterDefinitionDTO dto = receiptParameterDefinitionService.getApplicationParameterByName(PERIOD_PARAMETER);
+        return dto.getValue();
     }
 
-    @Test
-    void createOnlineSending_clientThrowsException_throwsPostOfficeOnlineSendingException() {
-        when(postOfficeClient.createOnlineSending(validOnlineRequest))
-                .thenThrow(new RuntimeException("Feign client error"));
-
-        PostOfficeOnlineSendingException exception = assertThrows(
-                PostOfficeOnlineSendingException.class,
-                () -> postOfficeDomainService.createOnlineSending(validOnlineRequest)
-        );
-
-        // Beklenen mesajı "Feign client error" olarak güncelledik
-        assertTrue(exception.getMessage().contains("Feign client error"));
-        verify(postOfficeClient, times(1)).createOnlineSending(validOnlineRequest);
+    @Override
+    public List<String> getCurrentStatusList() {
+        ReceiptParameterDefinitionDTO dto = receiptParameterDefinitionService.getApplicationParameterByName(STATUS_LIST_PARAMETER);
+        return Arrays.stream(dto.getValue().split(";")).toList();
     }
 
-    // Tests for createInhouseSending
-
-    @Test
-    void createInhouseSending_success() throws PostOfficeInhouseSendingException {
-        ResponseEntity<ResponseInhouseSending> responseEntity =
-                new ResponseEntity<>(validInhouseResponse, HttpStatus.OK);
-
-        when(postOfficeClient.createInhouseSending(validInhouseRequest)).thenReturn(responseEntity);
-
-        ResponseInhouseSending response = postOfficeDomainService.createInhouseSending(validInhouseRequest);
-
-        assertNotNull(response);
-        assertEquals("guid-456", response.getSendingGuid());
-        verify(postOfficeClient, times(1)).createInhouseSending(validInhouseRequest);
+    private List<String> parseStatusList(ReceiptParameterDefinitionDTO parameter) {
+        if (parameter != null && CoreStringUtils.hasText(parameter.getValue())) {
+            return Arrays.stream(parameter.getValue().split(";")).toList();
+        }
+        return Collections.emptyList();
     }
 
-    @Test
-    void createInhouseSending_nullRequest_throwsException() {
-        PostOfficeInhouseSendingException exception = assertThrows(
-                PostOfficeInhouseSendingException.class,
-                () -> postOfficeDomainService.createInhouseSending(null)
-        );
-
-        assertEquals("Postane servisine boş input gönderildiği için hata oluştu.", exception.getMessage());
-        verify(postOfficeClient, never()).createInhouseSending(any());
+    private List<Integer> parseClientList(ReceiptParameterDefinitionDTO parameter) {
+        if (parameter != null && CoreStringUtils.hasText(parameter.getValue())) {
+            List<String> stringList = Arrays.stream(parameter.getValue().split(";")).toList();
+            return stringList.stream().map(Integer::parseInt).toList();
+        }
+        return Collections.emptyList();
     }
 
-    @Test
-    void createInhouseSending_nonOkStatus_throwsException() {
-        ResponseEntity<ResponseInhouseSending> responseEntity =
-                new ResponseEntity<>(validInhouseResponse, HttpStatus.BAD_REQUEST);
-
-        when(postOfficeClient.createInhouseSending(validInhouseRequest)).thenReturn(responseEntity);
-
-        PostOfficeInhouseSendingException exception = assertThrows(
-                PostOfficeInhouseSendingException.class,
-                () -> postOfficeDomainService.createInhouseSending(validInhouseRequest)
-        );
-
-        assertEquals("Postane servisinden sonuç alınamadı.", exception.getMessage());
-        verify(postOfficeClient, times(1)).createInhouseSending(validInhouseRequest);
-    }
-
-    @Test
-    void createInhouseSending_nullResponseBody_throwsException() {
-        ResponseEntity<ResponseInhouseSending> responseEntity =
-                new ResponseEntity<>(null, HttpStatus.OK);
-
-        when(postOfficeClient.createInhouseSending(validInhouseRequest)).thenReturn(responseEntity);
-
-        PostOfficeInhouseSendingException exception = assertThrows(
-                PostOfficeInhouseSendingException.class,
-                () -> postOfficeDomainService.createInhouseSending(validInhouseRequest)
-        );
-
-        assertEquals("Postane servisinden sonuç alınamadı.", exception.getMessage());
-        verify(postOfficeClient, times(1)).createInhouseSending(validInhouseRequest);
-    }
-
-    @Test
-    void createInhouseSending_clientThrowsException_throwsPostOfficeInhouseSendingException() {
-        when(postOfficeClient.createInhouseSending(validInhouseRequest))
-                .thenThrow(new RuntimeException("Feign client error"));
-
-        PostOfficeInhouseSendingException exception = assertThrows(
-                PostOfficeInhouseSendingException.class,
-                () -> postOfficeDomainService.createInhouseSending(validInhouseRequest)
-        );
-
-        // Beklenen mesajı "Feign client error" olarak güncelledik
-        assertTrue(exception.getMessage().contains("Feign client error"));
-        verify(postOfficeClient, times(1)).createInhouseSending(validInhouseRequest);
-    }
 }
