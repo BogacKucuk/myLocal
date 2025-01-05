@@ -1,203 +1,33 @@
-package com.ykb.corebanking.tellerline.receiptbatch.service.impl;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
-import com.ykb.architecture.micro.error.exception.MicroException;
-import com.ykb.corebanking.tellerline.receiptbatch.clients.dto.HesparAccountServiceDTO;
-import com.ykb.corebanking.tellerline.receiptbatch.dto.ExpenseJobPrepareDTO;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.*;
-
-@ExtendWith(MockitoExtension.class)
-class ReceiptExpenseJobBaseServiceTest {
-
-    @Mock
-    private CommissionFromExpenseAccount commissionFromExpenseAccount;
-
-    @Mock
-    private CommissionSendReceiptAccount commissionSendReceiptAccount;
-
-    @Mock
-    private CommissionAccountFromHespar commissionAccountFromHespar;
-
-    @Mock
-    private CommissionFirstAccountFromHespar commissionFirstAccountFromHespar;
-
-    @Mock
-    private HesparAccountService hesparAccountService;
-
-    @Mock
-    private ReceiptExpenseJobParameterService receiptExpenseJobParameterService;
-
-    @InjectMocks
-    private ReceiptExpenseJobBaseService receiptExpenseJobBaseService;
-
-    private List<ExpenseJobPrepareDTO> validClientList;
-    private Map<Integer, List<HesparAccountServiceDTO>> validHesparAccountList;
-    private String currentPeriod;
-    private List<String> statusList;
-
-    @BeforeEach
-    void setUp() {
-        // Initialize test data
-        ExpenseJobPrepareDTO client1 = new ExpenseJobPrepareDTO();
-        client1.setClientNo(1);
-        client1.setSbuType("SBU1");
-        client1.setSlipCount(10);
-
-        ExpenseJobPrepareDTO client2 = new ExpenseJobPrepareDTO();
-        client2.setClientNo(2);
-        client2.setSbuType("SBU2");
-        client2.setSlipCount(20);
-
-        validClientList = Arrays.asList(client1, client2);
-
-        HesparAccountServiceDTO hesparAccount1 = new HesparAccountServiceDTO();
-        hesparAccount1.setCustomerNumber(1);
-        hesparAccount1.setFullAccountNumber("ACC-001");
-
-        HesparAccountServiceDTO hesparAccount2 = new HesparAccountServiceDTO();
-        hesparAccount2.setCustomerNumber(2);
-        hesparAccount2.setFullAccountNumber("ACC-002");
-
-        validHesparAccountList = new HashMap<>();
-        validHesparAccountList.put(1, Arrays.asList(hesparAccount1));
-        validHesparAccountList.put(2, Arrays.asList(hesparAccount2));
-
-        currentPeriod = "202501";
-        statusList = Arrays.asList("ES", "CS");
-    }
-
-    // Test for successful commission retrieval
-    @Test
-    void getCommission_success() throws MicroException {
-        // Mock dependencies
-        when(hesparAccountService.getHesparAccountListBulk(anyList())).thenReturn(validHesparAccountList);
-        when(receiptExpenseJobParameterService.getCurrentPeriod()).thenReturn(currentPeriod);
-        when(receiptExpenseJobParameterService.getCurrentStatusList()).thenReturn(statusList);
-
-        // Mock commission services to return empty lists (no remaining clients)
-        when(commissionFromExpenseAccount.findAccountAndGetCommission(validClientList, validHesparAccountList, currentPeriod, statusList))
-                .thenReturn(Collections.emptyList());
-
-        when(commissionSendReceiptAccount.findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList()))
-                .thenReturn(Collections.emptyList());
-
-        when(commissionAccountFromHespar.findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList()))
-                .thenReturn(Collections.emptyList());
-
-        when(commissionFirstAccountFromHespar.findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList()))
-                .thenReturn(Collections.emptyList());
-
-        // Execute the method
-        receiptExpenseJobBaseService.getCommission(validClientList);
-
-        // Verify interactions
-        verify(hesparAccountService, times(1)).getHesparAccountListBulk(
-                validClientList.stream().map(ExpenseJobPrepareDTO::getClientNo).toList()
-        );
-        verify(receiptExpenseJobParameterService, times(1)).getCurrentPeriod();
-        verify(receiptExpenseJobParameterService, times(1)).getCurrentStatusList();
-
-        verify(commissionFromExpenseAccount, times(1)).findAccountAndGetCommission(validClientList, validHesparAccountList, currentPeriod, statusList);
-        verify(commissionSendReceiptAccount, times(1)).findAccountAndGetCommission(Collections.emptyList(), validHesparAccountList, currentPeriod, statusList);
-        verify(commissionAccountFromHespar, times(1)).findAccountAndGetCommission(Collections.emptyList(), validHesparAccountList, currentPeriod, statusList);
-        verify(commissionFirstAccountFromHespar, times(1)).findAccountAndGetCommission(Collections.emptyList(), validHesparAccountList, currentPeriod, statusList);
-    }
-
-    // Test for empty client list
-    @Test
-    void getCommission_emptyClientList() throws MicroException {
-        // Mock dependencies
-        when(hesparAccountService.getHesparAccountListBulk(anyList())).thenReturn(Collections.emptyMap());
-        when(receiptExpenseJobParameterService.getCurrentPeriod()).thenReturn(currentPeriod);
-        when(receiptExpenseJobParameterService.getCurrentStatusList()).thenReturn(statusList);
-
-        // Execute the method with empty client list
-        receiptExpenseJobBaseService.getCommission(Collections.emptyList());
-
-        // Verify that hesparAccountService was called with empty list
-        verify(hesparAccountService, times(1)).getHesparAccountListBulk(Collections.emptyList());
-        verify(receiptExpenseJobParameterService, times(1)).getCurrentPeriod();
-        verify(receiptExpenseJobParameterService, times(1)).getCurrentStatusList();
-
-        // Verify that commission services were never called since client list is empty
-        verify(commissionFromExpenseAccount, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
-        verify(commissionSendReceiptAccount, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
-        verify(commissionAccountFromHespar, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
-        verify(commissionFirstAccountFromHespar, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
-    }
-
-    // Test when HesparAccountService throws MicroException
-    @Test
-    void getCommission_hesparServiceThrowsException() throws MicroException {
-        // Mock hesparAccountService to throw exception
-        MicroException mockException = mock(MicroException.class);
-        when(hesparAccountService.getHesparAccountListBulk(anyList())).thenThrow(mockException);
-
-        // Execute and assert exception
-        MicroException exception = assertThrows(MicroException.class, () -> {
-            receiptExpenseJobBaseService.getCommission(validClientList);
-        });
-
-        // Verify the exception message if needed
-        // Example: when(mockException.getMessage()).thenReturn("Hespar service error");
-        // assertEquals("Hespar service error", exception.getMessage());
-
-        // Verify interactions
-        verify(hesparAccountService, times(1)).getHesparAccountListBulk(
-                validClientList.stream().map(ExpenseJobPrepareDTO::getClientNo).toList()
-        );
-
-        // Other services should not be called
-        verify(receiptExpenseJobParameterService, never()).getCurrentPeriod();
-        verify(receiptExpenseJobParameterService, never()).getCurrentStatusList();
-        verify(commissionFromExpenseAccount, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
-        verify(commissionSendReceiptAccount, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
-        verify(commissionAccountFromHespar, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
-        verify(commissionFirstAccountFromHespar, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
-    }
-
-    // Test when CommissionFromExpenseAccount throws RuntimeException
-    @Test
-    void getCommission_commissionFromExpenseAccountThrowsException() throws MicroException {
-        // Mock dependencies
-        when(hesparAccountService.getHesparAccountListBulk(anyList())).thenReturn(validHesparAccountList);
-        when(receiptExpenseJobParameterService.getCurrentPeriod()).thenReturn(currentPeriod);
-        when(receiptExpenseJobParameterService.getCurrentStatusList()).thenReturn(statusList);
-
-        // Mock commissionFromExpenseAccount to throw exception
-        when(commissionFromExpenseAccount.findAccountAndGetCommission(validClientList, validHesparAccountList, currentPeriod, statusList))
-                .thenThrow(new RuntimeException("CommissionFromExpenseAccount error"));
-
-        // Execute and assert exception
-        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
-            receiptExpenseJobBaseService.getCommission(validClientList);
-        });
-
-        assertEquals("CommissionFromExpenseAccount error", exception.getMessage());
-
-        // Verify interactions
-        verify(hesparAccountService, times(1)).getHesparAccountListBulk(
-                validClientList.stream().map(ExpenseJobPrepareDTO::getClientNo).toList()
-        );
-        verify(receiptExpenseJobParameterService, times(1)).getCurrentPeriod();
-        verify(receiptExpenseJobParameterService, times(1)).getCurrentStatusList();
-
-        verify(commissionFromExpenseAccount, times(1)).findAccountAndGetCommission(validClientList, validHesparAccountList, currentPeriod, statusList);
-
-        // Other commission services should not be called due to exception
-        verify(commissionSendReceiptAccount, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
-        verify(commissionAccountFromHespar, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
-        verify(commissionFirstAccountFromHespar, never()).findAccountAndGetCommission(anyList(), anyMap(), anyString(), anyList());
-    }
-
-    // Additional tests can be added similarly for other commission services throwing exceptions
-}
+[INFO] Running com.ykb.corebanking.tellerline.receiptbatch.service.impl.ReceiptExpenseJobBaseServiceTest
+[ERROR] Tests run: 4, Failures: 1, Errors: 0, Skipped: 0, Time elapsed: 1.815 s <<< FAILURE! - in com.ykb.corebanking.tellerline.receiptbatch.service.impl.ReceiptExpenseJobBaseServiceTest
+[ERROR] getCommission_emptyClientList  Time elapsed: 1.655 s  <<< FAILURE!
+org.mockito.exceptions.verification.NeverWantedButInvoked: 
+commissionFromExpenseAccount.findAccountAndGetCommission(
+    <any List>,
+    <any map>,
+    <any string>,
+    <any List>
+);
+Never wanted here:
+-> at com.ykb.corebanking.tellerline.receiptbatch.service.impl.ReceiptExpenseJobBaseServiceTest.getCommission_emptyClientList(ReceiptExpenseJobBaseServiceTest.java:132)
+But invoked here:
+-> at com.ykb.corebanking.tellerline.receiptbatch.service.impl.ReceiptExpenseJobBaseService.getCommission(ReceiptExpenseJobBaseService.java:35)
+	at com.ykb.corebanking.tellerline.receiptbatch.service.impl.ReceiptExpenseJobBaseServiceTest.getCommission_emptyClientList(ReceiptExpenseJobBaseServiceTest.java:132)
+[INFO] 
+[INFO] Results:
+[INFO] 
+[ERROR] Failures: 
+[ERROR]   ReceiptExpenseJobBaseServiceTest.getCommission_emptyClientList:132 
+commissionFromExpenseAccount.findAccountAndGetCommission(
+    <any List>,
+    <any map>,
+    <any string>,
+    <any List>
+);
+Never wanted here:
+-> at com.ykb.corebanking.tellerline.receiptbatch.service.impl.ReceiptExpenseJobBaseServiceTest.getCommission_emptyClientList(ReceiptExpenseJobBaseServiceTest.java:132)
+But invoked here:
+-> at com.ykb.corebanking.tellerline.receiptbatch.service.impl.ReceiptExpenseJobBaseService.getCommission(ReceiptExpenseJobBaseService.java:35)
+[INFO] 
+[ERROR] Tests run: 4, Failures: 1, Errors: 0, Skipped: 0
+[INFO] 
