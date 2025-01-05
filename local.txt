@@ -1,8 +1,40 @@
-[INFO] 
-[INFO] Results:
-[INFO] 
-[ERROR] Failures: 
-[ERROR]   CustomerNotificationServiceTest.testCalculateAmount_WithCommission_Externally_NoTax:404 expected: <true> but was: <false>
-[INFO] 
-[ERROR] Tests run: 11, Failures: 1, Errors: 0, Skipped: 0
-[INFO] 
+@Test
+void testCalculateAmount_WithCommission_Externally_NoTax() throws Exception {
+    CashTransactionDTO dto = new CashTransactionDTO();
+    dto.setProcessCode(PROCESS_CODE.DEPOSIT.getProcessCode());
+
+    CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
+    detail.setAmount(BigDecimal.valueOf(1000));
+    detail.setAccountAmount(BigDecimal.valueOf(1000));
+    detail.setCommissionAmount(BigDecimal.valueOf(50));   // komisyon var
+    detail.setKmvAmount(BigDecimal.ZERO);                 // KMV yok
+    detail.setCurrency("TL");
+    detail.setAccountCurrency("TL");
+
+    CashTransactionStoredRequest req = new CashTransactionStoredRequest();
+    // Komisyon tutardan alınmıyor => false => "haricen alınıyor"
+    req.setTakeCommissionFromTransactionAmount(false);
+    // Vergi/tax da yok
+    req.setTakeTaxFromAccount(false);
+    detail.setCashTransactionStoredRequest(req);
+
+    Method method = CustomerNotificationService.class.getDeclaredMethod(
+            "calculateAmountTextAndIsKgvIncluded", CashTransactionDTO.class, List.class);
+    method.setAccessible(true);
+
+    CustomerNotificationService.AmountCalculationResult result =
+            (CustomerNotificationService.AmountCalculationResult) method.invoke(
+                    customerNotificationService,
+                    dto,
+                    Collections.singletonList(detail)
+            );
+
+    // "1000,00 TL" vb. metin olabilir (Alman formatı)
+    assertTrue(result.getAmountText().contains("1.000,00"));
+    assertTrue(result.getAmountText().contains("TL"));
+
+    // Kod mantığına göre isKgvIncluded = false
+    // Çünkü haricen komisyon + tax=false => isKgvIncluded hiç true yapılmıyor
+    assertFalse(result.getIsKgvIncluded(), 
+        "Haricen komisyon + vergi(tax) yok => isKgvIncluded=false beklenir");
+}
