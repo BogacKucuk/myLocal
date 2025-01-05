@@ -1,573 +1,381 @@
-package com.ykb.corebanking.vault.money.deposit.withdraw.service.impl;
-
-import com.ykb.architecture.micro.error.exception.MicroException;
-import com.ykb.corebanking.vault.money.deposit.withdraw.constant.NAPConstant.PROCESS_CODE;
-import com.ykb.corebanking.vault.money.deposit.withdraw.constant.NotificationConstants;
-import com.ykb.corebanking.vault.money.deposit.withdraw.dto.*;
-import com.ykb.corebanking.vault.money.deposit.withdraw.exception.AccountException;
-import com.ykb.corebanking.vault.money.deposit.withdraw.kafka.producer.CustomerNotificationProducer;
-import com.ykb.corebanking.vault.money.deposit.withdraw.micro.clients.AccountClient;
-import com.ykb.corebanking.vault.money.deposit.withdraw.request.CashTransactionStoredRequest;
-import com.ykb.corebanking.vault.money.deposit.withdraw.response.AccountInfoResponse;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
-import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-
-import java.lang.reflect.Method;
-import java.math.BigDecimal;
-import java.util.*;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
-@ExtendWith(SpringExtension.class)
-class CustomerNotificationServiceTest {
-
-    @InjectMocks
-    CustomerNotificationService customerNotificationService;
-
-    @Mock
-    AccountClient accountClient;
-
-    @Mock
-    CustomerNotificationProducer notificationProducer;
-
-    @Captor
-    ArgumentCaptor<CustomerNotificationDTO> notificationCaptor;
-
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-    }
-
-    // ------------------------------------------------------------------------------------
-    // 1) TESTLER: sendToNotificationQueue
-    // ------------------------------------------------------------------------------------
-
-    /**
-     * WITHDRAW senaryosu -> 2 kez notification:
-     *  - Normal jobCode (TL_FXWithdrawalNotification)
-     *  - Push jobCode (TL_FXWithdrawalPushNotification)
-     */
-    @Test
-    void testSendToNotificationQueue_WithDraw_PushNotification() throws AccountException {
-        // Arrange
-        CashTransactionDTO cashTransactionDTO = new CashTransactionDTO();
-        cashTransactionDTO.setProcessCode(PROCESS_CODE.WITHDRAW.getProcessCode());
-        cashTransactionDTO.setCreateDate(new Date());
-        cashTransactionDTO.setUpdateDate(new Date());
-        cashTransactionDTO.setBranchCode("326");
-        cashTransactionDTO.setCreatedBy("tester");
-        cashTransactionDTO.setUpdatedBy("tester");
-
-        // Bir adet detail
-        CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
-        detail.setAccountNo("100200");
-        detail.setCurrency("TL");
-        detail.setAccountCurrency("TL");
-        detail.setAmount(BigDecimal.valueOf(1000));
-        // Diğer parametreler
-        detail.setAccountAmount(BigDecimal.valueOf(1000));
-        detail.setKmvAmount(BigDecimal.ZERO);
-        detail.setCommissionAmount(BigDecimal.ZERO);
-
-        // Stored request
-        ClientDTO client = new ClientDTO();
-        client.setClientNo(999L);
-        client.setClientName("JohnDoe");
-        CashTransactionStoredRequest req = new CashTransactionStoredRequest();
-        req.setClientInfo(client);
-        req.setTakeCommissionFromTransactionAmount(false);
-        req.setTakeTaxFromAccount(false);
-        detail.setCashTransactionStoredRequest(req);
-
-        List<CashTransactionDetailDTO> detailList = Collections.singletonList(detail);
-
-        // Mock balance
-        BalanceDTO balanceDTO = new BalanceDTO();
-        balanceDTO.setAvailableBalance(BigDecimal.valueOf(5000));
-        balanceDTO.setCurrentBalance(BigDecimal.valueOf(7000));
-        ResponseBalanceInfo balanceInfo = new ResponseBalanceInfo();
-        balanceInfo.setBalanceDTO(balanceDTO);
-
-        // Mock account info
-        AccountInfoResponse accountInfo = new AccountInfoResponse();
-        accountInfo.setIsFlexibleAccount(Boolean.FALSE);
-        accountInfo.setIban("TRXXXX");
-
-        when(accountClient.getBalanceInfo(eq("100200"), eq(false)))
-                .thenReturn(ResponseEntity.ok(balanceInfo));
-        when(accountClient.getAccountByAccountNoWithoutException(eq("100200")))
-                .thenReturn(ResponseEntity.ok(accountInfo));
-
-        // Act
-        customerNotificationService.sendToNotificationQueue(cashTransactionDTO, detailList);
-
-        // Assert
-        verify(notificationProducer, times(2)).sendMessageToNotificationQueue(notificationCaptor.capture());
-        List<CustomerNotificationDTO> calls = notificationCaptor.getAllValues();
-        assertEquals(2, calls.size());
-
-        // 1. Normal
-        assertEquals(NotificationConstants.PARCEK_NOTIFICATION_SHORTNAME,
-                     calls.get(0).getTransactionHeader().getJobCode(),
-                     "WITHDRAW -> normal jobCode PARCEK_NOTIFICATION_SHORTNAME beklenir");
-
-        // 2. Push
-        assertEquals(NotificationConstants.PARCEK_PUSH_SHORTNAME,
-                     calls.get(1).getTransactionHeader().getJobCode(),
-                     "WITHDRAW -> push jobCode PARCEK_PUSH_SHORTNAME beklenir");
-    }
-
-    /**
-     * DEPOSIT senaryosu -> 2 kez notification:
-     *  - Normal (TL_FXDepositNotification veya TL_FXDepositNotification2)
-     *  - Push (TL_FXDepositPushNotification)
-     */
-    @Test
-    void testSendToNotificationQueue_Deposit_PushNotification() throws AccountException {
-        // Arrange
-        CashTransactionDTO dto = new CashTransactionDTO();
-        dto.setProcessCode(PROCESS_CODE.DEPOSIT.getProcessCode());
-        dto.setCreateDate(new Date());
-        dto.setUpdateDate(new Date());
-        dto.setBranchCode("327");
-        dto.setCreatedBy("depUser");
-        dto.setUpdatedBy("depUser");
-
-        CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
-        detail.setAccountNo("987654");
-        detail.setCurrency("TL");
-        detail.setAccountCurrency("TL");
-        detail.setAmount(BigDecimal.valueOf(2000));
-        detail.setAccountAmount(BigDecimal.valueOf(2000));
-        detail.setKmvAmount(BigDecimal.ZERO);
-        detail.setCommissionAmount(BigDecimal.ZERO);
-
-        ClientDTO client = new ClientDTO();
-        client.setClientNo(1001L);
-        client.setClientName("JaneDoe");
-        CashTransactionStoredRequest req = new CashTransactionStoredRequest();
-        req.setClientInfo(client);
-        req.setTakeCommissionFromTransactionAmount(false);
-        req.setTakeTaxFromAccount(false);
-        detail.setCashTransactionStoredRequest(req);
-
-        List<CashTransactionDetailDTO> detailList = Collections.singletonList(detail);
-
-        BalanceDTO balanceDTO = new BalanceDTO();
-        balanceDTO.setAvailableBalance(BigDecimal.valueOf(6000));
-        balanceDTO.setCurrentBalance(BigDecimal.valueOf(8000));
-        ResponseBalanceInfo balanceInfo = new ResponseBalanceInfo();
-        balanceInfo.setBalanceDTO(balanceDTO);
-
-        AccountInfoResponse accountInfo = new AccountInfoResponse();
-        // Flexible => TL_FXDepositNotification2
-        accountInfo.setIsFlexibleAccount(Boolean.TRUE);
-        accountInfo.setIban("TRFLEX");
-
-        when(accountClient.getBalanceInfo(eq("987654"), eq(false)))
-                .thenReturn(ResponseEntity.ok(balanceInfo));
-        when(accountClient.getAccountByAccountNoWithoutException(eq("987654")))
-                .thenReturn(ResponseEntity.ok(accountInfo));
-
-        // Act
-        customerNotificationService.sendToNotificationQueue(dto, detailList);
-
-        // Assert
-        verify(notificationProducer, times(2)).sendMessageToNotificationQueue(notificationCaptor.capture());
-        List<CustomerNotificationDTO> calls = notificationCaptor.getAllValues();
-        assertEquals(2, calls.size());
-
-        // 1. Normal
-        assertEquals(NotificationConstants.PARYAT_NOTIFICATION_SHORTNAME2,
-                     calls.get(0).getTransactionHeader().getJobCode(),
-                     "DEPOSIT + flexible => PARYAT_NOTIFICATION_SHORTNAME2");
-
-        // 2. Push
-        assertEquals(NotificationConstants.PARYAT_PUSH_SHORTNAME,
-                     calls.get(1).getTransactionHeader().getJobCode(),
-                     "DEPOSIT push => PARYAT_PUSH_SHORTNAME");
-    }
-
-    /**
-     * Null detailList => AccountException
-     */
-    @Test
-    void testSendToNotificationQueue_NullDetailList() {
-        CashTransactionDTO dto = new CashTransactionDTO();
-        assertThrows(AccountException.class, () ->
-                customerNotificationService.sendToNotificationQueue(dto, null));
-    }
-
-    /**
-     * getBalanceInfo fail => AccountException
-     */
-    @Test
-    void testSendToNotificationQueue_BalanceInfoFails() {
-        CashTransactionDTO dto = new CashTransactionDTO();
-        dto.setProcessCode(PROCESS_CODE.WITHDRAW.getProcessCode());
-
-        CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
-        detail.setAccountNo("ACCFAIL");
-        List<CashTransactionDetailDTO> detailList = Collections.singletonList(detail);
-
-        when(accountClient.getBalanceInfo(eq("ACCFAIL"), eq(false)))
-                .thenThrow(new RuntimeException("some error"));
-
-        assertThrows(AccountException.class, () ->
-                customerNotificationService.sendToNotificationQueue(dto, detailList));
-    }
-
-    // ------------------------------------------------------------------------------------
-    // 2) TESTLER: getParameters
-    // ------------------------------------------------------------------------------------
-
-    /**
-     * AccountByAccountNoWithoutException => null body => AccountException
-     */
-    @Test
-    void testGetParameters_AccountBodyNull() {
-        CashTransactionDTO dto = new CashTransactionDTO();
-        dto.setProcessCode(PROCESS_CODE.DEPOSIT.getProcessCode());
-        dto.setCreateDate(new Date());
-        dto.setUpdateDate(new Date());
-
-        CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
-        detail.setAccountNo("ACCNULL");
-        detail.setCurrency("TL");
-        detail.setAccountCurrency("TL");
-        detail.setAmount(BigDecimal.valueOf(1000));
-
-        CashTransactionStoredRequest req = new CashTransactionStoredRequest();
-        ClientDTO client = new ClientDTO();
-        client.setClientNo(123L);
-        req.setClientInfo(client);
-        detail.setCashTransactionStoredRequest(req);
-
-        List<CashTransactionDetailDTO> detailList = Collections.singletonList(detail);
-
-        BalanceDTO balanceDTO = new BalanceDTO();
-        balanceDTO.setAvailableBalance(BigDecimal.valueOf(1000));
-        balanceDTO.setCurrentBalance(BigDecimal.valueOf(2000));
-        ResponseBalanceInfo balanceInfo = new ResponseBalanceInfo();
-        balanceInfo.setBalanceDTO(balanceDTO);
-        when(accountClient.getBalanceInfo(eq("ACCNULL"), eq(false)))
-                .thenReturn(ResponseEntity.ok(balanceInfo));
-
-        // account body null
-        when(accountClient.getAccountByAccountNoWithoutException(eq("ACCNULL")))
-                .thenReturn(ResponseEntity.ok(null));
-
-        assertThrows(AccountException.class, () ->
-                customerNotificationService.getParameters(dto, detailList));
-    }
-
-    /**
-     * Normal getParameters -> success
-     */
-    @Test
-    void testGetParameters_Success() throws AccountException {
-        CashTransactionDTO dto = new CashTransactionDTO();
-        dto.setProcessCode(PROCESS_CODE.WITHDRAW.getProcessCode());
-        dto.setCreateDate(new Date());
-        dto.setUpdateDate(new Date());
-        dto.setCreatedBy("paramTester");
-        dto.setUpdatedBy("paramTester");
-
-        CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
-        detail.setAccountNo("100200");
-        detail.setCurrency("USD");
-        detail.setAccountCurrency("USD");
-        detail.setAmount(BigDecimal.valueOf(500));
-        detail.setAccountAmount(BigDecimal.valueOf(500));
-        detail.setKmvAmount(BigDecimal.ZERO);
-        detail.setCommissionAmount(BigDecimal.ZERO);
-
-        ClientDTO client = new ClientDTO();
-        client.setClientNo(987L);
-        client.setClientName("Jack");
-        CashTransactionStoredRequest req = new CashTransactionStoredRequest();
-        req.setClientInfo(client);
-        req.setTakeCommissionFromTransactionAmount(false);
-        req.setTakeTaxFromAccount(false);
-        detail.setCashTransactionStoredRequest(req);
-
-        List<CashTransactionDetailDTO> detailList = Collections.singletonList(detail);
-
-        BalanceDTO balanceDTO = new BalanceDTO();
-        balanceDTO.setAvailableBalance(BigDecimal.valueOf(3000));
-        balanceDTO.setCurrentBalance(BigDecimal.valueOf(4000));
-        ResponseBalanceInfo balanceInfo = new ResponseBalanceInfo();
-        balanceInfo.setBalanceDTO(balanceDTO);
-
-        AccountInfoResponse accountInfo = new AccountInfoResponse();
-        accountInfo.setIsFlexibleAccount(false);
-        accountInfo.setIban("TRTEST");
-
-        when(accountClient.getBalanceInfo(eq("100200"), eq(false)))
-                .thenReturn(ResponseEntity.ok(balanceInfo));
-        when(accountClient.getAccountByAccountNoWithoutException(eq("100200")))
-                .thenReturn(ResponseEntity.ok(accountInfo));
-
-        CustomerNotificationDTO result = customerNotificationService.getParameters(dto, detailList);
-
-        assertNotNull(result);
-        assertNotNull(result.getTransactionHeader());
-        assertNotNull(result.getTransactionDetails());
-        // totalBalance parametresine "4000" yansıyacak (Alman formatta "4.000,00" vs.)
-        Optional<TransactionDetails> totalBalanceOpt = result.getTransactionDetails().stream()
-                .filter(t -> "totalBalance".equals(t.getParameterName()))
-                .findFirst();
-        assertTrue(totalBalanceOpt.isPresent());
-        assertTrue(totalBalanceOpt.get().getParameterValue().contains("4.000"));
-    }
-
-    // ------------------------------------------------------------------------------------
-    // 3) TESTLER: calculateAmountTextAndIsKgvIncluded (reflection)
-    // ------------------------------------------------------------------------------------
-    // Kod çok dallı. Aşağıda çeşitli senaryolarla coverage yükseltmeye çalışıyoruz.
-
-    /**
-     * Senaryo A:
-     *  - Komisyon = 0 => no commission
-     *  - KMV = 0, takeTaxFromAccount=false => isKgvIncluded=false
-     *  - currency == accountCurrency
-     *  - WITHDRAW
-     */
-    @Test
-    void testCalculateAmount_NoCommission_NoKmv_SameCurrency_Withdraw() throws Exception {
-        CashTransactionDTO dto = new CashTransactionDTO();
-        dto.setProcessCode(PROCESS_CODE.WITHDRAW.getProcessCode());
-
-        CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
-        detail.setAmount(BigDecimal.valueOf(1000));
-        detail.setAccountAmount(BigDecimal.valueOf(1000));
-        detail.setKmvAmount(BigDecimal.ZERO);
-        detail.setCommissionAmount(BigDecimal.ZERO);
-        detail.setCurrency("TL");
-        detail.setAccountCurrency("TL");
-
-        CashTransactionStoredRequest req = new CashTransactionStoredRequest();
-        req.setTakeCommissionFromTransactionAmount(false);
-        req.setTakeTaxFromAccount(false);
-        detail.setCashTransactionStoredRequest(req);
-
-        Method method = CustomerNotificationService.class.getDeclaredMethod(
-                "calculateAmountTextAndIsKgvIncluded",
-                CashTransactionDTO.class, List.class
-        );
-        method.setAccessible(true);
-
-        CustomerNotificationService.AmountCalculationResult result =
-                (CustomerNotificationService.AmountCalculationResult)
-                        method.invoke(customerNotificationService, dto, Collections.singletonList(detail));
-
-        assertFalse(result.getIsKgvIncluded());
-        assertTrue(result.getAmountText().contains("1.000,00"));
-        assertTrue(result.getAmountText().contains("TL"));
-    }
-
-    /**
-     * Senaryo B: KMV>0 + takeTaxFromAccount=true => isKgvIncluded=true
-     *  - No commission
-     *  - currency != accountCurrency
-     *  - processCode=DEPOSIT
-     */
-    @Test
-    void testCalculateAmount_NoCommission_KmvExists_DiffCurrency_Deposit() throws Exception {
-        CashTransactionDTO dto = new CashTransactionDTO();
-        dto.setProcessCode(PROCESS_CODE.DEPOSIT.getProcessCode());
-
-        CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
-        detail.setAmount(BigDecimal.valueOf(2000));
-        detail.setAccountAmount(BigDecimal.valueOf(3000));
-        detail.setKmvAmount(BigDecimal.valueOf(100));
-        detail.setCommissionAmount(BigDecimal.ZERO);
-        detail.setCurrency("USD");
-        detail.setAccountCurrency("EUR");
-
-        CashTransactionStoredRequest req = new CashTransactionStoredRequest();
-        req.setTakeCommissionFromTransactionAmount(false);
-        req.setTakeTaxFromAccount(true); // => isKgvIncluded = true
-        detail.setCashTransactionStoredRequest(req);
-
-        Method method = CustomerNotificationService.class.getDeclaredMethod(
-                "calculateAmountTextAndIsKgvIncluded", CashTransactionDTO.class, List.class);
-        method.setAccessible(true);
-
-        CustomerNotificationService.AmountCalculationResult result =
-                (CustomerNotificationService.AmountCalculationResult)
-                        method.invoke(customerNotificationService, dto, Collections.singletonList(detail));
-
-        assertTrue(result.getIsKgvIncluded());
-        assertNotNull(result.getAmountText());
-    }
-
-    /**
-     * Senaryo C: Komisyon > 0, haricen, same currency, no KMV => isKgvIncluded=false
-     */
-    @Test
-    void testCalculateAmount_WithCommission_ExternalCurrencySame_NoKmv() throws Exception {
-        CashTransactionDTO dto = new CashTransactionDTO();
-        dto.setProcessCode(PROCESS_CODE.DEPOSIT.getProcessCode());
-
-        CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
-        detail.setAmount(BigDecimal.valueOf(800));
-        detail.setAccountAmount(BigDecimal.valueOf(800));
-        detail.setKmvAmount(BigDecimal.ZERO);
-        detail.setCommissionAmount(BigDecimal.valueOf(50));
-        detail.setCurrency("TL");
-        detail.setAccountCurrency("TL");
-
-        CashTransactionStoredRequest req = new CashTransactionStoredRequest();
-        // haricen => false
-        req.setTakeCommissionFromTransactionAmount(false);
-        req.setTakeTaxFromAccount(false);
-        detail.setCashTransactionStoredRequest(req);
-
-        Method method = CustomerNotificationService.class.getDeclaredMethod(
-                "calculateAmountTextAndIsKgvIncluded", CashTransactionDTO.class, List.class);
-        method.setAccessible(true);
-
-        CustomerNotificationService.AmountCalculationResult result =
-                (CustomerNotificationService.AmountCalculationResult)
-                        method.invoke(customerNotificationService, dto, Collections.singletonList(detail));
-
-        assertFalse(result.getIsKgvIncluded());
-        assertTrue(result.getAmountText().contains("800,00"));
-    }
-
-    /**
-     * Senaryo D: Komisyon > 0, haricen, diff currency, KMV>0 + tax=true => isKgvIncluded=true
-     */
-    @Test
-    void testCalculateAmount_WithCommission_ExternalCurrencyDiff_KmvIncluded() throws Exception {
-        CashTransactionDTO dto = new CashTransactionDTO();
-        dto.setProcessCode(PROCESS_CODE.DEPOSIT.getProcessCode());
-
-        CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
-        detail.setAmount(BigDecimal.valueOf(800));
-        detail.setAccountAmount(BigDecimal.valueOf(1000));
-        detail.setKmvAmount(BigDecimal.valueOf(100)); 
-        detail.setCommissionAmount(BigDecimal.valueOf(50));
-        detail.setCurrency("USD");
-        detail.setAccountCurrency("EUR");
-
-        CashTransactionStoredRequest req = new CashTransactionStoredRequest();
-        // haricen => false
-        req.setTakeCommissionFromTransactionAmount(false);
-        req.setTakeTaxFromAccount(true);
-        detail.setCashTransactionStoredRequest(req);
-
-        Method method = CustomerNotificationService.class.getDeclaredMethod(
-                "calculateAmountTextAndIsKgvIncluded", CashTransactionDTO.class, List.class);
-        method.setAccessible(true);
-
-        CustomerNotificationService.AmountCalculationResult result =
-                (CustomerNotificationService.AmountCalculationResult)
-                        method.invoke(customerNotificationService, dto, Collections.singletonList(detail));
-
-        assertTrue(result.getIsKgvIncluded());
-        assertNotNull(result.getAmountText());
-    }
-
-    /**
-     * Senaryo E: Komisyon > 0, tutardan, WITHDRAW, same currency, no KMV
-     */
-    @Test
-    void testCalculateAmount_WithCommission_TakenFromAmount_Withdraw_SameCurrency_NoKmv() throws Exception {
-        CashTransactionDTO dto = new CashTransactionDTO();
-        dto.setProcessCode(PROCESS_CODE.WITHDRAW.getProcessCode());
-
-        CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
-        detail.setAmount(BigDecimal.valueOf(1000));
-        detail.setAccountAmount(BigDecimal.valueOf(900));
-        detail.setKmvAmount(BigDecimal.ZERO);
-        detail.setCommissionAmount(BigDecimal.valueOf(50));
-        detail.setCurrency("TL");
-        detail.setAccountCurrency("TL");
-
-        CashTransactionStoredRequest req = new CashTransactionStoredRequest();
-        // tutardan => true
-        req.setTakeCommissionFromTransactionAmount(true);
-        req.setTakeTaxFromAccount(false);
-        detail.setCashTransactionStoredRequest(req);
-
-        Method method = CustomerNotificationService.class.getDeclaredMethod(
-                "calculateAmountTextAndIsKgvIncluded", CashTransactionDTO.class, List.class);
-        method.setAccessible(true);
-
-        CustomerNotificationService.AmountCalculationResult result =
-                (CustomerNotificationService.AmountCalculationResult)
-                        method.invoke(customerNotificationService, dto, Collections.singletonList(detail));
-
-        assertFalse(result.getIsKgvIncluded());
-        assertNotNull(result.getAmountText());
-    }
-
-    /**
-     * Senaryo F: Komisyon > 0, tutardan, DEPOSIT, diff currency, KMV>0 => isKgvIncluded=true
-     */
-    @Test
-    void testCalculateAmount_WithCommission_TakenFromAmount_Deposit_DiffCurrency_Kmv() throws Exception {
-        CashTransactionDTO dto = new CashTransactionDTO();
-        dto.setProcessCode(PROCESS_CODE.DEPOSIT.getProcessCode());
-
-        CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
-        detail.setAmount(BigDecimal.valueOf(1500));
-        detail.setAccountAmount(BigDecimal.valueOf(1200));
-        detail.setKmvAmount(BigDecimal.valueOf(300));
-        detail.setCommissionAmount(BigDecimal.valueOf(50));
-        detail.setCurrency("USD");
-        detail.setAccountCurrency("EUR");
-
-        CashTransactionStoredRequest req = new CashTransactionStoredRequest();
-        req.setTakeCommissionFromTransactionAmount(true);
-        req.setTakeTaxFromAccount(true);
-        detail.setCashTransactionStoredRequest(req);
-
-        Method method = CustomerNotificationService.class.getDeclaredMethod(
-                "calculateAmountTextAndIsKgvIncluded", CashTransactionDTO.class, List.class);
-        method.setAccessible(true);
-
-        CustomerNotificationService.AmountCalculationResult result =
-                (CustomerNotificationService.AmountCalculationResult)
-                        method.invoke(customerNotificationService, dto, Collections.singletonList(detail));
-
-        assertTrue(result.getIsKgvIncluded());
-        assertNotNull(result.getAmountText());
-    }
-
-    // ------------------------------------------------------------------------------------
-    // 4) TESTLER: formatDate, formatCurrency (basit)
-    // ------------------------------------------------------------------------------------
-    @Test
-    void testFormatDate() throws Exception {
-        Method m = CustomerNotificationService.class
-                .getDeclaredMethod("formatDate", Date.class);
-        m.setAccessible(true);
-
-        Calendar c = Calendar.getInstance();
-        c.set(Calendar.HOUR_OF_DAY, 9);
-        c.set(Calendar.MINUTE, 15);
-
-        String output = (String) m.invoke(customerNotificationService, c.getTime());
-        // "09:15"
-        assertEquals("09:15", output);
-    }
-
-    @Test
-    void testFormatCurrency() throws Exception {
-        Method m = CustomerNotificationService.class
-                .getDeclaredMethod("formatCurrency", String.class);
-        m.setAccessible(true);
-
-        String output = (String) m.invoke(customerNotificationService, "1234.56");
-        // Alman locale -> "1.234,56" gibi
-        assertTrue(output.contains(",56"));
-    }
+bir table componentim var. "Uygun" isimli sütunda bazı kayıtlarda checkbox'ı backendten gelen dataya göre checkboxları dinamik olarak oluşturuyorum. 
+
+getDocuments fonksiyonu backende istek atıp data alıyor. gelen datada bizim senaryomuz için bbtDocuments içindeki datalar önemli. 1702 - Tüm Kimlikler, Ad Soyad, İmza, Tarih dataları için tabloda kayıt oluşturulacak. karşılarında checkboxlar olacak
+
+// backendten gelen data (bir örnek. dinamik olarak değişebilir)
+{
+    "bbtDocuments": [
+        {
+            "parameterName": "1702 - Tüm Kimlikler",
+            "description": null,
+            "key": "1702 - Tüm Kimlikler",
+            "isExist": false,
+            "documentRemoteId": 18119734,
+            "children": [
+                {
+                    "parameterName": "Ad Soyad",
+                    "description": "Belge üzerindeki ad soyadı bilgisini kontrol ediniz.",
+                    "key": "Ad Soyad",
+                    "isExist": false,
+                    "documentRemoteId": null,
+                    "children": null
+                },
+                {
+                    "parameterName": "İmza",
+                    "description": "İmza kontrolü yapınız.",
+                    "key": "İmza",
+                    "isExist": false,
+                    "documentRemoteId": null,
+                    "children": null
+                },
+                {
+                    "parameterName": "Tarih",
+                    "description": "Belge üzerindeki tarih bilgisini kontrol ediniz.",
+                    "key": "Tarih",
+                    "isExist": false,
+                    "documentRemoteId": null,
+                    "children": null
+                }
+            ]
+        }
+    ],
+    "notExistsDocs": [
+        {
+            "parameterName": "Ankes",
+            "description": "Şube ankesini kontrol ediniz ve gişe personeline bilgi veriniz.",
+            "key": "app.micro.moneydeposit_smartcontrol_ankes",
+            "isExist": false,
+            "documentRemoteId": null,
+            "children": null
+        },
+        {
+            "parameterName": "İşlem Yaptıran Kişi Kontrolü",
+            "description": "Kendisi, Talimatlı, Vekaletnameli (vekaletname içeriği) seçimini ve kimliği kontrol ediniz.",
+            "key": "app.micro.moneydeposit_smartcontrol_transactionMaker",
+            "isExist": false,
+            "documentRemoteId": null,
+            "children": null
+        },
+        {
+            "parameterName": "Müşteri Varlık Kontrolü",
+            "description": " Şubede veya şube içi kameradan müşterinin şubede olduğunu kontrol ediniz.",
+            "key": "app.micro.moneydeposit_smartcontrol_customerPresenceControl",
+            "isExist": false,
+            "documentRemoteId": null,
+            "children": null
+        }
+    ]
 }
+
+
+backendten data geldikten sonra generateTableData fonksiyonu ile tabloya dataları dolduruyor (başlıkları). eğer callApi metodu ile backend'e atılan istek başarılı işe tablodakş başlıkların altındaki datalar dolduruluyor(bbtDocuments ve notExistsDocs'un children kısmı. bizim senaryomuzda bbtDocuments kısmı önemli). datalar doldurulduktan sonra balşıkların altına kayıtar geliyor(1702 - Tüm Kimlikler, Ad Soyad, İmza, Tarih). Ad Soyad, İmza, Tarih alanları, 1702 - Tüm Kimlikler alanı altında geliyor çünkü onlar 1702 - Tüm Kimlikler kaydının children alanında. ama hepsinin bir checkbox'ı var. kayıtlar oluştururken generateCheckButtons metodunda checkboxlar dinamik olarak oluşturuyor ve propsları veriliyor.
+
+return (
+<Checkbox
+  id={record.key}
+  checked={setCheckState(record.key)}
+  onChange={toggleChecked}
+></Checkbox>
+);
+
+bu kısım bizim ilgilendiğimiz checkboxları oluşturuyor. onChange kısmındaki toggleChecked kısmı bu checkboxlar için oluşturulan state'te id'ye göre bir arama yapıp ilgili checkboxın checked alanını değiştiriyor. generateCheckboxStates fonksiyonu backendten data geldikten sonra checkboxlar için state'i oluşturuyor.
+
+[{id: "Ad Soyad", checked: false}, {id: "İmza", checked: false}] örneğin bu şekilde bir state oluşuyor. bir checkboxa tıklandığında id'sini kullanıp state'teki id ile karşılaştırıp ilgili state'i güncelliyorum fakat checkbox ön yüzde değişmiyor. tahminimce checkbox'ı yaratırkten setCheckState(record.key) fonksiyonu gerçek state'in referansını fönmüyor sadece true veya false dönüyor olabilir. bu yüzden  state'teki değer ne kadar değişirse değişsin checkbox'ın checked propu hep sabir kalıyor o yüzden değişmiyor. tabi bu benim varsayımım eğer hata başka bir şeyden kaynaklanıyorsa çözüm önerini söyle. şimdi sana kodları veriyorum. bu sorunu çözelim.
+
+
+import React, { useEffect, useState } from "react";
+import { Table, Checkbox, Typography, Icon, Button } from "ykb-ui";
+import { useShellCommunicator } from "ykb-shell";
+import { useSelector, useDispatch } from "react-redux";
+import { moneyDepositActions } from "../../store/moneyDeposit-store";
+import { ApprovalType } from "../../constants/CommonConstants";
+import { getCashApprovalType } from "../../utils/common/MoneyDepositUtils";
+import { getDocumentsApi } from "../../API/MoneyDepositAPI";
+
+const { Text } = Typography;
+
+const MoneyDepositSmartControlTable = (props) => {
+  const groupId = useSelector((state) => state.groupId);
+  const dispatch = useDispatch();
+  const notificationMode = useSelector((state) => state.notificationMode);
+  const [tableData, setTableData] = useState(null);
+  const [transactionMakerCheck, setTransactionMakerCheck] = useState(false);
+  const [customerPresenceControlCheck, setCustomerPresenceControlCheck] =
+    useState(false);
+  const [ankesCheck, setAnkesCheck] = useState(false);
+  const { openTeslaViewerWithUrl, fireModuleEvent, callApi } =
+    useShellCommunicator();
+  const [selectedRow, setSelectedRow] = useState(null);
+  const [bbtDocsChecks, setBbtDocsChecks] = useState([]);
+
+  useEffect(() => {
+    getDocuments();
+  }, [groupId]);
+
+  const columns = [
+    {
+      title: "Kontrol Adı",
+      dataIndex: "parameterName",
+      key: "parameterName",
+      render: (text, record) => generateLinks(text, record),
+    },
+    {
+      title: "Kontrol Açıklaması",
+      dataIndex: "description",
+      key: "description",
+    },
+    {
+      title: "Uygun",
+      dataIndex: "status",
+      width: "30%",
+      key: "status",
+      render: (text, record) => generateCheckButtons(text, record),
+    },
+  ];
+
+  const generateTableData = () => {
+    let data;
+    if (groupId === "") {
+      data = [
+        {
+          key: 1,
+          parameterName: "Diğer İşlem Kontrolleri",
+          description: "",
+          isHeader: true,
+          children: [],
+        },
+      ];
+    } else {
+      data = [
+        {
+          key: 1,
+          parameterName: "Belge Kontrolleri",
+          description: "",
+          isHeader: true,
+          children: [],
+        },
+        {
+          key: 2,
+          parameterName: "Diğer İşlem Kontrolleri",
+          description: "",
+          isHeader: true,
+          children: [],
+        },
+      ];
+    }
+    setTableData(data);
+    return data;
+  };
+
+  const generateLinks = (text, record) => {
+    if (record.isHeader) {
+      return <Text>{record.parameterName}</Text>;
+    } else if (!record.isExist) {
+      return <Text>{record.parameterName}</Text>;
+    } else {
+      return (
+        <Text type="secondary" underline>
+          {record.parameterName}
+          <Icon name="external-link" />
+        </Text>
+      );
+    }
+  };
+
+  function openTesla(remoteId) {
+    fireModuleEvent("wsGetDocumentUrl", {
+      documentId: remoteId,
+      documentUniqueKey: "undefined",
+      userID: props?.externalData?.shellData?.user?.userCode,
+      //environment: context.externalData.scopeData.environment,
+      callbackContext: this,
+      callbackFunction: function (documentUrl) {
+        openTeslaViewerWithUrl({
+          data: {
+            urls: [documentUrl],
+          },
+        });
+      },
+    });
+  }
+
+  const generateCheckButtons = (text, record) => {
+    if (record.isHeader) {
+      return null;
+    }
+    if (record.isExist) {
+      return <Checkbox checked={true} disabled={true}></Checkbox>;
+    } else {
+      switch (record.key) {
+        case "app.micro.moneydeposit_smartcontrol_transactionMaker":
+          return (
+            <Checkbox
+              checked={transactionMakerCheck}
+              onChange={toggleTransactionMaker}
+            ></Checkbox>
+          );
+          break;
+        case "app.micro.moneydeposit_smartcontrol_customerPresenceControl":
+          return (
+            <Checkbox
+              checked={customerPresenceControlCheck}
+              onChange={togglePresenceControl}
+            ></Checkbox>
+          );
+          break;
+        case "app.micro.moneydeposit_smartcontrol_ankes":
+          return (
+            <Checkbox checked={ankesCheck} onChange={toggleAnkes}></Checkbox>
+          );
+          break;
+      }
+      // üstteki switch case özel checkboxlar için o kısmı görmezden gelebilirsin. özel checkboxlar için özel state ve toggle metotları mevcut.
+      // aşağıda backendten gelen dataya göre checkboxlar oluşturuluyor.
+      return (
+        <Checkbox
+          id={record.key}
+          checked={setCheckState(record.key)}
+          onChange={toggleChecked}
+        ></Checkbox>
+      );
+    }
+  };
+
+  // dinamik oluşturulan checkboxlar için toggle metodu. burada state'i güncelleyince checkbox'ın da güncellenmesini bekliyorum.
+  const toggleChecked = (e) => {
+    const id = e.target.id;
+    const updatedChecks = bbtDocsChecks.map((item) => {
+      if (item.id === id) {
+        return { ...item, checked: !item.checked };
+      }
+      return item;
+    });
+    setBbtDocsChecks(updatedChecks);
+    //setCheckState(e.target.id);
+  };
+
+  // burada backendten data geldikten sonra checkoxlar için ilk oluşturulurken state setleniyor.
+  // başka bir metotla dene forEach olabilir. burada state'teki objenin referansı gitmediği için çalışmıyor olabilir. yada tekrar render edildiği için olabilir?
+  const setCheckState = (id) => {
+    bbtDocsChecks.forEach((item) => {
+      if (item.id === id) {
+        return item.checked;
+      }
+    });
+  };
+
+  const toggleTransactionMaker = () => {
+    setTransactionMakerCheck(!transactionMakerCheck);
+  };
+
+  const togglePresenceControl = () => {
+    setCustomerPresenceControlCheck(!customerPresenceControlCheck);
+  };
+
+  const toggleAnkes = () => {
+    setAnkesCheck(!ankesCheck);
+  };
+
+  useEffect(() => {
+    dispatch(moneyDepositActions.setAnkesCheck(ankesCheck));
+  }, [ankesCheck]);
+
+  useEffect(() => {
+    dispatch(
+      moneyDepositActions.setCustomerPresenceControlCheck(
+        customerPresenceControlCheck
+      )
+    );
+  }, [customerPresenceControlCheck]);
+
+  useEffect(() => {
+    dispatch(
+      moneyDepositActions.setTransactionMakerCheck(transactionMakerCheck)
+    );
+  }, [transactionMakerCheck]);
+
+  // oluşturulan state'i konsolda görmek için bir butonun onClick fonksiyonuna atadım. test amaçlı
+  const showCheckState = () => {
+    console.log(bbtDocsChecks);
+  };
+
+  // burada checkboxlar için state oluşturuluyor. [{id: "checkbox1", checked: false}, {id: "checkbox2", checked: false}] şeklinde bir object array
+  // children varsa onlar içinde checkbox oluşturulacağı için metot kendi içinde tekrar çağırılıyor.
+  const generateCheckboxStates = (data) => {
+    const response = bbtDocsChecks;
+    data.map((doc) => {
+      const check = {
+        id: doc?.key,
+        checked: false,
+      };
+      response.push(check);
+      if (doc.children) {
+        generateCheckboxStates(doc.children);
+      }
+    });
+    return response;
+  };
+
+  const getDocuments = async () => {
+    if (groupId === null || groupId === undefined) {
+      return;
+    }
+    const data = generateTableData();
+    const documentRequest = {
+      parameterName: "moneydeposit_smartcontrol",
+      groupId: groupId,
+      //processCode: "PARYATVISION" // eklenecek
+    };
+    dispatch(moneyDepositActions.setLoading(true));
+    await callApi(getDocumentsApi(documentRequest))
+      .then((response) => {
+        // set checkbox states
+        setBbtDocsChecks(generateCheckboxStates(response?.bbtDocuments));
+
+        if (groupId === "") {
+          data[0].children = response.notExistsDocs;
+        } else {
+          data[0].children = response.bbtDocuments;
+          data[1].children = response.notExistsDocs;
+        }
+        setTableData(data);
+        dispatch(moneyDepositActions.setLoading(false));
+      })
+      .catch((ex) => {
+        dispatch(moneyDepositActions.setLoading(false));
+      });
+  };
+
+  const onRowSelected = (_, selectedRow) => {
+    setSelectedRow(selectedRow[0]);
+    if (selectedRow[0]?.documentRemoteId) {
+      openTesla(selectedRow[0].documentRemoteId);
+    }
+  };
+
+  const onRowClicked = (record) => {
+    onRowSelected([record.key], [record]);
+  };
+
+  return (
+    getCashApprovalType(notificationMode) === ApprovalType.LIMIT && (
+      <>
+        <Table
+          columns={columns}
+          data={tableData}
+          expandable={{ defaultExpandAllRows: true }}
+          onRow={(record) => {
+            return {
+              onClick: (event) => {
+                onRowClicked(record);
+              },
+            };
+          }}
+        />
+        <Button onClick={showCheckState}>Show state</Button>
+      </>
+    )
+  );
+};
+
+export default MoneyDepositSmartControlTable;
