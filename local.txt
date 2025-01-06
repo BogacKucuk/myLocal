@@ -31,7 +31,9 @@ class SmartControlServiceTest {
     @Mock
     BbtBranchOpsWorkflowClient bbtBranchOpsWorkflowClient;
 
-
+    /**
+     * Senaryo: BBT dokümanları bulunamadığında SmartControlException fırlatılmalı.
+     */
     @Test
     void getSmartControlDocuments_ShouldThrowException_WhenBBTDocsNotFound() throws SmartControlException {
         // Arrange
@@ -39,13 +41,12 @@ class SmartControlServiceTest {
         request.setGroupId("123");
         request.setParameterName("testParameter");
 
-        RequestBranchOperationControlResult bbtRequest = new RequestBranchOperationControlResult();
-        bbtRequest.setGroupId(Long.valueOf(request.getGroupId()));
+        // BBT tarafındaki mock dönüşü
+        ResultBBTListDocumentControlResultDTO bbtResponse = new ResultBBTListDocumentControlResultDTO();
+        bbtResponse.setData(Collections.emptyList()); // Dokümanların boş dönmesi
 
-        ResultBBTListBranchOperationDetailDto bbtResponse = new ResultBBTListBranchOperationDetailDto();
-        bbtResponse.setData(Collections.emptyList());
-
-        when(bbtBranchOpsWorkflowClient.listBranchOperation(any(RequestBranchOperationControlResult.class)))
+        when(bbtBranchOpsWorkflowClient.getBBTBranchOperationControlResults(
+                any(RequestBranchOperationControlResult.class)))
                 .thenReturn(bbtResponse);
 
         // Act & Assert
@@ -56,6 +57,9 @@ class SmartControlServiceTest {
         assertEquals("BBT dokümanları bulunamadı.", exception.getMessage());
     }
 
+    /**
+     * Senaryo: SmartControlClient null dönerse SmartControlException fırlatılmalı.
+     */
     @Test
     void getSmartControlDocuments_ShouldThrowException_WhenClientResponseIsNull() throws SmartControlException {
         // Arrange
@@ -63,13 +67,13 @@ class SmartControlServiceTest {
         request.setGroupId("123");
         request.setParameterName("testParameter");
 
-        // Mock BBT client response
+        // BBT mock (örnek olması için "createMockBBTResponse" methodu kullanıyoruz)
         ResultBBTListDocumentControlResultDTO bbtResponse = createMockBBTResponse();
-
-        when(bbtBranchOpsWorkflowClient.getBBTBranchOperationControlResults(any(RequestBranchOperationControlResult.class)))
+        when(bbtBranchOpsWorkflowClient.getBBTBranchOperationControlResults(
+                any(RequestBranchOperationControlResult.class)))
                 .thenReturn(bbtResponse);
 
-        // Mock SmartControl client response as null
+        // SmartControlClient mock olarak null response
         when(smartControlClient.getSmartControlDocuments(any(RequestSmartControlDocuments.class)))
                 .thenReturn(null);
 
@@ -81,6 +85,10 @@ class SmartControlServiceTest {
         assertEquals("Gerekli dokümanlar bulunamadı.", exception.getMessage());
     }
 
+    /**
+     * Senaryo: Hem BBT dokümanları hem de SmartControl dönen değerler geçerli ise,
+     * SmartControlService doğru şekilde veriyi dönmeli.
+     */
     @Test
     void getSmartControlDocuments_ShouldReturnData_WhenAllDataIsValid() throws SmartControlException {
         // Arrange
@@ -88,19 +96,19 @@ class SmartControlServiceTest {
         request.setGroupId("123");
         request.setParameterName("smart");
 
-        // Mock BBT client response
+        // BBT client yanıtı
         ResultBBTListDocumentControlResultDTO bbtResponse = createMockBBTResponse();
-        when(bbtBranchOpsWorkflowClient.getBBTBranchOperationControlResults(any(RequestBranchOperationControlResult.class)))
+        when(bbtBranchOpsWorkflowClient.getBBTBranchOperationControlResults(
+                any(RequestBranchOperationControlResult.class)))
                 .thenReturn(bbtResponse);
 
-        // Mock SmartControl client response
+        // SmartControl client yanıtı
         CashTrxnParameterDTO cashTrxnParameterDTO = new CashTrxnParameterDTO();
         cashTrxnParameterDTO.setParameterName("paramKey");
         cashTrxnParameterDTO.setValue("paramValue;paramDescription");
 
-        ResponseEntity<List<CashTrxnParameterDTO>> clientResponse = ResponseEntity.ok(
-                Arrays.asList(cashTrxnParameterDTO)
-        );
+        ResponseEntity<List<CashTrxnParameterDTO>> clientResponse =
+                ResponseEntity.ok(List.of(cashTrxnParameterDTO));
 
         when(smartControlClient.getSmartControlDocuments(any(RequestSmartControlDocuments.class)))
                 .thenReturn(clientResponse);
@@ -115,26 +123,31 @@ class SmartControlServiceTest {
         assertFalse(result.getBbtDocuments().isEmpty());
         assertFalse(result.getNotExistsDocs().isEmpty());
 
-        // Verify BBT Documents
+        // BBT Documents doğrulama
         SmartControlDocumentDTO bbtDoc = result.getBbtDocuments().get(0);
         assertEquals("Vekaletname", bbtDoc.getParameterName());
         assertEquals("Sistemde Mevcut", bbtDoc.getDescription());
         assertTrue(bbtDoc.getIsExist());
 
-        // Verify Not Exists Documents
+        // Not Exists Documents doğrulama
         SmartControlDocumentDTO notExistDoc = result.getNotExistsDocs().get(0);
         assertEquals("paramValue", notExistDoc.getParameterName());
         assertEquals("paramDescription", notExistDoc.getDescription());
         assertFalse(notExistDoc.getIsExist());
     }
 
+    /**
+     * BBT tarafında mock veri oluşturmak için helper method.
+     */
     private ResultBBTListDocumentControlResultDTO createMockBBTResponse() {
         ResultBBTListDocumentControlResultDTO bbtResponse = new ResultBBTListDocumentControlResultDTO();
         bbtResponse.setSuccess(Boolean.TRUE);
         bbtResponse.setMessage("Message");
         DocumentControlResultDTO documentControlResultDTO = new DocumentControlResultDTO();
-        bbtResponse.setData(Arrays.asList(documentControlResultDTO));
-
+        // Örnek bir doküman ismi veriyoruz:
+        documentControlResultDTO.setDocumentName("Vekaletname");
+        // success / data alanlarına ekleniyor
+        bbtResponse.setData(Collections.singletonList(documentControlResultDTO));
         return bbtResponse;
     }
 }
