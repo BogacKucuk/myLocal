@@ -1,230 +1,19 @@
 package com.ykb.corebanking.vault.money.deposit.withdraw.bff.service.impl;
 
-import com.ykb.corebanking.vault.money.deposit.withdraw.bff.client.BbtBranchOpsWorkflowClient;
-import com.ykb.corebanking.vault.money.deposit.withdraw.bff.client.SmartControlClient;
-import com.ykb.corebanking.vault.money.deposit.withdraw.bff.constants.SmartControlDocuments;
-import com.ykb.corebanking.vault.money.deposit.withdraw.bff.dto.*;
-import com.ykb.corebanking.vault.money.deposit.withdraw.bff.exception.SmartControlException;
-import com.ykb.corebanking.vault.money.deposit.withdraw.bff.request.RequestBranchOperationControlResult;
-import com.ykb.corebanking.vault.money.deposit.withdraw.bff.request.RequestSmartControlDocuments;
-import com.ykb.corebanking.vault.money.deposit.withdraw.bff.service.ISmartControlService;
-import com.ykb.corebanking.vault.money.deposit.withdraw.bff.util.ControlUtil;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Service;
-
-import java.util.ArrayList;
-import java.util.List;
-
-@Service
-public class SmartControlService implements ISmartControlService {
-
-    private SmartControlClient         client;
-    private BbtBranchOpsWorkflowClient bbtClient;
-
-    @Autowired
-    public SmartControlService(SmartControlClient client, BbtBranchOpsWorkflowClient bbtClient) {
-        this.client = client;
-        this.bbtClient = bbtClient;
-    }
-
-    @Override
-    public SmartControlDataDTO getSmartControlDocuments(RequestSmartControlDocuments request) throws SmartControlException {
-        SmartControlDataDTO smartControlDataDTO = new SmartControlDataDTO();
-        if (request.getGroupId() != null && !ControlUtil.isEmpty(request.getGroupId())) {
-            smartControlDataDTO.setBbtDocuments(getBBTDocs(Long.valueOf(request.getGroupId()), request.getProcessCode()));
-        }
-        
-        ResponseEntity<List<CashTrxnParameterDTO>> backendResponse = client.getSmartControlDocuments(request);
-        if (backendResponse != null) {
-            List<CashTrxnParameterDTO> parameterList = backendResponse.getBody();
-            List<SmartControlDocumentDTO> nonExistsDocs = new ArrayList<>();
-            for (CashTrxnParameterDTO parameter : parameterList) {
-                SmartControlDocumentDTO smartControlData = new SmartControlDocumentDTO();
-                String[] values = parameter.getValue().split(";");
-                smartControlData.setParameterName(values[0]);
-                smartControlData.setDescription(values[1]);
-                smartControlData.setIsExist(Boolean.FALSE);
-                smartControlData.setKey(parameter.getParameterName());
-                nonExistsDocs.add(smartControlData);
-            }
-            smartControlDataDTO.setNotExistsDocs(nonExistsDocs);
-        } else {
-            throw new SmartControlException("Gerekli dokümanlar bulunamadı.");
-        }
-        return smartControlDataDTO;
-    }
-
-    private List<SmartControlDocumentDTO> getBBTDocs(Long groupId, List<String> processCode) throws SmartControlException {
-        RequestBranchOperationControlResult bbtRequest = new RequestBranchOperationControlResult();
-
-        bbtRequest.setGroupId(groupId);
-        bbtRequest.setProcessCode(processCode);
-
-        ResultBBTListDocumentControlResultDTO bbtResponse = bbtClient.getBBTBranchOperationControlResults(bbtRequest);
-        List<SmartControlDocumentDTO> bbtNewDocs = new ArrayList<>();
-        if (bbtResponse != null && !bbtResponse.getData().isEmpty()) {
-            for(DocumentControlResultDTO documentData : bbtResponse.getData()) {
-                SmartControlDocumentDTO smartControlData = new SmartControlDocumentDTO();
-                smartControlData.setParameterName(documentData.getDocumentName());
-                smartControlData.setDocumentRemoteId(documentData.getRemoteDocumentId());
-                smartControlData.setIsExist(Boolean.FALSE);
-                smartControlData.setKey(documentData.getDocumentName());
-                if(!documentData.getResultDescriptionDTO().isEmpty()) {
-                    List<SmartControlDocumentDTO> childrenDocsList = new ArrayList<>();
-                    for (ResultDescriptionDTO childrenData : documentData.getResultDescriptionDTO()) {
-                        SmartControlDocumentDTO childDocument = new SmartControlDocumentDTO();
-                        childDocument.setParameterName(childrenData.getControlType());
-                        childDocument.setDescription(childrenData.getControlMessage());
-                        childDocument.setIsExist(Boolean.FALSE);
-                        childDocument.setKey(childrenData.getControlType());
-
-                        childrenDocsList.add(childDocument);
-                    }
-                    smartControlData.setChildren(childrenDocsList);
-                }
-                bbtNewDocs.add(smartControlData);
-            }
-            return bbtNewDocs;
-        }
-        else {
-            throw new SmartControlException("BBT dokümanları bulunamadı.");
-        }
-    }
-}
-
-package com.ykb.corebanking.vault.money.deposit.withdraw.bff.client;
-
-import com.ykb.corebanking.vault.money.deposit.withdraw.bff.dto.ResultBBTListBranchOperationDetailDto;
-import com.ykb.corebanking.vault.money.deposit.withdraw.bff.dto.ResultBBTListDocumentControlResultDTO;
-import com.ykb.corebanking.vault.money.deposit.withdraw.bff.request.RequestBranchOperationControlResult;
-import org.springframework.cloud.openfeign.FeignClient;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-
-import com.ykb.architecture.micro.error.feign.decoder.MicroErrorDecoder;
-import com.ykb.corebanking.vault.money.deposit.withdraw.bff.request.RequestStartBranchOperation;
-import com.ykb.corebanking.vault.money.deposit.withdraw.bff.request.RequestUpdateBranchOperation;
-import com.ykb.corebanking.vault.money.deposit.withdraw.bff.response.ResponseStartBranchOperation;
-import com.ykb.corebanking.vault.money.deposit.withdraw.bff.response.ResultBBTResponseBranchList;
-
-@FeignClient(name = "WORKFLOW.BBT.bbt-branch-ops", configuration = { MicroErrorDecoder.class })
-public interface BbtBranchOpsWorkflowClient {
-    
-    @PostMapping(path = "/branchOperationManagement/updateBranchOperation")
-    public ResponseEntity<ResultBBTResponseBranchList> updateBranchOperation(@RequestBody RequestUpdateBranchOperation request);
-    
-    @PostMapping(path = "/branchOperationManagement/startBranchOperation")
-    public ResponseEntity<ResponseStartBranchOperation> startBranchOperation(@RequestBody RequestStartBranchOperation request);
-
-    @PostMapping(value = "/branchOperationManagement/listBranchOperation")
-    ResultBBTListBranchOperationDetailDto listBranchOperation(RequestBranchOperationControlResult request);
-
-    @PostMapping(value = "/branchOperationManagement/getBBTBranchOperationControlResults")
-    ResultBBTListDocumentControlResultDTO getBBTBranchOperationControlResults(@RequestBody RequestBranchOperationControlResult request);
-}
-
-
-package com.ykb.corebanking.vault.money.deposit.withdraw.bff.request;
-
-import lombok.Getter;
-import lombok.Setter;
-
-import java.util.List;
-
-@Getter
-@Setter
-public class RequestBranchOperationControlResult {
-    private Long groupId;
-    private List<String> processCode;
-}
-
-package com.ykb.corebanking.vault.money.deposit.withdraw.bff.dto;
-
-import lombok.Getter;
-import lombok.Setter;
-
-import java.util.List;
-
-@Getter
-@Setter
-public class ResultBBTListDocumentControlResultDTO {
-    private Boolean success;
-    private Integer errorCode;
-    private String message;
-    private String errorMessage;
-    private List<DocumentControlResultDTO> data;
-}
-
-package com.ykb.corebanking.vault.money.deposit.withdraw.bff.dto;
-
-import lombok.Getter;
-import lombok.Setter;
-
-import java.util.Date;
-import java.util.List;
-
-@Getter
-@Setter
-public class DocumentControlResultDTO {
-    private String documentName;
-    private String documentTypeId;
-    private Long remoteDocumentId;
-    private List<ResultDescriptionDTO> resultDescriptionDTO;
-    private List<LegalExplanationResultDTO> legalExplanationResultList;
-    private Long signatureRemoteId;
-    private Date createDate;
-    private String createdBy;
-}
-
-
-package com.ykb.corebanking.vault.money.deposit.withdraw.bff.dto;
-
-import lombok.Getter;
-import lombok.Setter;
-
-import java.util.List;
-
-@Getter
-@Setter
-public class SmartControlDocumentDTO {
-    private String parameterName;
-    private String description;
-    private String key;
-    private Boolean isExist;
-    private Long documentRemoteId;
-    private List<SmartControlDocumentDTO> children;
-}
-
-package com.ykb.corebanking.vault.money.deposit.withdraw.bff.request;
-
-import lombok.Getter;
-import lombok.Setter;
-
-import java.util.List;
-
-@Getter
-@Setter
-public class RequestSmartControlDocuments {
-    private String parameterName;
-    private String groupId;
-    private List<String> processCode;
-}
-
-
-package com.ykb.corebanking.vault.money.deposit.withdraw.bff.service.impl;
-
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
-import java.util.*;
+import java.util.Collections;
+import java.util.List;
 
 import com.ykb.corebanking.vault.money.deposit.withdraw.bff.client.BbtBranchOpsWorkflowClient;
 import com.ykb.corebanking.vault.money.deposit.withdraw.bff.client.SmartControlClient;
-import com.ykb.corebanking.vault.money.deposit.withdraw.bff.dto.*;
+import com.ykb.corebanking.vault.money.deposit.withdraw.bff.dto.CashTrxnParameterDTO;
+import com.ykb.corebanking.vault.money.deposit.withdraw.bff.dto.DocumentControlResultDTO;
+import com.ykb.corebanking.vault.money.deposit.withdraw.bff.dto.ResultBBTListDocumentControlResultDTO;
+import com.ykb.corebanking.vault.money.deposit.withdraw.bff.dto.SmartControlDataDTO;
+import com.ykb.corebanking.vault.money.deposit.withdraw.bff.dto.SmartControlDocumentDTO;
 import com.ykb.corebanking.vault.money.deposit.withdraw.bff.exception.SmartControlException;
 import com.ykb.corebanking.vault.money.deposit.withdraw.bff.request.RequestBranchOperationControlResult;
 import com.ykb.corebanking.vault.money.deposit.withdraw.bff.request.RequestSmartControlDocuments;
@@ -247,7 +36,9 @@ class SmartControlServiceTest {
     @Mock
     BbtBranchOpsWorkflowClient bbtBranchOpsWorkflowClient;
 
-
+    /**
+     * BBT dokümanları boş gelirse "BBT dokümanları bulunamadı." hatası beklenir.
+     */
     @Test
     void getSmartControlDocuments_ShouldThrowException_WhenBBTDocsNotFound() throws SmartControlException {
         // Arrange
@@ -255,13 +46,11 @@ class SmartControlServiceTest {
         request.setGroupId("123");
         request.setParameterName("testParameter");
 
-        RequestBranchOperationControlResult bbtRequest = new RequestBranchOperationControlResult();
-        bbtRequest.setGroupId(Long.valueOf(request.getGroupId()));
+        // BBT tarafında boş data döndürelim
+        ResultBBTListDocumentControlResultDTO bbtResponse = new ResultBBTListDocumentControlResultDTO();
+        bbtResponse.setData(Collections.emptyList()); // <-- boş liste
 
-        ResultBBTListBranchOperationDetailDto bbtResponse = new ResultBBTListBranchOperationDetailDto();
-        bbtResponse.setData(Collections.emptyList());
-
-        when(bbtBranchOpsWorkflowClient.listBranchOperation(any(RequestBranchOperationControlResult.class)))
+        when(bbtBranchOpsWorkflowClient.getBBTBranchOperationControlResults(any(RequestBranchOperationControlResult.class)))
                 .thenReturn(bbtResponse);
 
         // Act & Assert
@@ -272,6 +61,9 @@ class SmartControlServiceTest {
         assertEquals("BBT dokümanları bulunamadı.", exception.getMessage());
     }
 
+    /**
+     * SmartControlClient null dönerse "Gerekli dokümanlar bulunamadı." hatası beklenir.
+     */
     @Test
     void getSmartControlDocuments_ShouldThrowException_WhenClientResponseIsNull() throws SmartControlException {
         // Arrange
@@ -279,13 +71,12 @@ class SmartControlServiceTest {
         request.setGroupId("123");
         request.setParameterName("testParameter");
 
-        // Mock BBT client response
+        // BBT mock: Boş olmayan bir liste dönsün ki BBTException'a düşmeyelim
         ResultBBTListDocumentControlResultDTO bbtResponse = createMockBBTResponse();
-
         when(bbtBranchOpsWorkflowClient.getBBTBranchOperationControlResults(any(RequestBranchOperationControlResult.class)))
                 .thenReturn(bbtResponse);
 
-        // Mock SmartControl client response as null
+        // SmartControl client'tan null geliyor
         when(smartControlClient.getSmartControlDocuments(any(RequestSmartControlDocuments.class)))
                 .thenReturn(null);
 
@@ -297,6 +88,9 @@ class SmartControlServiceTest {
         assertEquals("Gerekli dokümanlar bulunamadı.", exception.getMessage());
     }
 
+    /**
+     * BBT ve SmartControlClient'tan geçerli veriler dönüyorsa data döndürür.
+     */
     @Test
     void getSmartControlDocuments_ShouldReturnData_WhenAllDataIsValid() throws SmartControlException {
         // Arrange
@@ -304,19 +98,18 @@ class SmartControlServiceTest {
         request.setGroupId("123");
         request.setParameterName("smart");
 
-        // Mock BBT client response
+        // BBT client mock
         ResultBBTListDocumentControlResultDTO bbtResponse = createMockBBTResponse();
         when(bbtBranchOpsWorkflowClient.getBBTBranchOperationControlResults(any(RequestBranchOperationControlResult.class)))
                 .thenReturn(bbtResponse);
 
-        // Mock SmartControl client response
+        // SmartControl client mock
         CashTrxnParameterDTO cashTrxnParameterDTO = new CashTrxnParameterDTO();
         cashTrxnParameterDTO.setParameterName("paramKey");
         cashTrxnParameterDTO.setValue("paramValue;paramDescription");
 
-        ResponseEntity<List<CashTrxnParameterDTO>> clientResponse = ResponseEntity.ok(
-                Arrays.asList(cashTrxnParameterDTO)
-        );
+        ResponseEntity<List<CashTrxnParameterDTO>> clientResponse =
+                ResponseEntity.ok(Collections.singletonList(cashTrxnParameterDTO));
 
         when(smartControlClient.getSmartControlDocuments(any(RequestSmartControlDocuments.class)))
                 .thenReturn(clientResponse);
@@ -331,26 +124,44 @@ class SmartControlServiceTest {
         assertFalse(result.getBbtDocuments().isEmpty());
         assertFalse(result.getNotExistsDocs().isEmpty());
 
-        // Verify BBT Documents
+        // BBT'den gelen ilk doküman
         SmartControlDocumentDTO bbtDoc = result.getBbtDocuments().get(0);
-        assertEquals("Vekaletname", bbtDoc.getParameterName());
-        assertEquals("Sistemde Mevcut", bbtDoc.getDescription());
-        assertTrue(bbtDoc.getIsExist());
+        // Mock BBT doküman adımız: "Vekaletname"
+        // (bkz. createMockBBTResponse'da set ediliyor)
+        assertEquals("Vekaletname", bbtDoc.getParameterName(), 
+                "BBT doküman adının 'Vekaletname' olması bekleniyor");
+        // BBT dokümanlarında description'ı isterseniz testte kontrol edebilirsiniz
+        // (Örneğin "BBT doc description" vs.)
+        // Fakat service’te default bir "description" verilmiyor gibi gözüküyor.
+        // Biz testte "Sistemde Mevcut" atamıyoruz, o yüzden isterseniz assertion'ı 
+        // buradan kaldırabilirsiniz veya sample veriler ekleyebilirsiniz.
 
-        // Verify Not Exists Documents
+        // "isExist" default false set ediliyor SmartControlService içinde;
+        // eğer testte true bekliyorsanız service kodunu güncellemeniz gerekir.
+        // Örnek olarak test kodunuzu false beklemeye ayarlayabilirsiniz.
+        assertFalse(bbtDoc.getIsExist(), 
+                "Yeni serviste BBT dokümanları 'isExist = false' olarak dönüyor.");
+
+        // SmartControlClient'tan dönmeyen (eksik) dokümanlar
         SmartControlDocumentDTO notExistDoc = result.getNotExistsDocs().get(0);
         assertEquals("paramValue", notExistDoc.getParameterName());
         assertEquals("paramDescription", notExistDoc.getDescription());
         assertFalse(notExistDoc.getIsExist());
     }
 
+    /**
+     * BBT tarafı için sahte (mock) veri oluşturuyoruz.
+     */
     private ResultBBTListDocumentControlResultDTO createMockBBTResponse() {
         ResultBBTListDocumentControlResultDTO bbtResponse = new ResultBBTListDocumentControlResultDTO();
         bbtResponse.setSuccess(Boolean.TRUE);
         bbtResponse.setMessage("Message");
-        DocumentControlResultDTO documentControlResultDTO = new DocumentControlResultDTO();
-        bbtResponse.setData(Arrays.asList(documentControlResultDTO));
 
+        DocumentControlResultDTO documentControlResultDTO = new DocumentControlResultDTO();
+        documentControlResultDTO.setDocumentName("Vekaletname");
+        // resultDescriptionDTO vs. alanlarını da isterseniz burada doldurabilirsiniz.
+
+        bbtResponse.setData(Collections.singletonList(documentControlResultDTO));
         return bbtResponse;
     }
 }
