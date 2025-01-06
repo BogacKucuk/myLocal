@@ -1,32 +1,140 @@
-// Yeni versiyon
-const generateCheckboxStates = (response) => {
-  // İçerisine ekleyeceğimiz tüm checkboxları tutacak dizi
-  const checks = [];
+package com.ykb.corebanking.vault.money.deposit.withdraw.bff.service.impl;
 
-  // Ortak bir fonksiyon yazarak recursive şekilde çocukları da ekleyelim
-  const addDocsToChecks = (docs) => {
-    docs.forEach((doc) => {
-      // Her doküman için bir checkbox kaydı
-      checks.push({
-        id: doc.key,
-        checked: false,
-      });
-      // Children varsa onları da ekle (recursive)
-      if (doc.children && doc.children.length > 0) {
-        addDocsToChecks(doc.children);
-      }
-    });
-  };
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.when;
 
-  // bbtDocuments varsa, checks dizisine ekle
-  if (response?.bbtDocuments?.length) {
-    addDocsToChecks(response.bbtDocuments);
-  }
+import java.util.*;
 
-  // notExistsDocs varsa, checks dizisine ekle
-  if (response?.notExistsDocs?.length) {
-    addDocsToChecks(response.notExistsDocs);
-  }
+import com.ykb.corebanking.vault.money.deposit.withdraw.bff.client.BbtBranchOpsWorkflowClient;
+import com.ykb.corebanking.vault.money.deposit.withdraw.bff.client.SmartControlClient;
+import com.ykb.corebanking.vault.money.deposit.withdraw.bff.dto.*;
+import com.ykb.corebanking.vault.money.deposit.withdraw.bff.exception.SmartControlException;
+import com.ykb.corebanking.vault.money.deposit.withdraw.bff.request.RequestBranchOperationControlResult;
+import com.ykb.corebanking.vault.money.deposit.withdraw.bff.request.RequestSmartControlDocuments;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-  return checks;
-};
+@ExtendWith(SpringExtension.class)
+class SmartControlServiceTest {
+
+    @InjectMocks
+    SmartControlService smartControlService;
+
+    @Mock
+    SmartControlClient smartControlClient;
+
+    @Mock
+    BbtBranchOpsWorkflowClient bbtBranchOpsWorkflowClient;
+
+
+    @Test
+    void getSmartControlDocuments_ShouldThrowException_WhenBBTDocsNotFound() throws SmartControlException {
+        // Arrange
+        RequestSmartControlDocuments request = new RequestSmartControlDocuments();
+        request.setGroupId("123");
+        request.setParameterName("testParameter");
+
+        RequestBranchOperationControlResult bbtRequest = new RequestBranchOperationControlResult();
+        bbtRequest.setGroupId(Long.valueOf(request.getGroupId()));
+
+        ResultBBTListBranchOperationDetailDto bbtResponse = new ResultBBTListBranchOperationDetailDto();
+        bbtResponse.setData(Collections.emptyList());
+
+        when(bbtBranchOpsWorkflowClient.listBranchOperation(any(RequestBranchOperationControlResult.class)))
+                .thenReturn(bbtResponse);
+
+        // Act & Assert
+        SmartControlException exception = assertThrows(SmartControlException.class, () -> {
+            smartControlService.getSmartControlDocuments(request);
+        });
+
+        assertEquals("BBT dokümanları bulunamadı.", exception.getMessage());
+    }
+
+    @Test
+    void getSmartControlDocuments_ShouldThrowException_WhenClientResponseIsNull() throws SmartControlException {
+        // Arrange
+        RequestSmartControlDocuments request = new RequestSmartControlDocuments();
+        request.setGroupId("123");
+        request.setParameterName("testParameter");
+
+        // Mock BBT client response
+        ResultBBTListDocumentControlResultDTO bbtResponse = createMockBBTResponse();
+
+        when(bbtBranchOpsWorkflowClient.getBBTBranchOperationControlResults(any(RequestBranchOperationControlResult.class)))
+                .thenReturn(bbtResponse);
+
+        // Mock SmartControl client response as null
+        when(smartControlClient.getSmartControlDocuments(any(RequestSmartControlDocuments.class)))
+                .thenReturn(null);
+
+        // Act & Assert
+        SmartControlException exception = assertThrows(SmartControlException.class, () -> {
+            smartControlService.getSmartControlDocuments(request);
+        });
+
+        assertEquals("Gerekli dokümanlar bulunamadı.", exception.getMessage());
+    }
+
+    @Test
+    void getSmartControlDocuments_ShouldReturnData_WhenAllDataIsValid() throws SmartControlException {
+        // Arrange
+        RequestSmartControlDocuments request = new RequestSmartControlDocuments();
+        request.setGroupId("123");
+        request.setParameterName("smart");
+
+        // Mock BBT client response
+        ResultBBTListDocumentControlResultDTO bbtResponse = createMockBBTResponse();
+        when(bbtBranchOpsWorkflowClient.getBBTBranchOperationControlResults(any(RequestBranchOperationControlResult.class)))
+                .thenReturn(bbtResponse);
+
+        // Mock SmartControl client response
+        CashTrxnParameterDTO cashTrxnParameterDTO = new CashTrxnParameterDTO();
+        cashTrxnParameterDTO.setParameterName("paramKey");
+        cashTrxnParameterDTO.setValue("paramValue;paramDescription");
+
+        ResponseEntity<List<CashTrxnParameterDTO>> clientResponse = ResponseEntity.ok(
+                Arrays.asList(cashTrxnParameterDTO)
+        );
+
+        when(smartControlClient.getSmartControlDocuments(any(RequestSmartControlDocuments.class)))
+                .thenReturn(clientResponse);
+
+        // Act
+        SmartControlDataDTO result = smartControlService.getSmartControlDocuments(request);
+
+        // Assert
+        assertNotNull(result);
+        assertNotNull(result.getBbtDocuments());
+        assertNotNull(result.getNotExistsDocs());
+        assertFalse(result.getBbtDocuments().isEmpty());
+        assertFalse(result.getNotExistsDocs().isEmpty());
+
+        // Verify BBT Documents
+        SmartControlDocumentDTO bbtDoc = result.getBbtDocuments().get(0);
+        assertEquals("Vekaletname", bbtDoc.getParameterName());
+        assertEquals("Sistemde Mevcut", bbtDoc.getDescription());
+        assertTrue(bbtDoc.getIsExist());
+
+        // Verify Not Exists Documents
+        SmartControlDocumentDTO notExistDoc = result.getNotExistsDocs().get(0);
+        assertEquals("paramValue", notExistDoc.getParameterName());
+        assertEquals("paramDescription", notExistDoc.getDescription());
+        assertFalse(notExistDoc.getIsExist());
+    }
+
+    private ResultBBTListDocumentControlResultDTO createMockBBTResponse() {
+        ResultBBTListDocumentControlResultDTO bbtResponse = new ResultBBTListDocumentControlResultDTO();
+        bbtResponse.setSuccess(Boolean.TRUE);
+        bbtResponse.setMessage("Message");
+        DocumentControlResultDTO documentControlResultDTO = new DocumentControlResultDTO();
+        bbtResponse.setData(Arrays.asList(documentControlResultDTO));
+
+        return bbtResponse;
+    }
+}
