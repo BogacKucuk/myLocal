@@ -1,381 +1,532 @@
-bir table componentim var. "Uygun" isimli sütunda bazı kayıtlarda checkbox'ı backendten gelen dataya göre checkboxları dinamik olarak oluşturuyorum. 
+package com.ykb.corebanking.commission.batch.base;
 
-getDocuments fonksiyonu backende istek atıp data alıyor. gelen datada bizim senaryomuz için bbtDocuments içindeki datalar önemli. 1702 - Tüm Kimlikler, Ad Soyad, İmza, Tarih dataları için tabloda kayıt oluşturulacak. karşılarında checkboxlar olacak
+public class ApplicationArguments {
 
-// backendten gelen data (bir örnek. dinamik olarak değişebilir)
-{
-    "bbtDocuments": [
-        {
-            "parameterName": "1702 - Tüm Kimlikler",
-            "description": null,
-            "key": "1702 - Tüm Kimlikler",
-            "isExist": false,
-            "documentRemoteId": 18119734,
-            "children": [
-                {
-                    "parameterName": "Ad Soyad",
-                    "description": "Belge üzerindeki ad soyadı bilgisini kontrol ediniz.",
-                    "key": "Ad Soyad",
-                    "isExist": false,
-                    "documentRemoteId": null,
-                    "children": null
-                },
-                {
-                    "parameterName": "İmza",
-                    "description": "İmza kontrolü yapınız.",
-                    "key": "İmza",
-                    "isExist": false,
-                    "documentRemoteId": null,
-                    "children": null
-                },
-                {
-                    "parameterName": "Tarih",
-                    "description": "Belge üzerindeki tarih bilgisini kontrol ediniz.",
-                    "key": "Tarih",
-                    "isExist": false,
-                    "documentRemoteId": null,
-                    "children": null
-                }
-            ]
-        }
-    ],
-    "notExistsDocs": [
-        {
-            "parameterName": "Ankes",
-            "description": "Şube ankesini kontrol ediniz ve gişe personeline bilgi veriniz.",
-            "key": "app.micro.moneydeposit_smartcontrol_ankes",
-            "isExist": false,
-            "documentRemoteId": null,
-            "children": null
-        },
-        {
-            "parameterName": "İşlem Yaptıran Kişi Kontrolü",
-            "description": "Kendisi, Talimatlı, Vekaletnameli (vekaletname içeriği) seçimini ve kimliği kontrol ediniz.",
-            "key": "app.micro.moneydeposit_smartcontrol_transactionMaker",
-            "isExist": false,
-            "documentRemoteId": null,
-            "children": null
-        },
-        {
-            "parameterName": "Müşteri Varlık Kontrolü",
-            "description": " Şubede veya şube içi kameradan müşterinin şubede olduğunu kontrol ediniz.",
-            "key": "app.micro.moneydeposit_smartcontrol_customerPresenceControl",
-            "isExist": false,
-            "documentRemoteId": null,
-            "children": null
-        }
-    ]
+    private static String[] arguments;
+
+    ApplicationArguments() {
+
+    }
+    public static String[] getArguments() {
+        return arguments;
+    }
+
+    public static void setArguments(String[] arguments) {
+        ApplicationArguments.arguments = arguments;
+    }
+
 }
 
+package com.ykb.corebanking.commission.batch.base;
 
-backendten data geldikten sonra generateTableData fonksiyonu ile tabloya dataları dolduruyor (başlıkları). eğer callApi metodu ile backend'e atılan istek başarılı işe tablodakş başlıkların altındaki datalar dolduruluyor(bbtDocuments ve notExistsDocs'un children kısmı. bizim senaryomuzda bbtDocuments kısmı önemli). datalar doldurulduktan sonra balşıkların altına kayıtar geliyor(1702 - Tüm Kimlikler, Ad Soyad, İmza, Tarih). Ad Soyad, İmza, Tarih alanları, 1702 - Tüm Kimlikler alanı altında geliyor çünkü onlar 1702 - Tüm Kimlikler kaydının children alanında. ama hepsinin bir checkbox'ı var. kayıtlar oluştururken generateCheckButtons metodunda checkboxlar dinamik olarak oluşturuyor ve propsları veriliyor.
+public class BatchConstants {
 
-return (
-<Checkbox
-  id={record.key}
-  checked={setCheckState(record.key)}
-  onChange={toggleChecked}
-></Checkbox>
-);
+    BatchConstants() {
 
-bu kısım bizim ilgilendiğimiz checkboxları oluşturuyor. onChange kısmındaki toggleChecked kısmı bu checkboxlar için oluşturulan state'te id'ye göre bir arama yapıp ilgili checkboxın checked alanını değiştiriyor. generateCheckboxStates fonksiyonu backendten data geldikten sonra checkboxlar için state'i oluşturuyor.
-
-[{id: "Ad Soyad", checked: false}, {id: "İmza", checked: false}] örneğin bu şekilde bir state oluşuyor. bir checkboxa tıklandığında id'sini kullanıp state'teki id ile karşılaştırıp ilgili state'i güncelliyorum fakat checkbox ön yüzde değişmiyor. tahminimce checkbox'ı yaratırkten setCheckState(record.key) fonksiyonu gerçek state'in referansını fönmüyor sadece true veya false dönüyor olabilir. bu yüzden  state'teki değer ne kadar değişirse değişsin checkbox'ın checked propu hep sabir kalıyor o yüzden değişmiyor. tabi bu benim varsayımım eğer hata başka bir şeyden kaynaklanıyorsa çözüm önerini söyle. şimdi sana kodları veriyorum. bu sorunu çözelim.
-
-
-import React, { useEffect, useState } from "react";
-import { Table, Checkbox, Typography, Icon, Button } from "ykb-ui";
-import { useShellCommunicator } from "ykb-shell";
-import { useSelector, useDispatch } from "react-redux";
-import { moneyDepositActions } from "../../store/moneyDeposit-store";
-import { ApprovalType } from "../../constants/CommonConstants";
-import { getCashApprovalType } from "../../utils/common/MoneyDepositUtils";
-import { getDocumentsApi } from "../../API/MoneyDepositAPI";
-
-const { Text } = Typography;
-
-const MoneyDepositSmartControlTable = (props) => {
-  const groupId = useSelector((state) => state.groupId);
-  const dispatch = useDispatch();
-  const notificationMode = useSelector((state) => state.notificationMode);
-  const [tableData, setTableData] = useState(null);
-  const [transactionMakerCheck, setTransactionMakerCheck] = useState(false);
-  const [customerPresenceControlCheck, setCustomerPresenceControlCheck] =
-    useState(false);
-  const [ankesCheck, setAnkesCheck] = useState(false);
-  const { openTeslaViewerWithUrl, fireModuleEvent, callApi } =
-    useShellCommunicator();
-  const [selectedRow, setSelectedRow] = useState(null);
-  const [bbtDocsChecks, setBbtDocsChecks] = useState([]);
-
-  useEffect(() => {
-    getDocuments();
-  }, [groupId]);
-
-  const columns = [
-    {
-      title: "Kontrol Adı",
-      dataIndex: "parameterName",
-      key: "parameterName",
-      render: (text, record) => generateLinks(text, record),
-    },
-    {
-      title: "Kontrol Açıklaması",
-      dataIndex: "description",
-      key: "description",
-    },
-    {
-      title: "Uygun",
-      dataIndex: "status",
-      width: "30%",
-      key: "status",
-      render: (text, record) => generateCheckButtons(text, record),
-    },
-  ];
-
-  const generateTableData = () => {
-    let data;
-    if (groupId === "") {
-      data = [
-        {
-          key: 1,
-          parameterName: "Diğer İşlem Kontrolleri",
-          description: "",
-          isHeader: true,
-          children: [],
-        },
-      ];
-    } else {
-      data = [
-        {
-          key: 1,
-          parameterName: "Belge Kontrolleri",
-          description: "",
-          isHeader: true,
-          children: [],
-        },
-        {
-          key: 2,
-          parameterName: "Diğer İşlem Kontrolleri",
-          description: "",
-          isHeader: true,
-          children: [],
-        },
-      ];
     }
-    setTableData(data);
-    return data;
-  };
 
-  const generateLinks = (text, record) => {
-    if (record.isHeader) {
-      return <Text>{record.parameterName}</Text>;
-    } else if (!record.isExist) {
-      return <Text>{record.parameterName}</Text>;
-    } else {
-      return (
-        <Text type="secondary" underline>
-          {record.parameterName}
-          <Icon name="external-link" />
-        </Text>
-      );
+    public static final String JOB_PRM_KEY_VALUE_SEPARATOR = "=";
+
+}
+
+package com.ykb.corebanking.commission.batch.base;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.util.Assert;
+
+@Getter
+@Setter
+@AllArgsConstructor
+public class Tuple<T, K> {
+
+    private final T first;
+    private final K second;
+
+    public static Tuple<String, String> build(String[] items) {
+        Assert.notNull(items, "'items' can not be null");
+        Assert.isTrue(items.length == 2, "'items' must have 2 items in in");
+        return new Tuple<>(items[0], items[1]);
     }
-  };
 
-  function openTesla(remoteId) {
-    fireModuleEvent("wsGetDocumentUrl", {
-      documentId: remoteId,
-      documentUniqueKey: "undefined",
-      userID: props?.externalData?.shellData?.user?.userCode,
-      //environment: context.externalData.scopeData.environment,
-      callbackContext: this,
-      callbackFunction: function (documentUrl) {
-        openTeslaViewerWithUrl({
-          data: {
-            urls: [documentUrl],
-          },
+}
+
+package com.ykb.corebanking.commission.batch.configuration;
+
+import com.ykb.corebanking.commission.batch.common.CommonJobExecutionListener;
+import com.ykb.corebanking.commission.batch.common.CommonStepExecutionListener;
+import com.ykb.corebanking.commission.batch.common.ItemFailureLoggerListener;
+import com.ykb.corebanking.commission.batch.common.MdcTaskDecorator;
+import com.ykb.corebanking.commission.infrastructure.configuration.AccountingChainedTransactionManager;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.JobExecutionListener;
+import org.springframework.batch.core.job.builder.JobBuilder;
+import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.batch.core.step.builder.StepBuilder;
+import org.springframework.batch.repeat.support.TaskExecutorRepeatTemplate;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.transaction.PlatformTransactionManager;
+
+import javax.sql.DataSource;
+
+@Slf4j
+public class BaseJobConfiguration implements InitializingBean {
+
+    @Getter
+    private DataSource dataSource;
+
+    @Getter
+    private CommonJobExecutionListener commonJobExecutionListener;
+
+    @Autowired
+    private JobRepository jobRepository;
+
+    @Autowired
+    public void setDataSource(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+
+    @Autowired
+    @Qualifier("chainedTransactionManager")
+    public AccountingChainedTransactionManager chainedTransactionManager;
+
+    @Autowired
+    @Qualifier("transactionManager")
+    public PlatformTransactionManager commissionTransactionManager;
+
+    @Autowired
+    @Qualifier("cbsliveTransactionManager")
+    public PlatformTransactionManager cbsliveTransactionManager;
+
+    @Bean
+    @Primary
+    public ThreadPoolTaskExecutor processorTaskExecutor() {
+        ThreadPoolTaskExecutor asyncTaskExecutorProcess = new ThreadPoolTaskExecutor();
+        asyncTaskExecutorProcess.setTaskDecorator(new MdcTaskDecorator());
+        return asyncTaskExecutorProcess;
+    }
+
+    public TaskExecutorRepeatTemplate repeatTemplate(ThreadPoolTaskExecutor threadPoolTaskExecutor, int throttleLimit){
+        TaskExecutorRepeatTemplate repeatTemplate = new TaskExecutorRepeatTemplate();
+        repeatTemplate.setTaskExecutor(threadPoolTaskExecutor);
+        repeatTemplate.setThrottleLimit(throttleLimit); // NOSONAR
+        return repeatTemplate;
+    }
+
+    protected JobBuilder getCommonJobBuilderGenericListener(String jobName, JobExecutionListener commonJobExecutionListener) {
+        return new JobBuilder(jobName, jobRepository)
+                .listener(commonJobExecutionListener);
+    }
+
+    protected JobBuilder getCommonJobBuilder(String jobName) {
+        return new JobBuilder(jobName, jobRepository)
+                .listener(commonJobExecutionListener);
+    }
+
+    protected StepBuilder getCommonStepBuilder(String stepName) {
+        return new StepBuilder(stepName, jobRepository)
+                .listener(new ItemFailureLoggerListener<>())
+                .listener(new CommonStepExecutionListener());
+    }
+
+    @Override
+    public void afterPropertiesSet() {
+        log.info("{} is initialized", getClass().getSimpleName());
+    }
+
+    @Autowired
+    public void setCommonJobExecutionListener(CommonJobExecutionListener commonJobExecutionListener) {
+        this.commonJobExecutionListener = commonJobExecutionListener;
+    }
+
+}
+
+package com.ykb.corebanking.commission.batch.configuration;
+
+import com.ykb.corebanking.commission.batch.common.CommonJobExecutionListener;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.integration.config.EnableIntegration;
+
+@Configuration
+@EnableIntegration
+public class GeneralBatchConfiguration {
+    
+    @Bean
+    public CommonJobExecutionListener commonJobExecutionListener() {
+        return new CommonJobExecutionListener();
+    }
+
+}
+
+package com.ykb.corebanking.commission.batch.configuration;
+
+import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
+import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType;
+
+import javax.sql.DataSource;
+
+@Configuration
+@EnableBatchProcessing(dataSourceRef = "jobRepoDatasource")
+public class SpringBatchConfiguration {
+
+    @Bean
+    public DataSource jobRepoDatasource() {
+        return new EmbeddedDatabaseBuilder()
+                .setType(EmbeddedDatabaseType.H2)
+                .setName("job-metadata-db")
+                .addScript("classpath:org/springframework/batch/core/schema-drop-h2.sql")
+                .addScript("classpath:org/springframework/batch/core/schema-h2.sql")
+                .build();
+    }
+}
+
+package com.ykb.corebanking.commission.batch.util;
+
+import com.ykb.corebanking.commission.batch.base.BatchConstants;
+import com.ykb.corebanking.commission.batch.base.Tuple;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Properties;
+
+@Slf4j
+public class BatchUtil {
+
+    private BatchUtil() { }
+
+    public static Properties parseJobParameters(String[] args) {
+        List<String> jobParameters = Arrays.asList(args);
+        Properties props = new Properties();
+        jobParameters.forEach(prm -> {
+            log.info("Prm to extract: {}", prm);
+            Tuple<String, String> keyValue = Tuple
+                    .build(prm.split(BatchConstants.JOB_PRM_KEY_VALUE_SEPARATOR));
+            log.info("Provided job parameter to be passed, Key:Value => {} : {}",
+                    keyValue.getFirst(),
+                    keyValue.getSecond());
+            props.setProperty(keyValue.getFirst(), keyValue.getSecond());
         });
-      },
-    });
-  }
-
-  const generateCheckButtons = (text, record) => {
-    if (record.isHeader) {
-      return null;
+        return props;
     }
-    if (record.isExist) {
-      return <Checkbox checked={true} disabled={true}></Checkbox>;
-    } else {
-      switch (record.key) {
-        case "app.micro.moneydeposit_smartcontrol_transactionMaker":
-          return (
-            <Checkbox
-              checked={transactionMakerCheck}
-              onChange={toggleTransactionMaker}
-            ></Checkbox>
-          );
-          break;
-        case "app.micro.moneydeposit_smartcontrol_customerPresenceControl":
-          return (
-            <Checkbox
-              checked={customerPresenceControlCheck}
-              onChange={togglePresenceControl}
-            ></Checkbox>
-          );
-          break;
-        case "app.micro.moneydeposit_smartcontrol_ankes":
-          return (
-            <Checkbox checked={ankesCheck} onChange={toggleAnkes}></Checkbox>
-          );
-          break;
-      }
-      // üstteki switch case özel checkboxlar için o kısmı görmezden gelebilirsin. özel checkboxlar için özel state ve toggle metotları mevcut.
-      // aşağıda backendten gelen dataya göre checkboxlar oluşturuluyor.
-      return (
-        <Checkbox
-          id={record.key}
-          checked={setCheckState(record.key)}
-          onChange={toggleChecked}
-        ></Checkbox>
-      );
+
+}
+
+package com.ykb.corebanking.commission.batch.common;
+
+import freemarker.cache.ClassTemplateLoader;
+import freemarker.cache.FileTemplateLoader;
+import freemarker.cache.TemplateLoader;
+import freemarker.core.Environment;
+import freemarker.template.Configuration;
+import freemarker.template.DefaultObjectWrapper;
+import freemarker.template.Template;
+import freemarker.template.TemplateException;
+import org.apache.commons.lang3.exception.ExceptionUtils;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+
+import java.io.IOException;
+import java.io.Writer;
+
+public class TemplateWriter {
+
+    private final Template template;
+    private final Writer writer;
+
+    public TemplateWriter(Resource templateResource, Writer writer) throws IOException {
+        this(templateResource,writer,"utf-8");
     }
-  };
 
-  // dinamik oluşturulan checkboxlar için toggle metodu. burada state'i güncelleyince checkbox'ın da güncellenmesini bekliyorum.
-  const toggleChecked = (e) => {
-    const id = e.target.id;
-    const updatedChecks = bbtDocsChecks.map((item) => {
-      if (item.id === id) {
-        return { ...item, checked: !item.checked };
-      }
-      return item;
-    });
-    setBbtDocsChecks(updatedChecks);
-    //setCheckState(e.target.id);
-  };
+    public TemplateWriter(Resource templateResource, Writer writer, String defaultEncoding) throws IOException {
+        this.writer = writer;
 
-  // burada backendten data geldikten sonra checkoxlar için ilk oluşturulurken state setleniyor.
-  // başka bir metotla dene forEach olabilir. burada state'teki objenin referansı gitmediği için çalışmıyor olabilir. yada tekrar render edildiği için olabilir?
-  const setCheckState = (id) => {
-    bbtDocsChecks.forEach((item) => {
-      if (item.id === id) {
-        return item.checked;
-      }
-    });
-  };
-
-  const toggleTransactionMaker = () => {
-    setTransactionMakerCheck(!transactionMakerCheck);
-  };
-
-  const togglePresenceControl = () => {
-    setCustomerPresenceControlCheck(!customerPresenceControlCheck);
-  };
-
-  const toggleAnkes = () => {
-    setAnkesCheck(!ankesCheck);
-  };
-
-  useEffect(() => {
-    dispatch(moneyDepositActions.setAnkesCheck(ankesCheck));
-  }, [ankesCheck]);
-
-  useEffect(() => {
-    dispatch(
-      moneyDepositActions.setCustomerPresenceControlCheck(
-        customerPresenceControlCheck
-      )
-    );
-  }, [customerPresenceControlCheck]);
-
-  useEffect(() => {
-    dispatch(
-      moneyDepositActions.setTransactionMakerCheck(transactionMakerCheck)
-    );
-  }, [transactionMakerCheck]);
-
-  // oluşturulan state'i konsolda görmek için bir butonun onClick fonksiyonuna atadım. test amaçlı
-  const showCheckState = () => {
-    console.log(bbtDocsChecks);
-  };
-
-  // burada checkboxlar için state oluşturuluyor. [{id: "checkbox1", checked: false}, {id: "checkbox2", checked: false}] şeklinde bir object array
-  // children varsa onlar içinde checkbox oluşturulacağı için metot kendi içinde tekrar çağırılıyor.
-  const generateCheckboxStates = (data) => {
-    const response = bbtDocsChecks;
-    data.map((doc) => {
-      const check = {
-        id: doc?.key,
-        checked: false,
-      };
-      response.push(check);
-      if (doc.children) {
-        generateCheckboxStates(doc.children);
-      }
-    });
-    return response;
-  };
-
-  const getDocuments = async () => {
-    if (groupId === null || groupId === undefined) {
-      return;
+        final Configuration configuration = new Configuration(Configuration.VERSION_2_3_27);
+        configuration.setTemplateLoader(getTemplateLoader(templateResource));
+        configuration.setObjectWrapper(new DefaultObjectWrapper(Configuration.VERSION_2_3_27));
+        configuration.setDefaultEncoding(defaultEncoding);
+        this.template = configuration.getTemplate(templateResource.getFilename());
     }
-    const data = generateTableData();
-    const documentRequest = {
-      parameterName: "moneydeposit_smartcontrol",
-      groupId: groupId,
-      //processCode: "PARYATVISION" // eklenecek
-    };
-    dispatch(moneyDepositActions.setLoading(true));
-    await callApi(getDocumentsApi(documentRequest))
-      .then((response) => {
-        // set checkbox states
-        setBbtDocsChecks(generateCheckboxStates(response?.bbtDocuments));
 
-        if (groupId === "") {
-          data[0].children = response.notExistsDocs;
-        } else {
-          data[0].children = response.bbtDocuments;
-          data[1].children = response.notExistsDocs;
+    public void process(Object data) {
+        final Environment environment;
+        try {
+            environment = template.createProcessingEnvironment(data, writer);
+            environment.process();
+        } catch (TemplateException | IOException e) {
+            ExceptionUtils.rethrow(e);
         }
-        setTableData(data);
-        dispatch(moneyDepositActions.setLoading(false));
-      })
-      .catch((ex) => {
-        dispatch(moneyDepositActions.setLoading(false));
-      });
-  };
 
-  const onRowSelected = (_, selectedRow) => {
-    setSelectedRow(selectedRow[0]);
-    if (selectedRow[0]?.documentRemoteId) {
-      openTesla(selectedRow[0].documentRemoteId);
     }
-  };
 
-  const onRowClicked = (record) => {
-    onRowSelected([record.key], [record]);
-  };
+    private TemplateLoader getTemplateLoader(Resource resource) throws IOException {
+        if (resource instanceof ClassPathResource classPathResource) {
+            return new ClassTemplateLoader(classPathResource.getClassLoader(), "/templates");
+        } else if (resource instanceof FileSystemResource fileSystemResource) {
+            return new FileTemplateLoader(fileSystemResource.getFile());
+        } else {
+            throw new IllegalArgumentException("Resource can be FileSystemResource or ClassPathResource");
+        }
+    }
 
-  return (
-    getCashApprovalType(notificationMode) === ApprovalType.LIMIT && (
-      <>
-        <Table
-          columns={columns}
-          data={tableData}
-          expandable={{ defaultExpandAllRows: true }}
-          onRow={(record) => {
-            return {
-              onClick: (event) => {
-                onRowClicked(record);
-              },
-            };
-          }}
-        />
-        <Button onClick={showCheckState}>Show state</Button>
-      </>
-    )
-  );
-};
+}
 
-export default MoneyDepositSmartControlTable;
+package com.ykb.corebanking.commission.batch.common;
+
+import org.slf4j.MDC;
+import org.springframework.core.task.TaskDecorator;
+
+import java.util.Map;
+
+public class MdcTaskDecorator implements TaskDecorator {
+
+    @Override
+    public Runnable decorate(Runnable runnable) {
+        final Map<String, String> contextMap = MDC.getCopyOfContextMap();
+        return () -> {
+            try {
+                if (contextMap != null) {
+                    MDC.setContextMap(contextMap);
+                }
+                runnable.run();
+            } finally {
+                MDC.clear();
+            }
+        };
+    }
+
+}
+
+package com.ykb.corebanking.commission.batch.common;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.listener.ItemListenerSupport;
+import org.springframework.batch.item.Chunk;
+
+@Slf4j
+public class ItemFailureLoggerListener<I, R> extends ItemListenerSupport<I, R> {
+
+    @Override
+    public void onReadError(Exception ex) {
+        log.error("Encountered error on read", ex);
+    }
+
+    @Override
+    public void onWriteError(Exception ex, Chunk<? extends R> item) {
+        log.error("Encountered error on write", ex);
+        if (log.isDebugEnabled()) {
+            log.debug("Failed list: {}", item);
+        }
+    }
+
+}
+
+package com.ykb.corebanking.commission.batch.common;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.ExitStatus;
+import org.springframework.batch.core.StepExecution;
+import org.springframework.batch.core.StepExecutionListener;
+
+
+@Slf4j
+public class CommonStepExecutionListener implements StepExecutionListener {
+
+    @Override
+    public ExitStatus afterStep(StepExecution stepExecution) {
+        log.info("Step {} completed at {} with status: {}", stepExecution.getStepName(), stepExecution.getEndTime(), stepExecution.getStatus());
+        return stepExecution.getExitStatus();
+    }
+
+    @Override
+    public void beforeStep(StepExecution stepExecution) {
+        log.info("Step {} is started at {}", stepExecution.getStepName(), stepExecution.getStartTime());
+    }
+
+}
+
+package com.ykb.corebanking.commission.batch.common;
+
+import com.ykb.corebanking.commission.batch.common.statistic.JobStatistics;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.core.io.ClassPathResource;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Map;
+
+
+@Slf4j
+public class CommonJobExecutionStatistics {
+
+    public static CommonJobExecutionStatistics getInstance() {
+        return new CommonJobExecutionStatistics();
+    }
+
+    public void beforeJob(JobExecution jobExecution) {
+        log.info("Job {} is started at {}", jobExecution.getJobInstance().getJobName(), jobExecution.getStartTime());
+    }
+
+    public void afterJob(JobExecution jobExecution) {
+        JobStatistics stats = new JobStatistics(jobExecution);
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        try (PrintWriter pw = new PrintWriter(bos)) {
+            ClassPathResource templateResource = new ClassPathResource("templates/JobStats.ftl");
+            TemplateWriter tw = new TemplateWriter(templateResource, pw);
+            tw.process(Map.of("stats", stats));
+            log.info(new String(bos.toByteArray()));
+        } catch (IOException e) {
+            log.info("Stats: {}", stats);
+        }
+        log.info("Job {} is finished at {} with status={}",
+                jobExecution.getJobInstance().getJobName(), jobExecution.getEndTime(), jobExecution.getStatus());
+    }
+
+}
+
+package com.ykb.corebanking.commission.batch.common;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobExecutionListener;
+
+
+@Slf4j
+public class CommonJobExecutionListener implements JobExecutionListener {
+
+    @Override
+    public void beforeJob(JobExecution jobExecution) {
+        CommonJobExecutionStatistics.getInstance().beforeJob(jobExecution);
+    }
+
+    @Override
+    public void afterJob(JobExecution jobExecution) {
+        CommonJobExecutionStatistics.getInstance().afterJob(jobExecution);
+    }
+
+}
+
+package com.ykb.corebanking.commission.batch.common.statistic;
+
+import lombok.Getter;
+import org.springframework.batch.core.JobExecution;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+@Getter
+public class JobStatistics {
+
+    static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+
+    private String jobName;
+    private String id;
+    private String version;
+    private List<JobStatsParameter> parameters;
+    private String status;
+    private String startTime;
+    private String endTime;
+    private String exitStatus;
+    private String failureExceptions;
+    private List<StepStatistics> steps;
+
+    public JobStatistics(JobExecution jobExecution) {
+        this.jobName = jobExecution.getJobInstance().getJobName();
+        this.id = jobExecution.getJobInstance().getId().toString();
+        this.version = jobExecution.getJobInstance().getVersion().toString();
+        this.status = jobExecution.getStatus().toString();
+        this.startTime = Optional.ofNullable(jobExecution.getStartTime()).orElse(LocalDateTime.MIN).format(DATE_TIME_FORMATTER);
+        this.endTime = Optional.ofNullable(jobExecution.getEndTime()).orElse(LocalDateTime.MIN).format(DATE_TIME_FORMATTER);
+        this.exitStatus = jobExecution.getExitStatus().toString();
+        this.failureExceptions = printStackTrace(jobExecution.getFailureExceptions());
+        this.parameters = new ArrayList<>();
+        jobExecution.getJobParameters().getParameters().forEach((k, v) -> parameters.add(new JobStatsParameter(k,
+                v.getValue().toString())));
+        this.steps = new ArrayList<>();
+        jobExecution.getStepExecutions().forEach(se -> steps.add(new StepStatistics(se)));
+    }
+
+    static String printStackTrace(List<Throwable> exceptions) {
+        try (ByteArrayOutputStream os = new ByteArrayOutputStream();
+             PrintWriter pw = new PrintWriter(os)) {
+            exceptions.forEach(e -> e.printStackTrace(pw));
+            return new String(os.toByteArray());
+        } catch (IOException e) {
+            return "";
+        }
+    }
+}
+
+package com.ykb.corebanking.commission.batch.common.statistic;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@Getter
+@AllArgsConstructor
+public class JobStatsParameter {
+	private String key;
+	private String value;
+}
+package com.ykb.corebanking.commission.batch.common.statistic;
+
+import lombok.Getter;
+import org.springframework.batch.core.StepExecution;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
+
+@Getter
+public class StepStatistics {
+    private String name;
+    private String id;
+    private String version;
+    private String readCount;
+    private String writeCount;
+    private String commitCount;
+    private String rollbackCount;
+    private String readSkipCount;
+    private String processSkipCount;
+    private String writeSkipCount;
+    private String startTime;
+    private String endTime;
+    private String exitStatus;
+    private String failureExceptions;
+
+    StepStatistics(StepExecution execution) {
+        this.name = execution.getStepName();
+        this.id = execution.getId().toString();
+        this.version = execution.getVersion().toString();
+        this.readCount = String.valueOf(execution.getReadCount());
+        this.writeCount = String.valueOf(execution.getWriteCount());
+        this.commitCount = String.valueOf(execution.getCommitCount());
+        this.rollbackCount = String.valueOf(execution.getRollbackCount());
+        this.readSkipCount = String.valueOf(execution.getReadSkipCount());
+        this.processSkipCount = String.valueOf(execution.getProcessSkipCount());
+        this.writeSkipCount = String.valueOf(execution.getWriteSkipCount());
+        this.startTime = Optional.ofNullable(execution.getStartTime()).orElse(LocalDateTime.MIN).format(JobStatistics.DATE_TIME_FORMATTER);
+        this.endTime = Optional.ofNullable(execution.getEndTime()).orElse(LocalDateTime.MIN).format(JobStatistics.DATE_TIME_FORMATTER);
+        this.exitStatus = execution.getExitStatus().toString();
+        this.failureExceptions = JobStatistics.printStackTrace(execution.getFailureExceptions());
+    }
+}
