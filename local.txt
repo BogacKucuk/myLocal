@@ -1,540 +1,83 @@
-package com.ykb.corebanking.vault.money.deposit.withdraw.service.impl;
-
-import com.ykb.architecture.micro.error.exception.MicroException;
-import com.ykb.corebanking.vault.money.deposit.withdraw.constant.NAPConstant.PROCESS_CODE;
-import com.ykb.corebanking.vault.money.deposit.withdraw.constant.NotificationConstants;
-import com.ykb.corebanking.vault.money.deposit.withdraw.dto.*;
-import com.ykb.corebanking.vault.money.deposit.withdraw.exception.AccountException;
-import com.ykb.corebanking.vault.money.deposit.withdraw.kafka.producer.CustomerNotificationProducer;
-import com.ykb.corebanking.vault.money.deposit.withdraw.micro.clients.AccountClient;
-import com.ykb.corebanking.vault.money.deposit.withdraw.request.CashTransactionStoredRequest;
-import com.ykb.corebanking.vault.money.deposit.withdraw.response.AccountInfoResponse;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.*;
-import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-
-import java.lang.reflect.Method;
-import java.math.BigDecimal;
-import java.util.*;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.Mockito.*;
-
-/**
- * Amaç: CustomerNotificationService sınıfının hemen hemen tüm dallarını test ederek
- * coverage değerini %80+ seviyeye çıkarmak.
- */
-@ExtendWith(SpringExtension.class)
-class CustomerNotificationServiceTest {
-
-    @InjectMocks
-    private CustomerNotificationService customerNotificationService;
-
-    @Mock
-    private AccountClient accountClient;
-
-    @Mock
-    private CustomerNotificationProducer notificationProducer;
-
-    @Captor
-    private ArgumentCaptor<CustomerNotificationDTO> notificationCaptor;
-
-    @BeforeEach
-    void setUp() {
-        MockitoAnnotations.openMocks(this);
-    }
-
-    // -------------------------------------------------------------
-    // 1) sendToNotificationQueue testleri
-    // -------------------------------------------------------------
-    
-    @Test
-    void testSendToNotificationQueue_WithDraw_PushNotification() throws AccountException {
-        CashTransactionDTO dto = new CashTransactionDTO();
-        dto.setProcessCode(PROCESS_CODE.WITHDRAW.getProcessCode());
-        dto.setCreateDate(new Date());
-        dto.setUpdateDate(new Date());
-        dto.setBranchCode("326");
-        dto.setCreatedBy("tester");
-        dto.setUpdatedBy("tester");
-
-        // Bir detail
-        CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
-        detail.setAccountNo("100200");
-        detail.setCurrency("TL");
-        detail.setAccountCurrency("TL");
-        detail.setAmount(BigDecimal.valueOf(1000));
-        detail.setAccountAmount(BigDecimal.valueOf(1000));
-        detail.setKmvAmount(BigDecimal.ZERO);
-        detail.setCommissionAmount(BigDecimal.ZERO);
-
-        ClientDTO client = new ClientDTO();
-        client.setClientNo(999L);
-        client.setClientName("JohnDoe");
-        CashTransactionStoredRequest req = new CashTransactionStoredRequest();
-        req.setClientInfo(client);
-        req.setTakeCommissionFromTransactionAmount(false);
-        req.setTakeTaxFromAccount(false);
-        detail.setCashTransactionStoredRequest(req);
-
-        List<CashTransactionDetailDTO> details = Collections.singletonList(detail);
-
-        // Balance mock
-        BalanceDTO balanceDTO = new BalanceDTO();
-        balanceDTO.setAvailableBalance(BigDecimal.valueOf(5000));
-        balanceDTO.setCurrentBalance(BigDecimal.valueOf(7000));
-        ResponseBalanceInfo balanceInfo = new ResponseBalanceInfo();
-        balanceInfo.setBalanceDTO(balanceDTO);
-
-        AccountInfoResponse accountInfo = new AccountInfoResponse();
-        accountInfo.setIsFlexibleAccount(Boolean.FALSE);
-        accountInfo.setIban("TRXXXX");
-
-        when(accountClient.getBalanceInfo(eq("100200"), eq(false)))
-                .thenReturn(ResponseEntity.ok(balanceInfo));
-        when(accountClient.getAccountByAccountNoWithoutException(eq("100200")))
-                .thenReturn(ResponseEntity.ok(accountInfo));
-
-        // Act
-        customerNotificationService.sendToNotificationQueue(dto, details);
-
-        // Assert
-        verify(notificationProducer, times(2)).sendMessageToNotificationQueue(notificationCaptor.capture());
-        List<CustomerNotificationDTO> calls = notificationCaptor.getAllValues();
-        assertEquals(2, calls.size());
-
-        // 1. Normal
-        assertEquals(NotificationConstants.PARCEK_NOTIFICATION_SHORTNAME,
-                     calls.get(0).getTransactionHeader().getJobCode(),
-                     "WITHDRAW -> normal jobCode PARCEK_NOTIFICATION_SHORTNAME");
-
-        // 2. Push
-        assertEquals(NotificationConstants.PARCEK_PUSH_SHORTNAME,
-                     calls.get(1).getTransactionHeader().getJobCode(),
-                     "WITHDRAW -> push jobCode PARCEK_PUSH_SHORTNAME");
-    }
-
-    @Test
-    void testSendToNotificationQueue_Deposit_PushNotification() throws AccountException {
-        CashTransactionDTO dto = new CashTransactionDTO();
-        dto.setProcessCode(PROCESS_CODE.DEPOSIT.getProcessCode());
-        dto.setCreateDate(new Date());
-        dto.setUpdateDate(new Date());
-        dto.setBranchCode("327");
-        dto.setCreatedBy("depUser");
-        dto.setUpdatedBy("depUser");
-
-        CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
-        detail.setAccountNo("987654");
-        detail.setCurrency("TL");
-        detail.setAccountCurrency("TL");
-        detail.setAmount(BigDecimal.valueOf(2000));
-        detail.setAccountAmount(BigDecimal.valueOf(2000));
-        detail.setKmvAmount(BigDecimal.ZERO);
-        detail.setCommissionAmount(BigDecimal.ZERO);
-
-        ClientDTO client = new ClientDTO();
-        client.setClientNo(1001L);
-        client.setClientName("JaneDoe");
-        CashTransactionStoredRequest req = new CashTransactionStoredRequest();
-        req.setClientInfo(client);
-        req.setTakeCommissionFromTransactionAmount(false);
-        req.setTakeTaxFromAccount(false);
-        detail.setCashTransactionStoredRequest(req);
-
-        List<CashTransactionDetailDTO> details = Collections.singletonList(detail);
-
-        BalanceDTO balanceDTO = new BalanceDTO();
-        balanceDTO.setAvailableBalance(BigDecimal.valueOf(6000));
-        balanceDTO.setCurrentBalance(BigDecimal.valueOf(8000));
-        ResponseBalanceInfo balanceInfo = new ResponseBalanceInfo();
-        balanceInfo.setBalanceDTO(balanceDTO);
-
-        AccountInfoResponse accountInfo = new AccountInfoResponse();
-        accountInfo.setIsFlexibleAccount(Boolean.TRUE);  // -> TL_FXDepositNotification2
-        accountInfo.setIban("TRFLEX");
-
-        when(accountClient.getBalanceInfo(eq("987654"), eq(false)))
-                .thenReturn(ResponseEntity.ok(balanceInfo));
-        when(accountClient.getAccountByAccountNoWithoutException(eq("987654")))
-                .thenReturn(ResponseEntity.ok(accountInfo));
-
-        // Act
-        customerNotificationService.sendToNotificationQueue(dto, details);
-
-        // Assert
-        verify(notificationProducer, times(2)).sendMessageToNotificationQueue(notificationCaptor.capture());
-        List<CustomerNotificationDTO> calls = notificationCaptor.getAllValues();
-        assertEquals(2, calls.size());
-
-        // 1. Normal
-        assertEquals(NotificationConstants.PARYAT_NOTIFICATION_SHORTNAME2,
-                     calls.get(0).getTransactionHeader().getJobCode());
-
-        // 2. Push
-        assertEquals(NotificationConstants.PARYAT_PUSH_SHORTNAME,
-                     calls.get(1).getTransactionHeader().getJobCode());
-    }
-
-    @Test
-    void testSendToNotificationQueue_NullDetailList() {
-        CashTransactionDTO dto = new CashTransactionDTO();
-        // detailList=null => AccountException
-        assertThrows(AccountException.class, () ->
-                customerNotificationService.sendToNotificationQueue(dto, null));
-    }
-
-    @Test
-    void testSendToNotificationQueue_BalanceInfoFails() {
-        // Arrange
-        CashTransactionDTO dto = new CashTransactionDTO();
-        dto.setProcessCode(PROCESS_CODE.WITHDRAW.getProcessCode());
-
-        CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
-        detail.setAccountNo("ACCFAIL");
-        List<CashTransactionDetailDTO> detailList = Collections.singletonList(detail);
-
-        when(accountClient.getBalanceInfo(eq("ACCFAIL"), eq(false)))
-                .thenThrow(new RuntimeException("some error"));
-
-        // Act & Assert
-        assertThrows(AccountException.class, () ->
-                customerNotificationService.sendToNotificationQueue(dto, detailList));
-    }
-
-
-    // -------------------------------------------------------------
-    // 2) getParameters testleri
-    // -------------------------------------------------------------
-
-    @Test
-    void testGetParameters_AccountBodyNull() throws MicroException {
-        CashTransactionDTO dto = new CashTransactionDTO();
-        dto.setProcessCode(PROCESS_CODE.DEPOSIT.getProcessCode());
-        dto.setCreateDate(new Date());
-        dto.setUpdateDate(new Date());
-
-        CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
-        detail.setAccountNo("ACCNULL");
-        detail.setCurrency("TL");
-        detail.setAccountCurrency("TL");
-        detail.setAmount(BigDecimal.valueOf(1000));
-
-        CashTransactionStoredRequest req = new CashTransactionStoredRequest();
-        ClientDTO client = new ClientDTO();
-        client.setClientNo(123L);
-        req.setClientInfo(client);
-        detail.setCashTransactionStoredRequest(req);
-
-        List<CashTransactionDetailDTO> details = Collections.singletonList(detail);
-
-        // Balance normal
-        BalanceDTO balanceDTO = new BalanceDTO();
-        balanceDTO.setAvailableBalance(BigDecimal.valueOf(1000));
-        balanceDTO.setCurrentBalance(BigDecimal.valueOf(2000));
-        ResponseBalanceInfo balanceInfo = new ResponseBalanceInfo();
-        balanceInfo.setBalanceDTO(balanceDTO);
-
-        when(accountClient.getBalanceInfo(eq("ACCNULL"), eq(false)))
-                .thenReturn(ResponseEntity.ok(balanceInfo));
-        // account body null
-        when(accountClient.getAccountByAccountNoWithoutException(eq("ACCNULL")))
-                .thenReturn(ResponseEntity.ok(null));
-
-        assertThrows(AccountException.class, () ->
-                customerNotificationService.getParameters(dto, details));
-    }
-
-    @Test
-    void testGetParameters_Success() throws MicroException, AccountException {
-        CashTransactionDTO dto = new CashTransactionDTO();
-        dto.setProcessCode(PROCESS_CODE.WITHDRAW.getProcessCode());
-        dto.setCreateDate(new Date());
-        dto.setUpdateDate(new Date());
-        dto.setCreatedBy("paramTester");
-        dto.setUpdatedBy("paramTester");
-
-        CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
-        detail.setAccountNo("100200");
-        detail.setCurrency("USD");
-        detail.setAccountCurrency("USD");
-        detail.setAmount(BigDecimal.valueOf(500));
-        detail.setAccountAmount(BigDecimal.valueOf(500));
-        detail.setKmvAmount(BigDecimal.ZERO);
-        detail.setCommissionAmount(BigDecimal.ZERO);
-
-        CashTransactionStoredRequest req = new CashTransactionStoredRequest();
-        ClientDTO client = new ClientDTO();
-        client.setClientNo(987L);
-        req.setClientInfo(client);
-        req.setTakeCommissionFromTransactionAmount(false);
-        req.setTakeTaxFromAccount(false);
-        detail.setCashTransactionStoredRequest(req);
-
-        List<CashTransactionDetailDTO> details = Collections.singletonList(detail);
-
-        BalanceDTO balanceDTO = new BalanceDTO();
-        balanceDTO.setAvailableBalance(BigDecimal.valueOf(3000));
-        balanceDTO.setCurrentBalance(BigDecimal.valueOf(4000));
-        ResponseBalanceInfo balanceInfo = new ResponseBalanceInfo();
-        balanceInfo.setBalanceDTO(balanceDTO);
-
-        AccountInfoResponse accountInfo = new AccountInfoResponse();
-        accountInfo.setIsFlexibleAccount(false);
-        accountInfo.setIban("TRTEST");
-
-        when(accountClient.getBalanceInfo(eq("100200"), eq(false)))
-                .thenReturn(ResponseEntity.ok(balanceInfo));
-        when(accountClient.getAccountByAccountNoWithoutException(eq("100200")))
-                .thenReturn(ResponseEntity.ok(accountInfo));
-
-        // Act
-        CustomerNotificationDTO result = customerNotificationService.getParameters(dto, details);
-
-        // Assert
-        assertNotNull(result);
-        assertNotNull(result.getTransactionHeader());
-        assertNotNull(result.getTransactionDetails());
-        // totalBalance parametresi
-        Optional<TransactionDetails> totalBalanceOpt = result.getTransactionDetails().stream()
-                .filter(t -> "totalBalance".equals(t.getParameterName()))
-                .findFirst();
-        assertTrue(totalBalanceOpt.isPresent());
-        assertTrue(totalBalanceOpt.get().getParameterValue().contains("4.000"));
-    }
-
-    // -------------------------------------------------------------
-    // 3) calculateAmountTextAndIsKgvIncluded (reflection)
-    // -------------------------------------------------------------
-    // Kodunuzdaki if/else dallarını parametrelerle tetikleyerek coverage yükseltiyoruz.
-
-    @Test
-    void testCalculateAmount_NoCommission_NoKmv_SameCurrency_Withdraw() throws Exception {
-        CashTransactionDTO dto = new CashTransactionDTO();
-        dto.setProcessCode(PROCESS_CODE.WITHDRAW.getProcessCode());
-
-        CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
-        detail.setAmount(BigDecimal.valueOf(1000));
-        detail.setAccountAmount(BigDecimal.valueOf(1000));
-        detail.setKmvAmount(BigDecimal.ZERO);
-        detail.setCommissionAmount(BigDecimal.ZERO);
-        detail.setCurrency("TL");
-        detail.setAccountCurrency("TL");
-
-        CashTransactionStoredRequest req = new CashTransactionStoredRequest();
-        req.setTakeCommissionFromTransactionAmount(false);
-        req.setTakeTaxFromAccount(false);
-        detail.setCashTransactionStoredRequest(req);
-
-        Method method = CustomerNotificationService.class.getDeclaredMethod(
-                "calculateAmountTextAndIsKgvIncluded",
-                CashTransactionDTO.class, List.class
-        );
-        method.setAccessible(true);
-
-        CustomerNotificationService.AmountCalculationResult result =
-                (CustomerNotificationService.AmountCalculationResult)
-                        method.invoke(customerNotificationService, dto, Collections.singletonList(detail));
-
-        assertFalse(result.getIsKgvIncluded());
-        assertTrue(result.getAmountText().contains("1.000,00"));
-        assertTrue(result.getAmountText().contains("TL"));
-    }
-
-    @Test
-    void testCalculateAmount_NoCommission_KmvExists_DiffCurrency_Deposit() throws Exception {
-        CashTransactionDTO dto = new CashTransactionDTO();
-        dto.setProcessCode(PROCESS_CODE.DEPOSIT.getProcessCode());
-
-        CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
-        detail.setAmount(BigDecimal.valueOf(2000));
-        detail.setAccountAmount(BigDecimal.valueOf(3000));
-        detail.setKmvAmount(BigDecimal.valueOf(100));
-        detail.setCommissionAmount(BigDecimal.ZERO);
-        detail.setCurrency("USD");
-        detail.setAccountCurrency("EUR");
-
-        CashTransactionStoredRequest req = new CashTransactionStoredRequest();
-        req.setTakeCommissionFromTransactionAmount(false);
-        // KMV>0 + takeTaxFromAccount=true => isKgvIncluded=true
-        req.setTakeTaxFromAccount(true);
-        detail.setCashTransactionStoredRequest(req);
-
-        Method method = CustomerNotificationService.class.getDeclaredMethod(
-                "calculateAmountTextAndIsKgvIncluded",
-                CashTransactionDTO.class, List.class
-        );
-        method.setAccessible(true);
-
-        CustomerNotificationService.AmountCalculationResult result =
-                (CustomerNotificationService.AmountCalculationResult)
-                        method.invoke(customerNotificationService, dto, Collections.singletonList(detail));
-
-        assertTrue(result.getIsKgvIncluded());
-        assertNotNull(result.getAmountText());
-    }
-
-    @Test
-    void testCalculateAmount_WithCommission_ExternalCurrencySame_NoKmv() throws Exception {
-        // Komisyon var, haricen, currency aynı, KMV=0 => isKgvIncluded=false
-        CashTransactionDTO dto = new CashTransactionDTO();
-        dto.setProcessCode(PROCESS_CODE.DEPOSIT.getProcessCode());
-
-        CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
-        detail.setAmount(BigDecimal.valueOf(800));
-        detail.setAccountAmount(BigDecimal.valueOf(800));
-        detail.setKmvAmount(BigDecimal.ZERO);
-        detail.setCommissionAmount(BigDecimal.valueOf(50));
-        detail.setCurrency("TL");
-        detail.setAccountCurrency("TL");
-
-        CashTransactionStoredRequest req = new CashTransactionStoredRequest();
-        req.setTakeCommissionFromTransactionAmount(false);
-        req.setTakeTaxFromAccount(false);
-        detail.setCashTransactionStoredRequest(req);
-
-        Method method = CustomerNotificationService.class.getDeclaredMethod(
-                "calculateAmountTextAndIsKgvIncluded",
-                CashTransactionDTO.class, List.class
-        );
-        method.setAccessible(true);
-
-        CustomerNotificationService.AmountCalculationResult result =
-                (CustomerNotificationService.AmountCalculationResult)
-                        method.invoke(customerNotificationService, dto, Collections.singletonList(detail));
-
-        assertFalse(result.getIsKgvIncluded());
-        assertTrue(result.getAmountText().contains("800,00"));
-    }
-
-    @Test
-    void testCalculateAmount_WithCommission_ExternalCurrencyDiff_KmvIncluded() throws Exception {
-        // Komisyon var, haricen, currency diff, KMV>0+tax => isKgvIncluded=true
-        CashTransactionDTO dto = new CashTransactionDTO();
-        dto.setProcessCode(PROCESS_CODE.DEPOSIT.getProcessCode());
-
-        CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
-        detail.setAmount(BigDecimal.valueOf(800));
-        detail.setAccountAmount(BigDecimal.valueOf(1000));
-        detail.setKmvAmount(BigDecimal.valueOf(100));
-        detail.setCommissionAmount(BigDecimal.valueOf(50));
-        detail.setCurrency("USD");
-        detail.setAccountCurrency("EUR");
-
-        CashTransactionStoredRequest req = new CashTransactionStoredRequest();
-        req.setTakeCommissionFromTransactionAmount(false);
-        req.setTakeTaxFromAccount(true);
-        detail.setCashTransactionStoredRequest(req);
-
-        Method method = CustomerNotificationService.class.getDeclaredMethod(
-                "calculateAmountTextAndIsKgvIncluded",
-                CashTransactionDTO.class, List.class
-        );
-        method.setAccessible(true);
-
-        CustomerNotificationService.AmountCalculationResult result =
-                (CustomerNotificationService.AmountCalculationResult)
-                        method.invoke(customerNotificationService, dto, Collections.singletonList(detail));
-
-        assertTrue(result.getIsKgvIncluded());
-        assertNotNull(result.getAmountText());
-    }
-
-    @Test
-    void testCalculateAmount_WithCommission_TakenFromAmount_Withdraw_SameCurrency_NoKmv() throws Exception {
-        // Komisyon var, tutardan, withdraw, same currency, no KMV => isKgvIncluded=false
-        CashTransactionDTO dto = new CashTransactionDTO();
-        dto.setProcessCode(PROCESS_CODE.WITHDRAW.getProcessCode());
-
-        CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
-        detail.setAmount(BigDecimal.valueOf(1000));
-        detail.setAccountAmount(BigDecimal.valueOf(900));
-        detail.setKmvAmount(BigDecimal.ZERO);
-        detail.setCommissionAmount(BigDecimal.valueOf(50));
-        detail.setCurrency("TL");
-        detail.setAccountCurrency("TL");
-
-        CashTransactionStoredRequest req = new CashTransactionStoredRequest();
-        req.setTakeCommissionFromTransactionAmount(true);
-        req.setTakeTaxFromAccount(false);
-        detail.setCashTransactionStoredRequest(req);
-
-        Method method = CustomerNotificationService.class.getDeclaredMethod(
-                "calculateAmountTextAndIsKgvIncluded",
-                CashTransactionDTO.class, List.class
-        );
-        method.setAccessible(true);
-
-        CustomerNotificationService.AmountCalculationResult result =
-                (CustomerNotificationService.AmountCalculationResult)
-                        method.invoke(customerNotificationService, dto, Collections.singletonList(detail));
-
-        assertFalse(result.getIsKgvIncluded());
-        assertNotNull(result.getAmountText());
-    }
-
-    @Test
-    void testCalculateAmount_WithCommission_TakenFromAmount_Deposit_DiffCurrency_Kmv() throws Exception {
-        // Komisyon var, tutardan, deposit, diff currency, KMV>0 => isKgvIncluded=true
-        CashTransactionDTO dto = new CashTransactionDTO();
-        dto.setProcessCode(PROCESS_CODE.DEPOSIT.getProcessCode());
-
-        CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
-        detail.setAmount(BigDecimal.valueOf(1500));
-        detail.setAccountAmount(BigDecimal.valueOf(1200));
-        detail.setKmvAmount(BigDecimal.valueOf(300));
-        detail.setCommissionAmount(BigDecimal.valueOf(50));
-        detail.setCurrency("USD");
-        detail.setAccountCurrency("EUR");
-
-        CashTransactionStoredRequest req = new CashTransactionStoredRequest();
-        req.setTakeCommissionFromTransactionAmount(true);
-        req.setTakeTaxFromAccount(true);
-        detail.setCashTransactionStoredRequest(req);
-
-        Method method = CustomerNotificationService.class.getDeclaredMethod(
-                "calculateAmountTextAndIsKgvIncluded",
-                CashTransactionDTO.class, List.class
-        );
-        method.setAccessible(true);
-
-        CustomerNotificationService.AmountCalculationResult result =
-                (CustomerNotificationService.AmountCalculationResult)
-                        method.invoke(customerNotificationService, dto, Collections.singletonList(detail));
-
-        assertTrue(result.getIsKgvIncluded());
-        assertNotNull(result.getAmountText());
-    }
-
-    // -------------------------------------------------------------
-    // 4) formatDate, formatCurrency vb.
-    // -------------------------------------------------------------
-    @Test
-    void testFormatDate() throws Exception {
-        Method m = CustomerNotificationService.class
-                .getDeclaredMethod("formatDate", Date.class);
-        m.setAccessible(true);
-
-        Calendar c = Calendar.getInstance();
-        c.set(Calendar.HOUR_OF_DAY, 9);
-        c.set(Calendar.MINUTE, 15);
-
-        String output = (String) m.invoke(customerNotificationService, c.getTime());
-        // "09:15" bekliyoruz
-        assertEquals("09:15", output);
-    }
-
-    @Test
-    void testFormatCurrency() throws Exception {
-        Method m = CustomerNotificationService.class
-                .getDeclaredMethod("formatCurrency", String.class);
-        m.setAccessible(true);
-
-        String output = (String) m.invoke(customerNotificationService, "1234.56");
-        // Alman locale => "1.234,56" gibi
-        assertTrue(output.contains(",56"));
-    }
+@Test
+void testTakeCommissionFromAmount_ElseBranch() throws Exception {
+    // 1) Komisyon var, tutardan => true
+    CashTransactionDTO dto = new CashTransactionDTO();
+    dto.setProcessCode(PROCESS_CODE.WITHDRAW.getProcessCode()); // ya da DEPOSIT, fark etmez
+
+    CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
+    detail.setAmount(BigDecimal.valueOf(1000));
+    detail.setAccountAmount(BigDecimal.valueOf(800));
+    detail.setKmvAmount(BigDecimal.ZERO);           // KMV = 0 => hasKmvAmountGreaterThanZero => false
+    detail.setCommissionAmount(BigDecimal.valueOf(50)); // Komisyon var
+    detail.setCurrency("USD");
+    detail.setAccountCurrency("EUR"); // currency != accountCurrency => else branch adayı
+
+    CashTransactionStoredRequest req = new CashTransactionStoredRequest();
+    req.setTakeCommissionFromTransactionAmount(true); // tutardan alınıyor
+    req.setTakeTaxFromAccount(false);                 // tax=false => KMV branch da girmesin
+    detail.setCashTransactionStoredRequest(req);
+
+    // Tek detail
+    List<CashTransactionDetailDTO> detailList = Collections.singletonList(detail);
+
+    // Reflection'la en üst metod “calculateAmountTextAndIsKgvIncluded”  tetiklenir, oradan `takeCommissionFromAmount` => else
+    Method method = CustomerNotificationService.class.getDeclaredMethod(
+            "calculateAmountTextAndIsKgvIncluded",
+            CashTransactionDTO.class,
+            List.class
+    );
+    method.setAccessible(true);
+
+    CustomerNotificationService.AmountCalculationResult result =
+            (CustomerNotificationService.AmountCalculationResult)
+                    method.invoke(customerNotificationService, dto, detailList);
+
+    // Beklenti: else'e girdi => "amountText = formatCurrency(totalAmount.toString()) + ... ”
+    assertNotNull(result.getAmountText());
+    // KMV yok => isKgvIncluded=false
+    assertFalse(result.getIsKgvIncluded());
+    // "1000,00 USD karşılığı 800,00 EUR" gibi bir şey olabilir
+    // Yeter ki else'e girildiğini coverage'tan görebilin
+}
+
+
+@Test
+void testCalculateAmountTextWithoutCommission_ElseBranch() throws Exception {
+    // Komisyon yok => "withoutCommission" koluna gitsin
+    CashTransactionDTO dto = new CashTransactionDTO();
+    dto.setProcessCode(PROCESS_CODE.DEPOSIT.getProcessCode());
+
+    CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
+    detail.setAmount(BigDecimal.valueOf(500));
+    detail.setAccountAmount(BigDecimal.valueOf(600));
+    detail.setKmvAmount(BigDecimal.ZERO);     // => hasKmv = false
+    detail.setCommissionAmount(BigDecimal.ZERO); // => no commission => "withoutCommission"
+    detail.setCurrency("USD");
+    detail.setAccountCurrency("EUR"); // farkli => else potansiyeli
+
+    CashTransactionStoredRequest req = new CashTransactionStoredRequest();
+    req.setTakeCommissionFromTransactionAmount(false);
+    req.setTakeTaxFromAccount(false); // => hasKmvAmountGreaterThanZero => false
+    detail.setCashTransactionStoredRequest(req);
+
+    List<CashTransactionDetailDTO> detailList = Collections.singletonList(detail);
+
+    // Reflection => en üst seviye "calculateAmountTextAndIsKgvIncluded"
+    Method method = CustomerNotificationService.class.getDeclaredMethod(
+            "calculateAmountTextAndIsKgvIncluded",
+            CashTransactionDTO.class,
+            List.class
+    );
+    method.setAccessible(true);
+
+    CustomerNotificationService.AmountCalculationResult result =
+            (CustomerNotificationService.AmountCalculationResult)
+                    method.invoke(customerNotificationService, dto, detailList);
+
+    // isKgvIncluded=false
+    assertFalse(result.getIsKgvIncluded());
+    // else => "amountText = formatCurrency(totalAmount) + currency + EQUIVALENT + ...accountAmount..."
+    assertNotNull(result.getAmountText());
+    // Örneğin "500,00 USD karşılığı 600,00 EUR"
+    // Yeter ki coverage'ta else dalı yeşillensin
 }
