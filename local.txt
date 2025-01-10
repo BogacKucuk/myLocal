@@ -1,8 +1,61 @@
-[INFO] 
-[INFO] Results:
-[INFO] 
-[ERROR] Failures: 
-[ERROR]   SmartControlServiceTest.getSmartControlDocuments_ShouldThrowException_WhenClientResponseBodyIsNull:172 Unexpected exception type thrown, expected: <com.ykb.corebanking.vault.money.deposit.withdraw.bff.exception.SmartControlException> but was: <java.lang.NullPointerException>
-[INFO] 
-[ERROR] Tests run: 7, Failures: 1, Errors: 0, Skipped: 0
-[INFO] 
+const options = [
+  { value: 'a', textLabel: 'Option 1' },
+  { value: 'b', textLabel: 'Option 2' },
+  { value: 'c', textLabel: 'Option 3' },
+];
+const defaultCheckedList = ['a'];
+
+class CheckboxGroupExample extends React.Component {
+  constructor(props) {
+    super(props);
+    this.state = {
+      checkedList: defaultCheckedList,
+      indeterminate: true,
+      checkAll: 0,
+    };
+    this.onChange = this.onChange.bind(this);
+    this.onCheckAllChange = this.onCheckAllChange.bind(this);
+  }
+
+  render() {
+    return (
+      <div>
+        <div style={{ borderBottom: '1px solid #E9E9E9' }}>
+          <Checkbox
+            indeterminate={this.state.indeterminate}
+            onChange={this.onCheckAllChange}
+            checked={this.state.checkAll}
+          >
+            Check all
+          </Checkbox>
+        </div>
+        <br />
+
+        <CheckboxGroup
+          onChange={this.onChange}
+          value={this.state.checkedList}
+          items={options}
+        />
+      </div>
+    );
+  }
+
+  onChange(checkedList) {
+    this.setState({
+      checkedList,
+      indeterminate:
+        !!checkedList.length && checkedList.length < options.length,
+      checkAll: checkedList.length === options.length,
+    });
+  }
+
+  onCheckAllChange(e) {
+    this.setState({
+      checkedList: e.target.checked ? ['a', 'b', 'c'] : [],
+      indeterminate: false,
+      checkAll: e.target.checked,
+    });
+  }
+}
+
+<CheckboxGroupExample />;
