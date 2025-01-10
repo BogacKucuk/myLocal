@@ -16,6 +16,7 @@ const MoneyDepositSmartControlTable = (props) => {
   const [tableData, setTableData] = useState(null);
   const { openTeslaViewerWithUrl, fireModuleEvent, callApi } =
     useShellCommunicator();
+
   const [selectedRow, setSelectedRow] = useState(null);
   const [bbtDocsChecks, setBbtDocsChecks] = useState([]);
   const [docsMap, setDocsMap] = useState({});
@@ -47,7 +48,7 @@ const MoneyDepositSmartControlTable = (props) => {
 
   const generateTableData = (response) => {
     let data;
-    if (groupId === "" || response?.bbtDocuments.length === 0) {
+    if (groupId === "" || response?.bbtDocuments?.length === 0) {
       data = [
         {
           key: 1,
@@ -97,7 +98,6 @@ const MoneyDepositSmartControlTable = (props) => {
       documentId: remoteId,
       documentUniqueKey: "undefined",
       userID: props?.externalData?.shellData?.user?.userCode,
-      //environment: context.externalData.scopeData.environment,
       callbackContext: this,
       callbackFunction: function (documentUrl) {
         openTeslaViewerWithUrl({
@@ -114,92 +114,117 @@ const MoneyDepositSmartControlTable = (props) => {
       return null;
     }
     if (record.isExist) {
+      // Sunucudan "isExist = true" gelenler zaten seçili ve devre dışı
       return <Checkbox checked={true} disabled={true}></Checkbox>;
     } else {
+      // Parent veya child ayrımı yok, tablo üzerinde tek checkbox
       return (
         <Checkbox
           id={record.key}
           checked={assignCheckState(record.key)}
           onChange={toggleChecked}
-        ></Checkbox>
+        />
       );
     }
   };
 
-  // children dahil hepsini rekurzif olarak aynı checked değerine getirir
+  /**
+   * Recursive olarak tüm child kayıtlarını newChecked değerine set eder.
+   * Ancak mutate (doğrudan item.checked=...) yerine,
+   * her zaman yeni bir obje oluşturarak checksArr[childIndex] = {...}.
+   */
   function checkAllChildren(docsMap, checksArr, parentKey, newChecked) {
-    // parentKey'in children'larını al
     const childKeys = docsMap[parentKey]?.children || [];
 
-    // checksArr üstünde childKeys'e sahip item'ları bul ve hepsini newChecked yap
     childKeys.forEach((childKey) => {
       const childIndex = checksArr.findIndex((c) => c.id === childKey);
       if (childIndex > -1) {
-        checksArr[childIndex].checked = newChecked;
+        // Her öğeyi kopyala ve updatedChecks dizisine geri koy
+        checksArr[childIndex] = {
+          ...checksArr[childIndex],
+          checked: newChecked,
+        };
+        // rekurzif olarak alt child’ları da güncelle
+        checkAllChildren(docsMap, checksArr, childKey, newChecked);
       }
-      // rekurzif olarak o child'ın da children'ları olabilir:
-      checkAllChildren(docsMap, checksArr, childKey, newChecked);
     });
   }
 
+  /**
+   * Child true olduğunda parent’ın tüm kardeşleri de true ise
+   * parent’ı da true yapar. (İsteğe göre ekleniyor.)
+   */
   function updateParentIfAllChildrenChecked(docsMap, checksArr, childKey) {
     const parentKey = docsMap[childKey]?.parent;
-    if (!parentKey) return; // parent yoksa çık
+    if (!parentKey) return;
 
-    // parent'ın tüm children'ı
     const siblings = docsMap[parentKey]?.children || [];
-    // hepsi checked mi?
     const allSiblingsChecked = siblings.every((sKey) => {
       const found = checksArr.find((c) => c.id === sKey);
       return found?.checked === true;
     });
 
     if (allSiblingsChecked) {
-      // parent'ı true yap
       const parentIndex = checksArr.findIndex((c) => c.id === parentKey);
       if (parentIndex > -1) {
-        checksArr[parentIndex].checked = true;
+        checksArr[parentIndex] = {
+          ...checksArr[parentIndex],
+          checked: true,
+        };
+        // Büyük parent var mı diye kontrol (rekursif)
+        updateParentIfAllChildrenChecked(docsMap, checksArr, parentKey);
       }
-      // eğer parent'ın da parent'ı varsa, orayı da güncellemek istersen yine rekurzif
-      updateParentIfAllChildrenChecked(docsMap, checksArr, parentKey);
     }
   }
 
+  /**
+   * Checkbox event. 
+   * 1) Hangi item'a tıklandıysa (parent/child) kopyasını oluşturup checked'i değiştirir.
+   * 2) Parent'sa children'larını rekurzif günceller.
+   * 3) Child'sa eğer hepsi true olduysa parent'ı da true yapar.
+   */
   const toggleChecked = (e) => {
-    const clickedId = e.target.id; // docKey
-    // Yeni check durumu
-    const foundIndex = bbtDocsChecks.findIndex((item) => item.id === clickedId);
+    const clickedId = e.target.id;
+    // Hem diziyi hem de içindeki objeleri kopyalamak için .map(...) => {...item} kullanıyoruz
+    const updatedChecks = bbtDocsChecks.map((item) => ({ ...item }));
+
+    const foundIndex = updatedChecks.findIndex((item) => item.id === clickedId);
     if (foundIndex < 0) return;
 
-    // Kopyasını alıp güncelle
-    const updatedChecks = [...bbtDocsChecks];
     const oldValue = updatedChecks[foundIndex].checked;
     const newValue = !oldValue;
-    updatedChecks[foundIndex].checked = newValue;
 
-    // EĞER parent checkbox'ı işaretlendiyse altındaki tüm child'ları da güncelle
-    // (docsMap'de clickedId'nin children'ları varsa)
+    updatedChecks[foundIndex] = {
+      ...updatedChecks[foundIndex],
+      checked: newValue,
+    };
+
+    // Eğer bu parent ise, altındaki tüm child’ları da aynı newValue yap
     if (docsMap[clickedId]?.children?.length > 0) {
       checkAllChildren(docsMap, updatedChecks, clickedId, newValue);
     }
 
-    // EĞER child işaretlendiyse parent'ı güncellemek istersen:
-    // (clickedId'nin bir parent'ı varsa ve newValue === true)
+    // Eğer child true olduysa parent’ı true yapma senaryosu (opsiyonel)
     if (newValue === true) {
       updateParentIfAllChildrenChecked(docsMap, updatedChecks, clickedId);
     }
-    // (Eğer "child false olduysa parent false olsun" gibi bir senaryon var ise
-    // updateParentIfAllChildrenUnchecked(...) gibi ayrı bir fonksiyon yazıp burada çağırabilirsin.)
 
     setBbtDocsChecks(updatedChecks);
     dispatch(moneyDepositActions.setBbtDocsChecks(updatedChecks));
   };
 
+  /**
+   * Mevcut state içinden bu checkbox’ın (id) checked değerini döndürür.
+   */
   const assignCheckState = (id) => {
     const found = bbtDocsChecks.find((item) => item.id === id);
     return found ? found.checked : false;
   };
 
+  /**
+   * Backend’ten dönen belgeler için { id, checked: false } şeklinde initial state oluşturur.
+   * Hem bbtDocuments hem de notExistsDocs
+   */
   const generateCheckboxStates = (response) => {
     const checks = [];
     const addDocsToChecks = (docs) => {
@@ -217,7 +242,6 @@ const MoneyDepositSmartControlTable = (props) => {
     if (response?.bbtDocuments?.length) {
       addDocsToChecks(response.bbtDocuments);
     }
-
     if (response?.notExistsDocs?.length) {
       addDocsToChecks(response.notExistsDocs);
     }
@@ -225,53 +249,55 @@ const MoneyDepositSmartControlTable = (props) => {
     return checks;
   };
 
-  // docsMap şu şekilde olacak:
-  // {
-  //    "1702 - Tüm Kimlikler": { parent: null, children: ["Ad Soyad", "İmza", "Tarih"] },
-  //    "Ad Soyad": { parent: "1702 - Tüm Kimlikler", children: [] },
-  //    "İmza": { parent: "1702 - Tüm Kimlikler", children: [] },
-  //    "Tarih": { parent: "1702 - Tüm Kimlikler", children: [] },
-  //    ...
-  // }
-
-  const generateDocsMap = (docsArray, parentKey = null, docsMap = {}) => {
+  /**
+   * docsMap:
+   *  {
+   *    "1702 - Tüm Kimlikler": { parent: null, children: ["1702 - Tüm Kimlikler-Ad Soyad", "1702 - Tüm Kimlikler-İmza", "1702 - Tüm Kimlikler-Tarih"] },
+   *    "1702 - Tüm Kimlikler-Ad Soyad": { parent: "1702 - Tüm Kimlikler", children: [] },
+   *    "1702 - Tüm Kimlikler-İmza": { parent: "1702 - Tüm Kimlikler", children: [] },
+   *    "1702 - Tüm Kimlikler-Tarih": { parent: "1702 - Tüm Kimlikler", children: [] },
+   *    ...
+   *  }
+   */
+  const generateDocsMap = (docsArray, parentKey = null, mapObj = {}) => {
     docsArray.forEach((doc) => {
-      // Haritada bu doc için bir kayıt oluştur
-      // eğer yoksa, varsayılan parent:null ve children:[]
-      if (!docsMap[doc.key]) {
-        docsMap[doc.key] = { parent: parentKey, children: [] };
+      // Bu doc key'i için ilk kez ekleniyorsa:
+      if (!mapObj[doc.key]) {
+        mapObj[doc.key] = { parent: parentKey, children: [] };
       } else {
-        // varsa sadece parent'ını set edelim
-        docsMap[doc.key].parent = parentKey;
+        mapObj[doc.key].parent = parentKey;
       }
 
-      // Eğer parentKey varsa, parent'ın children dizisine bu doc'un key'ini ekle
+      // parentKey varsa, parent'ın children dizisine bu doc'un key'ini ekle
       if (parentKey) {
-        if (!docsMap[parentKey]) {
-          docsMap[parentKey] = { parent: null, children: [] };
+        if (!mapObj[parentKey]) {
+          mapObj[parentKey] = { parent: null, children: [] };
         }
-        docsMap[parentKey].children.push(doc.key);
+        mapObj[parentKey].children.push(doc.key);
       }
 
-      // Çocuklar varsa, rekurzif çağrı yaparak aynı işlemi onların üzerinde de yap
+      // Çocuğu varsa rekurzif devam
       if (doc.children && doc.children.length > 0) {
-        generateDocsMap(doc.children, doc.key, docsMap);
+        generateDocsMap(doc.children, doc.key, mapObj);
       }
     });
-    return docsMap;
+    return mapObj;
   };
 
   const generateDocsMapWrapper = (response) => {
-    let docsMap = {};
+    let mapObj = {};
     if (response?.bbtDocuments?.length) {
-      docsMap = generateDocsMap(response.bbtDocuments, null, docsMap);
+      mapObj = generateDocsMap(response.bbtDocuments, null, mapObj);
     }
     if (response?.notExistsDocs?.length) {
-      docsMap = generateDocsMap(response.notExistsDocs, null, docsMap);
+      mapObj = generateDocsMap(response.notExistsDocs, null, mapObj);
     }
-    return docsMap;
+    return mapObj;
   };
 
+  /**
+   * Backend’ten veriyi çekip tabloyu doldurur, doc map'i ve checkbox state’ini oluşturur.
+   */
   const getDocuments = async () => {
     if (groupId === null || groupId === undefined) {
       return;
@@ -281,33 +307,39 @@ const MoneyDepositSmartControlTable = (props) => {
       groupId: groupId,
       processCode: ["PARYATVISION"],
     };
+
     dispatch(moneyDepositActions.setLoading(true));
-    await callApi(getDocumentsApi(documentRequest))
-      .then((response) => {
-        const data = generateTableData(response);
+    try {
+      const response = await callApi(getDocumentsApi(documentRequest));
+      const data = generateTableData(response);
 
-        const newDocMap = generateDocsMapWrapper(response);
-        setDocsMap(newDocMap);
+      // docsMap oluştur
+      const newDocMap = generateDocsMapWrapper(response);
+      setDocsMap(newDocMap);
 
-        // set checkbox states
-        const documentChecks = generateCheckboxStates(response);
-        setBbtDocsChecks(documentChecks);
+      // Checkbox state oluştur
+      const documentChecks = generateCheckboxStates(response);
+      setBbtDocsChecks(documentChecks);
+      dispatch(moneyDepositActions.setBbtDocsChecks(documentChecks));
 
-        dispatch(moneyDepositActions.setBbtDocsChecks(documentChecks));
-        if (groupId === "" || response?.bbtDocuments.length === 0) {
-          data[0].children = response?.notExistsDocs;
-        } else {
-          data[0].children = response?.bbtDocuments;
-          data[1].children = response?.notExistsDocs;
-        }
-        setTableData(data);
-        dispatch(moneyDepositActions.setLoading(false));
-      })
-      .catch((ex) => {
-        dispatch(moneyDepositActions.setLoading(false));
-      });
+      // Tablonu doldur
+      if (groupId === "" || response?.bbtDocuments?.length === 0) {
+        data[0].children = response?.notExistsDocs;
+      } else {
+        data[0].children = response?.bbtDocuments;
+        data[1].children = response?.notExistsDocs;
+      }
+      setTableData(data);
+
+      dispatch(moneyDepositActions.setLoading(false));
+    } catch (ex) {
+      dispatch(moneyDepositActions.setLoading(false));
+    }
   };
 
+  /**
+   * Tabloda satır seçildiğinde Tesla Viewer açma vb.
+   */
   const onRowSelected = (_, selectedRow) => {
     setSelectedRow(selectedRow[0]);
     if (selectedRow[0]?.documentRemoteId) {
@@ -327,7 +359,7 @@ const MoneyDepositSmartControlTable = (props) => {
         expandable={{ defaultExpandAllRows: true }}
         onRow={(record) => {
           return {
-            onClick: (event) => {
+            onClick: () => {
               onRowClicked(record);
             },
           };
