@@ -1,92 +1,50 @@
-// getDocuments fonksiyonunun .then(...) kısmında:
-const newDocsMap = generateDocsMapWrapper(response);
-setDocsMap(newDocsMap);
+// docsMap şu şekilde olacak:
+// {
+//    "1702 - Tüm Kimlikler": { parent: null, children: ["Ad Soyad", "İmza", "Tarih"] },
+//    "Ad Soyad": { parent: "1702 - Tüm Kimlikler", children: [] },
+//    "İmza": { parent: "1702 - Tüm Kimlikler", children: [] },
+//    "Tarih": { parent: "1702 - Tüm Kimlikler", children: [] },
+//    ...
+// }
 
-// Sonra bbtDocsChecks'i oluşturuyorsun
-const documentChecks = generateCheckboxStates(response);
-setBbtDocsChecks(documentChecks);
-
-
-
-
-
-
-
-// children dahil hepsini rekurzif olarak aynı checked değerine getirir
-function checkAllChildren(docsMap, checksArr, parentKey, newChecked) {
-  // parentKey'in children'larını al
-  const childKeys = docsMap[parentKey]?.children || [];
-
-  // checksArr üstünde childKeys'e sahip item'ları bul ve hepsini newChecked yap
-  childKeys.forEach((childKey) => {
-    const childIndex = checksArr.findIndex((c) => c.id === childKey);
-    if (childIndex > -1) {
-      checksArr[childIndex].checked = newChecked;
+const generateDocsMap = (docsArray, parentKey = null, docsMap = {}) => {
+  docsArray.forEach((doc) => {
+    // Haritada bu doc için bir kayıt oluştur
+    // eğer yoksa, varsayılan parent:null ve children:[]
+    if (!docsMap[doc.key]) {
+      docsMap[doc.key] = { parent: parentKey, children: [] };
+    } else {
+      // varsa sadece parent'ını set edelim
+      docsMap[doc.key].parent = parentKey;
     }
-    // rekurzif olarak o child'ın da children'ları olabilir:
-    checkAllChildren(docsMap, checksArr, childKey, newChecked);
-  });
-}
 
-
-
-
-
-
-
-
-function updateParentIfAllChildrenChecked(docsMap, checksArr, childKey) {
-  const parentKey = docsMap[childKey]?.parent;
-  if (!parentKey) return; // parent yoksa çık
-
-  // parent'ın tüm children'ı
-  const siblings = docsMap[parentKey]?.children || [];
-  // hepsi checked mi?
-  const allSiblingsChecked = siblings.every((sKey) => {
-    const found = checksArr.find((c) => c.id === sKey);
-    return found?.checked === true;
-  });
-
-  if (allSiblingsChecked) {
-    // parent'ı true yap
-    const parentIndex = checksArr.findIndex((c) => c.id === parentKey);
-    if (parentIndex > -1) {
-      checksArr[parentIndex].checked = true;
+    // Eğer parentKey varsa, parent'ın children dizisine bu doc'un key'ini ekle
+    if (parentKey) {
+      if (!docsMap[parentKey]) {
+        docsMap[parentKey] = { parent: null, children: [] };
+      }
+      docsMap[parentKey].children.push(doc.key);
     }
-    // eğer parent'ın da parent'ı varsa, orayı da güncellemek istersen yine rekurzif
-    updateParentIfAllChildrenChecked(docsMap, checksArr, parentKey);
+
+    // Çocuklar varsa, rekurzif çağrı yaparak aynı işlemi onların üzerinde de yap
+    if (doc.children && doc.children.length > 0) {
+      generateDocsMap(doc.children, doc.key, docsMap);
+    }
+  });
+  return docsMap;
+};
+
+
+
+
+
+const generateDocsMapWrapper = (response) => {
+  let docsMap = {};
+  if (response?.bbtDocuments?.length) {
+    docsMap = generateDocsMap(response.bbtDocuments, null, docsMap);
   }
-}
-
-
-
-
-const toggleChecked = (e) => {
-  const clickedId = e.target.id; // docKey
-  // Yeni check durumu
-  const foundIndex = bbtDocsChecks.findIndex((item) => item.id === clickedId);
-  if (foundIndex < 0) return;
-
-  // Kopyasını alıp güncelle
-  const updatedChecks = [...bbtDocsChecks];
-  const oldValue = updatedChecks[foundIndex].checked;
-  const newValue = !oldValue;
-  updatedChecks[foundIndex].checked = newValue;
-
-  // EĞER parent checkbox'ı işaretlendiyse altındaki tüm child'ları da güncelle
-  // (docsMap'de clickedId'nin children'ları varsa)
-  if (docsMap[clickedId]?.children?.length > 0) {
-    checkAllChildren(docsMap, updatedChecks, clickedId, newValue);
+  if (response?.notExistsDocs?.length) {
+    docsMap = generateDocsMap(response.notExistsDocs, null, docsMap);
   }
-
-  // EĞER child işaretlendiyse parent'ı güncellemek istersen:
-  // (clickedId'nin bir parent'ı varsa ve newValue === true)
-  if (newValue === true) {
-    updateParentIfAllChildrenChecked(docsMap, updatedChecks, clickedId);
-  }
-  // (Eğer "child false olduysa parent false olsun" gibi bir senaryon var ise
-  // updateParentIfAllChildrenUnchecked(...) gibi ayrı bir fonksiyon yazıp burada çağırabilirsin.)
-
-  setBbtDocsChecks(updatedChecks);
-  dispatch(moneyDepositActions.setBbtDocsChecks(updatedChecks));
+  return docsMap;
 };
