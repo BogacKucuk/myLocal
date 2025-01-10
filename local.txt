@@ -1,83 +1,261 @@
-@Test
-void testTakeCommissionFromAmount_ElseBranch() throws Exception {
-    // 1) Komisyon var, tutardan => true
-    CashTransactionDTO dto = new CashTransactionDTO();
-    dto.setProcessCode(PROCESS_CODE.WITHDRAW.getProcessCode()); // ya da DEPOSIT, fark etmez
+package com.ykb.corebanking.vault.money.deposit.withdraw.bff.service.impl;
 
-    CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
-    detail.setAmount(BigDecimal.valueOf(1000));
-    detail.setAccountAmount(BigDecimal.valueOf(800));
-    detail.setKmvAmount(BigDecimal.ZERO);           // KMV = 0 => hasKmvAmountGreaterThanZero => false
-    detail.setCommissionAmount(BigDecimal.valueOf(50)); // Komisyon var
-    detail.setCurrency("USD");
-    detail.setAccountCurrency("EUR"); // currency != accountCurrency => else branch adayı
+import com.ykb.corebanking.vault.money.deposit.withdraw.bff.client.BbtBranchOpsWorkflowClient;
+import com.ykb.corebanking.vault.money.deposit.withdraw.bff.client.SmartControlClient;
+import com.ykb.corebanking.vault.money.deposit.withdraw.bff.dto.*;
+import com.ykb.corebanking.vault.money.deposit.withdraw.bff.exception.SmartControlException;
+import com.ykb.corebanking.vault.money.deposit.withdraw.bff.request.RequestBranchOperationControlResult;
+import com.ykb.corebanking.vault.money.deposit.withdraw.bff.request.RequestSmartControlDocuments;
+import com.ykb.corebanking.vault.money.deposit.withdraw.bff.service.ISmartControlService;
+import com.ykb.corebanking.vault.money.deposit.withdraw.bff.util.ControlUtil;
 
-    CashTransactionStoredRequest req = new CashTransactionStoredRequest();
-    req.setTakeCommissionFromTransactionAmount(true); // tutardan alınıyor
-    req.setTakeTaxFromAccount(false);                 // tax=false => KMV branch da girmesin
-    detail.setCashTransactionStoredRequest(req);
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
+import org.springframework.stereotype.Service;
 
-    // Tek detail
-    List<CashTransactionDetailDTO> detailList = Collections.singletonList(detail);
+import java.util.ArrayList;
+import java.util.List;
 
-    // Reflection'la en üst metod “calculateAmountTextAndIsKgvIncluded”  tetiklenir, oradan `takeCommissionFromAmount` => else
-    Method method = CustomerNotificationService.class.getDeclaredMethod(
-            "calculateAmountTextAndIsKgvIncluded",
-            CashTransactionDTO.class,
-            List.class
-    );
-    method.setAccessible(true);
+@Service
+public class SmartControlService implements ISmartControlService {
 
-    CustomerNotificationService.AmountCalculationResult result =
-            (CustomerNotificationService.AmountCalculationResult)
-                    method.invoke(customerNotificationService, dto, detailList);
+    private SmartControlClient         client;
+    private BbtBranchOpsWorkflowClient bbtClient;
 
-    // Beklenti: else'e girdi => "amountText = formatCurrency(totalAmount.toString()) + ... ”
-    assertNotNull(result.getAmountText());
-    // KMV yok => isKgvIncluded=false
-    assertFalse(result.getIsKgvIncluded());
-    // "1000,00 USD karşılığı 800,00 EUR" gibi bir şey olabilir
-    // Yeter ki else'e girildiğini coverage'tan görebilin
+    @Autowired
+    public SmartControlService(SmartControlClient client, BbtBranchOpsWorkflowClient bbtClient) {
+        this.client = client;
+        this.bbtClient = bbtClient;
+    }
+
+    @Override
+    public SmartControlDataDTO getSmartControlDocuments(RequestSmartControlDocuments request) throws SmartControlException {
+        SmartControlDataDTO smartControlDataDTO = new SmartControlDataDTO();
+        if (request.getGroupId() != null && !ControlUtil.isEmpty(request.getGroupId())) {
+            smartControlDataDTO.setBbtDocuments(getBBTDocs(Long.valueOf(request.getGroupId()), request.getProcessCode()));
+        }
+        
+        ResponseEntity<List<CashTrxnParameterDTO>> backendResponse = client.getSmartControlDocuments(request);
+        if (backendResponse != null) {
+            List<CashTrxnParameterDTO> parameterList = backendResponse.getBody();
+            List<SmartControlDocumentDTO> nonExistsDocs = new ArrayList<>();
+            for (CashTrxnParameterDTO parameter : parameterList) {
+                SmartControlDocumentDTO smartControlData = new SmartControlDocumentDTO();
+                String[] values = parameter.getValue().split(";");
+                smartControlData.setParameterName(values[0]);
+                smartControlData.setDescription(values[1]);
+                smartControlData.setIsExist(Boolean.FALSE);
+                smartControlData.setKey(parameter.getParameterName());
+                nonExistsDocs.add(smartControlData);
+            }
+            smartControlDataDTO.setNotExistsDocs(nonExistsDocs);
+        } else {
+            throw new SmartControlException("Gerekli dokümanlar bulunamadı.");
+        }
+        return smartControlDataDTO;
+    }
+
+    private List<SmartControlDocumentDTO> getBBTDocs(Long groupId, List<String> processCode) throws SmartControlException {
+        RequestBranchOperationControlResult bbtRequest = new RequestBranchOperationControlResult();
+
+        bbtRequest.setGroupId(groupId);
+        bbtRequest.setProcessCode(processCode);
+
+        ResultBBTListDocumentControlResultDTO bbtResponse = bbtClient.getBBTBranchOperationControlResults(bbtRequest);
+        List<SmartControlDocumentDTO> bbtNewDocs = new ArrayList<>();
+        if (bbtResponse != null && bbtResponse.getData() != null) {
+            if(bbtResponse.getData().isEmpty()) {
+                return bbtNewDocs;
+            }
+            for(DocumentControlResultDTO documentData : bbtResponse.getData()) {
+                SmartControlDocumentDTO smartControlData = new SmartControlDocumentDTO();
+                smartControlData.setParameterName(documentData.getDocumentName());
+                smartControlData.setDocumentRemoteId(documentData.getRemoteDocumentId());
+                smartControlData.setIsExist(Boolean.FALSE);
+                smartControlData.setKey(documentData.getDocumentName());
+                if(!documentData.getResultDescriptionDTO().isEmpty() && documentData.getResultDescriptionDTO() != null) {
+                    List<SmartControlDocumentDTO> childrenDocsList = new ArrayList<>();
+                    for (ResultDescriptionDTO childrenData : documentData.getResultDescriptionDTO()) {
+                        SmartControlDocumentDTO childDocument = new SmartControlDocumentDTO();
+                        childDocument.setParameterName(childrenData.getControlType());
+                        childDocument.setDescription(childrenData.getControlMessage());
+                        childDocument.setIsExist(Boolean.FALSE);
+                        childDocument.setKey(documentData.getDocumentName() + "-" + childrenData.getControlType());
+
+                        childrenDocsList.add(childDocument);
+                    }
+                    smartControlData.setChildren(childrenDocsList);
+                }
+                bbtNewDocs.add(smartControlData);
+            }
+            return bbtNewDocs;
+        }
+        else {
+            throw new SmartControlException("BBT dokümanları bulunamadı.");
+        }
+    }
 }
 
 
-@Test
-void testCalculateAmountTextWithoutCommission_ElseBranch() throws Exception {
-    // Komisyon yok => "withoutCommission" koluna gitsin
-    CashTransactionDTO dto = new CashTransactionDTO();
-    dto.setProcessCode(PROCESS_CODE.DEPOSIT.getProcessCode());
+package com.ykb.corebanking.vault.money.deposit.withdraw.bff.dto;
 
-    CashTransactionDetailDTO detail = new CashTransactionDetailDTO();
-    detail.setAmount(BigDecimal.valueOf(500));
-    detail.setAccountAmount(BigDecimal.valueOf(600));
-    detail.setKmvAmount(BigDecimal.ZERO);     // => hasKmv = false
-    detail.setCommissionAmount(BigDecimal.ZERO); // => no commission => "withoutCommission"
-    detail.setCurrency("USD");
-    detail.setAccountCurrency("EUR"); // farkli => else potansiyeli
+import lombok.Getter;
+import lombok.Setter;
 
-    CashTransactionStoredRequest req = new CashTransactionStoredRequest();
-    req.setTakeCommissionFromTransactionAmount(false);
-    req.setTakeTaxFromAccount(false); // => hasKmvAmountGreaterThanZero => false
-    detail.setCashTransactionStoredRequest(req);
+import java.util.List;
 
-    List<CashTransactionDetailDTO> detailList = Collections.singletonList(detail);
+@Getter
+@Setter
+public class SmartControlDocumentDTO {
+    private String parameterName;
+    private String description;
+    private String key;
+    private Boolean isExist;
+    private Long documentRemoteId;
+    private List<SmartControlDocumentDTO> children;
+}
 
-    // Reflection => en üst seviye "calculateAmountTextAndIsKgvIncluded"
-    Method method = CustomerNotificationService.class.getDeclaredMethod(
-            "calculateAmountTextAndIsKgvIncluded",
-            CashTransactionDTO.class,
-            List.class
-    );
-    method.setAccessible(true);
+package com.ykb.corebanking.vault.money.deposit.withdraw.bff.request;
 
-    CustomerNotificationService.AmountCalculationResult result =
-            (CustomerNotificationService.AmountCalculationResult)
-                    method.invoke(customerNotificationService, dto, detailList);
+import lombok.Getter;
+import lombok.Setter;
 
-    // isKgvIncluded=false
-    assertFalse(result.getIsKgvIncluded());
-    // else => "amountText = formatCurrency(totalAmount) + currency + EQUIVALENT + ...accountAmount..."
-    assertNotNull(result.getAmountText());
-    // Örneğin "500,00 USD karşılığı 600,00 EUR"
-    // Yeter ki coverage'ta else dalı yeşillensin
+import java.util.List;
+
+@Getter
+@Setter
+public class RequestBranchOperationControlResult {
+    private Long groupId;
+    private List<String> processCode;
+}
+
+package com.ykb.corebanking.vault.money.deposit.withdraw.bff.dto;
+
+import lombok.Getter;
+import lombok.Setter;
+
+import java.util.List;
+
+@Getter
+@Setter
+public class ResultBBTListDocumentControlResultDTO {
+    private Boolean success;
+    private Integer errorCode;
+    private String message;
+    private String errorMessage;
+    private List<DocumentControlResultDTO> data;
+}
+
+package com.ykb.corebanking.vault.money.deposit.withdraw.bff.dto;
+
+import lombok.Getter;
+import lombok.Setter;
+
+import java.util.Date;
+import java.util.List;
+
+@Getter
+@Setter
+public class DocumentControlResultDTO {
+    private String documentName;
+    private String documentTypeId;
+    private Long remoteDocumentId;
+    private List<ResultDescriptionDTO> resultDescriptionDTO;
+    private List<LegalExplanationResultDTO> legalExplanationResultList;
+    private Long signatureRemoteId;
+    private Date createDate;
+    private String createdBy;
+}
+
+package com.ykb.corebanking.vault.money.deposit.withdraw.bff.dto;
+
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+public class ResultDescriptionDTO {
+    private Boolean controlCheck;
+    private String controlMessage;
+    private String controlStatus;
+    private String controlType;
+    private String messageType;
+}
+
+@Getter
+@Setter
+public class LegalExplanationResultDTO {
+    private Integer pageNo;
+    private String controlResultDetail;
+    private Double ruleScore;
+}
+
+package com.ykb.corebanking.vault.money.deposit.withdraw.bff.dto;
+
+import java.util.Date;
+
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+public class CashTrxnParameterDTO {
+
+    private String parameterName;
+    private String description;
+    private String value;
+    private Date   startDate;
+    private Date   expireDate;
+    private String dataType;
+
+}
+	
+package com.ykb.corebanking.vault.money.deposit.withdraw.bff.client;
+
+import com.ykb.corebanking.vault.money.deposit.withdraw.bff.dto.ResultBBTListBranchOperationDetailDto;
+import com.ykb.corebanking.vault.money.deposit.withdraw.bff.dto.ResultBBTListDocumentControlResultDTO;
+import com.ykb.corebanking.vault.money.deposit.withdraw.bff.request.RequestBranchOperationControlResult;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+
+import com.ykb.architecture.micro.error.feign.decoder.MicroErrorDecoder;
+import com.ykb.corebanking.vault.money.deposit.withdraw.bff.request.RequestStartBranchOperation;
+import com.ykb.corebanking.vault.money.deposit.withdraw.bff.request.RequestUpdateBranchOperation;
+import com.ykb.corebanking.vault.money.deposit.withdraw.bff.response.ResponseStartBranchOperation;
+import com.ykb.corebanking.vault.money.deposit.withdraw.bff.response.ResultBBTResponseBranchList;
+
+@FeignClient(name = "WORKFLOW.BBT.bbt-branch-ops", configuration = { MicroErrorDecoder.class })
+public interface BbtBranchOpsWorkflowClient {
+    
+    @PostMapping(path = "/branchOperationManagement/updateBranchOperation")
+    public ResponseEntity<ResultBBTResponseBranchList> updateBranchOperation(@RequestBody RequestUpdateBranchOperation request);
+    
+    @PostMapping(path = "/branchOperationManagement/startBranchOperation")
+    public ResponseEntity<ResponseStartBranchOperation> startBranchOperation(@RequestBody RequestStartBranchOperation request);
+
+    @PostMapping(value = "/branchOperationManagement/listBranchOperation")
+    ResultBBTListBranchOperationDetailDto listBranchOperation(RequestBranchOperationControlResult request);
+
+    @PostMapping(value = "/branchOperationManagement/getBBTBranchOperationControlResults")
+    ResultBBTListDocumentControlResultDTO getBBTBranchOperationControlResults(@RequestBody RequestBranchOperationControlResult request);
+}
+
+package com.ykb.corebanking.vault.money.deposit.withdraw.bff.client;
+
+import com.ykb.architecture.micro.error.feign.decoder.MicroErrorDecoder;
+import com.ykb.corebanking.vault.money.deposit.withdraw.bff.dto.CashTrxnParameterDTO;
+import com.ykb.corebanking.vault.money.deposit.withdraw.bff.request.RequestSmartControlDocuments;
+import org.springframework.cloud.openfeign.FeignClient;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.PostMapping;
+
+import java.util.List;
+
+@FeignClient(name = "COREBANKING.VAULT.money-deposit-withdraw", configuration = { MicroErrorDecoder.class })
+public interface SmartControlClient {
+
+    @PostMapping("/smartControl/getDocuments")
+    ResponseEntity<List<CashTrxnParameterDTO>> getSmartControlDocuments(RequestSmartControlDocuments request);
 }
