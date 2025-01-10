@@ -1,50 +1,63 @@
-// docsMap şu şekilde olacak:
-// {
-//    "1702 - Tüm Kimlikler": { parent: null, children: ["Ad Soyad", "İmza", "Tarih"] },
-//    "Ad Soyad": { parent: "1702 - Tüm Kimlikler", children: [] },
-//    "İmza": { parent: "1702 - Tüm Kimlikler", children: [] },
-//    "Tarih": { parent: "1702 - Tüm Kimlikler", children: [] },
-//    ...
-// }
-
-const generateDocsMap = (docsArray, parentKey = null, docsMap = {}) => {
-  docsArray.forEach((doc) => {
-    // Haritada bu doc için bir kayıt oluştur
-    // eğer yoksa, varsayılan parent:null ve children:[]
-    if (!docsMap[doc.key]) {
-      docsMap[doc.key] = { parent: parentKey, children: [] };
-    } else {
-      // varsa sadece parent'ını set edelim
-      docsMap[doc.key].parent = parentKey;
-    }
-
-    // Eğer parentKey varsa, parent'ın children dizisine bu doc'un key'ini ekle
-    if (parentKey) {
-      if (!docsMap[parentKey]) {
-        docsMap[parentKey] = { parent: null, children: [] };
-      }
-      docsMap[parentKey].children.push(doc.key);
-    }
-
-    // Çocuklar varsa, rekurzif çağrı yaparak aynı işlemi onların üzerinde de yap
-    if (doc.children && doc.children.length > 0) {
-      generateDocsMap(doc.children, doc.key, docsMap);
-    }
-  });
-  return docsMap;
-};
-
-
-
-
-
-const generateDocsMapWrapper = (response) => {
-  let docsMap = {};
-  if (response?.bbtDocuments?.length) {
-    docsMap = generateDocsMap(response.bbtDocuments, null, docsMap);
-  }
-  if (response?.notExistsDocs?.length) {
-    docsMap = generateDocsMap(response.notExistsDocs, null, docsMap);
-  }
-  return docsMap;
-};
+{
+    "bbtDocuments": [
+        {
+            "parameterName": "1702 - Tüm Kimlikler",
+            "description": null,
+            "key": "1702 - Tüm Kimlikler",
+            "isExist": false,
+            "documentRemoteId": 18127217,
+            "children": [
+                {
+                    "parameterName": "Ad Soyad",
+                    "description": "Belge üzerindeki ad soyadı bilgisini kontrol ediniz.",
+                    "key": "1702 - Tüm Kimlikler-Ad Soyad",
+                    "isExist": false,
+                    "documentRemoteId": null,
+                    "children": null
+                },
+                {
+                    "parameterName": "İmza",
+                    "description": "İmza kontrolü yapınız.",
+                    "key": "1702 - Tüm Kimlikler-İmza",
+                    "isExist": false,
+                    "documentRemoteId": null,
+                    "children": null
+                },
+                {
+                    "parameterName": "Tarih",
+                    "description": "Belge üzerindeki tarih bilgisini kontrol ediniz.",
+                    "key": "1702 - Tüm Kimlikler-Tarih",
+                    "isExist": false,
+                    "documentRemoteId": null,
+                    "children": null
+                }
+            ]
+        }
+    ],
+    "notExistsDocs": [
+        {
+            "parameterName": "Ankes",
+            "description": "Şube ankesini kontrol ediniz ve gişe personeline bilgi veriniz.",
+            "key": "app.micro.moneydeposit_smartcontrol_ankes",
+            "isExist": false,
+            "documentRemoteId": null,
+            "children": null
+        },
+        {
+            "parameterName": "İşlem Yaptıran Kişi Kontrolü",
+            "description": "Kendisi, Talimatlı, Vekaletnameli (vekaletname içeriği) seçimini ve kimliği kontrol ediniz.",
+            "key": "app.micro.moneydeposit_smartcontrol_transactionMaker",
+            "isExist": false,
+            "documentRemoteId": null,
+            "children": null
+        },
+        {
+            "parameterName": "Müşteri Varlık Kontrolü",
+            "description": " Şubede veya şube içi kameradan müşterinin şubede olduğunu kontrol ediniz.",
+            "key": "app.micro.moneydeposit_smartcontrol_customerPresenceControl",
+            "isExist": false,
+            "documentRemoteId": null,
+            "children": null
+        }
+    ]
+}
