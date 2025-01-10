@@ -1,63 +1,340 @@
-{
-    "bbtDocuments": [
+import React, { useEffect, useState } from "react";
+import { Table, Checkbox, Typography, Icon } from "ykb-ui";
+import { useShellCommunicator } from "ykb-shell";
+import { useSelector, useDispatch } from "react-redux";
+import { moneyDepositActions } from "../../store/moneyDeposit-store";
+import { ApprovalType } from "../../constants/CommonConstants";
+import { getCashApprovalType } from "../../utils/common/MoneyDepositUtils";
+import { getDocumentsApi } from "../../API/MoneyDepositAPI";
+
+const { Text } = Typography;
+
+const MoneyDepositSmartControlTable = (props) => {
+  const groupId = useSelector((state) => state.groupId);
+  const dispatch = useDispatch();
+  const notificationMode = useSelector((state) => state.notificationMode);
+  const [tableData, setTableData] = useState(null);
+  const { openTeslaViewerWithUrl, fireModuleEvent, callApi } =
+    useShellCommunicator();
+  const [selectedRow, setSelectedRow] = useState(null);
+  const [bbtDocsChecks, setBbtDocsChecks] = useState([]);
+  const [docsMap, setDocsMap] = useState({});
+
+  useEffect(() => {
+    getDocuments();
+  }, [groupId]);
+
+  const columns = [
+    {
+      title: "Kontrol Adı",
+      dataIndex: "parameterName",
+      key: "parameterName",
+      render: (text, record) => generateLinks(text, record),
+    },
+    {
+      title: "Kontrol Açıklaması",
+      dataIndex: "description",
+      key: "description",
+    },
+    {
+      title: "Uygun",
+      dataIndex: "status",
+      width: "30%",
+      key: "status",
+      render: (text, record) => generateCheckButtons(text, record),
+    },
+  ];
+
+  const generateTableData = (response) => {
+    let data;
+    if (groupId === "" || response?.bbtDocuments.length === 0) {
+      data = [
         {
-            "parameterName": "1702 - Tüm Kimlikler",
-            "description": null,
-            "key": "1702 - Tüm Kimlikler",
-            "isExist": false,
-            "documentRemoteId": 18127217,
-            "children": [
-                {
-                    "parameterName": "Ad Soyad",
-                    "description": "Belge üzerindeki ad soyadı bilgisini kontrol ediniz.",
-                    "key": "1702 - Tüm Kimlikler-Ad Soyad",
-                    "isExist": false,
-                    "documentRemoteId": null,
-                    "children": null
-                },
-                {
-                    "parameterName": "İmza",
-                    "description": "İmza kontrolü yapınız.",
-                    "key": "1702 - Tüm Kimlikler-İmza",
-                    "isExist": false,
-                    "documentRemoteId": null,
-                    "children": null
-                },
-                {
-                    "parameterName": "Tarih",
-                    "description": "Belge üzerindeki tarih bilgisini kontrol ediniz.",
-                    "key": "1702 - Tüm Kimlikler-Tarih",
-                    "isExist": false,
-                    "documentRemoteId": null,
-                    "children": null
-                }
-            ]
-        }
-    ],
-    "notExistsDocs": [
+          key: 1,
+          parameterName: "Diğer İşlem Kontrolleri",
+          description: "",
+          isHeader: true,
+          children: [],
+        },
+      ];
+    } else {
+      data = [
         {
-            "parameterName": "Ankes",
-            "description": "Şube ankesini kontrol ediniz ve gişe personeline bilgi veriniz.",
-            "key": "app.micro.moneydeposit_smartcontrol_ankes",
-            "isExist": false,
-            "documentRemoteId": null,
-            "children": null
+          key: 1,
+          parameterName: "Belge Kontrolleri",
+          description: "",
+          isHeader: true,
+          children: [],
         },
         {
-            "parameterName": "İşlem Yaptıran Kişi Kontrolü",
-            "description": "Kendisi, Talimatlı, Vekaletnameli (vekaletname içeriği) seçimini ve kimliği kontrol ediniz.",
-            "key": "app.micro.moneydeposit_smartcontrol_transactionMaker",
-            "isExist": false,
-            "documentRemoteId": null,
-            "children": null
+          key: 2,
+          parameterName: "Diğer İşlem Kontrolleri",
+          description: "",
+          isHeader: true,
+          children: [],
         },
-        {
-            "parameterName": "Müşteri Varlık Kontrolü",
-            "description": " Şubede veya şube içi kameradan müşterinin şubede olduğunu kontrol ediniz.",
-            "key": "app.micro.moneydeposit_smartcontrol_customerPresenceControl",
-            "isExist": false,
-            "documentRemoteId": null,
-            "children": null
+      ];
+    }
+    setTableData(data);
+    return data;
+  };
+
+  const generateLinks = (text, record) => {
+    if (record.documentRemoteId != null) {
+      return (
+        <Text type="secondary" underline>
+          {record.parameterName}
+          <Icon name="external-link" />
+        </Text>
+      );
+    } else {
+      return <Text>{record.parameterName}</Text>;
+    }
+  };
+
+  function openTesla(remoteId) {
+    fireModuleEvent("wsGetDocumentUrl", {
+      documentId: remoteId,
+      documentUniqueKey: "undefined",
+      userID: props?.externalData?.shellData?.user?.userCode,
+      //environment: context.externalData.scopeData.environment,
+      callbackContext: this,
+      callbackFunction: function (documentUrl) {
+        openTeslaViewerWithUrl({
+          data: {
+            urls: [documentUrl],
+          },
+        });
+      },
+    });
+  }
+
+  const generateCheckButtons = (text, record) => {
+    if (record.isHeader) {
+      return null;
+    }
+    if (record.isExist) {
+      return <Checkbox checked={true} disabled={true}></Checkbox>;
+    } else {
+      return (
+        <Checkbox
+          id={record.key}
+          checked={assignCheckState(record.key)}
+          onChange={toggleChecked}
+        ></Checkbox>
+      );
+    }
+  };
+
+  // children dahil hepsini rekurzif olarak aynı checked değerine getirir
+  function checkAllChildren(docsMap, checksArr, parentKey, newChecked) {
+    // parentKey'in children'larını al
+    const childKeys = docsMap[parentKey]?.children || [];
+
+    // checksArr üstünde childKeys'e sahip item'ları bul ve hepsini newChecked yap
+    childKeys.forEach((childKey) => {
+      const childIndex = checksArr.findIndex((c) => c.id === childKey);
+      if (childIndex > -1) {
+        checksArr[childIndex].checked = newChecked;
+      }
+      // rekurzif olarak o child'ın da children'ları olabilir:
+      checkAllChildren(docsMap, checksArr, childKey, newChecked);
+    });
+  }
+
+  function updateParentIfAllChildrenChecked(docsMap, checksArr, childKey) {
+    const parentKey = docsMap[childKey]?.parent;
+    if (!parentKey) return; // parent yoksa çık
+
+    // parent'ın tüm children'ı
+    const siblings = docsMap[parentKey]?.children || [];
+    // hepsi checked mi?
+    const allSiblingsChecked = siblings.every((sKey) => {
+      const found = checksArr.find((c) => c.id === sKey);
+      return found?.checked === true;
+    });
+
+    if (allSiblingsChecked) {
+      // parent'ı true yap
+      const parentIndex = checksArr.findIndex((c) => c.id === parentKey);
+      if (parentIndex > -1) {
+        checksArr[parentIndex].checked = true;
+      }
+      // eğer parent'ın da parent'ı varsa, orayı da güncellemek istersen yine rekurzif
+      updateParentIfAllChildrenChecked(docsMap, checksArr, parentKey);
+    }
+  }
+
+  const toggleChecked = (e) => {
+    const clickedId = e.target.id; // docKey
+    // Yeni check durumu
+    const foundIndex = bbtDocsChecks.findIndex((item) => item.id === clickedId);
+    if (foundIndex < 0) return;
+
+    // Kopyasını alıp güncelle
+    const updatedChecks = [...bbtDocsChecks];
+    const oldValue = updatedChecks[foundIndex].checked;
+    const newValue = !oldValue;
+    updatedChecks[foundIndex].checked = newValue;
+
+    // EĞER parent checkbox'ı işaretlendiyse altındaki tüm child'ları da güncelle
+    // (docsMap'de clickedId'nin children'ları varsa)
+    if (docsMap[clickedId]?.children?.length > 0) {
+      checkAllChildren(docsMap, updatedChecks, clickedId, newValue);
+    }
+
+    // EĞER child işaretlendiyse parent'ı güncellemek istersen:
+    // (clickedId'nin bir parent'ı varsa ve newValue === true)
+    if (newValue === true) {
+      updateParentIfAllChildrenChecked(docsMap, updatedChecks, clickedId);
+    }
+    // (Eğer "child false olduysa parent false olsun" gibi bir senaryon var ise
+    // updateParentIfAllChildrenUnchecked(...) gibi ayrı bir fonksiyon yazıp burada çağırabilirsin.)
+
+    setBbtDocsChecks(updatedChecks);
+    dispatch(moneyDepositActions.setBbtDocsChecks(updatedChecks));
+  };
+
+  const assignCheckState = (id) => {
+    const found = bbtDocsChecks.find((item) => item.id === id);
+    return found ? found.checked : false;
+  };
+
+  const generateCheckboxStates = (response) => {
+    const checks = [];
+    const addDocsToChecks = (docs) => {
+      docs.forEach((doc) => {
+        checks.push({
+          id: doc.key,
+          checked: false,
+        });
+        if (doc.children && doc.children.length > 0) {
+          addDocsToChecks(doc.children);
         }
-    ]
-}
+      });
+    };
+
+    if (response?.bbtDocuments?.length) {
+      addDocsToChecks(response.bbtDocuments);
+    }
+
+    if (response?.notExistsDocs?.length) {
+      addDocsToChecks(response.notExistsDocs);
+    }
+
+    return checks;
+  };
+
+  // docsMap şu şekilde olacak:
+  // {
+  //    "1702 - Tüm Kimlikler": { parent: null, children: ["Ad Soyad", "İmza", "Tarih"] },
+  //    "Ad Soyad": { parent: "1702 - Tüm Kimlikler", children: [] },
+  //    "İmza": { parent: "1702 - Tüm Kimlikler", children: [] },
+  //    "Tarih": { parent: "1702 - Tüm Kimlikler", children: [] },
+  //    ...
+  // }
+
+  const generateDocsMap = (docsArray, parentKey = null, docsMap = {}) => {
+    docsArray.forEach((doc) => {
+      // Haritada bu doc için bir kayıt oluştur
+      // eğer yoksa, varsayılan parent:null ve children:[]
+      if (!docsMap[doc.key]) {
+        docsMap[doc.key] = { parent: parentKey, children: [] };
+      } else {
+        // varsa sadece parent'ını set edelim
+        docsMap[doc.key].parent = parentKey;
+      }
+
+      // Eğer parentKey varsa, parent'ın children dizisine bu doc'un key'ini ekle
+      if (parentKey) {
+        if (!docsMap[parentKey]) {
+          docsMap[parentKey] = { parent: null, children: [] };
+        }
+        docsMap[parentKey].children.push(doc.key);
+      }
+
+      // Çocuklar varsa, rekurzif çağrı yaparak aynı işlemi onların üzerinde de yap
+      if (doc.children && doc.children.length > 0) {
+        generateDocsMap(doc.children, doc.key, docsMap);
+      }
+    });
+    return docsMap;
+  };
+
+  const generateDocsMapWrapper = (response) => {
+    let docsMap = {};
+    if (response?.bbtDocuments?.length) {
+      docsMap = generateDocsMap(response.bbtDocuments, null, docsMap);
+    }
+    if (response?.notExistsDocs?.length) {
+      docsMap = generateDocsMap(response.notExistsDocs, null, docsMap);
+    }
+    return docsMap;
+  };
+
+  const getDocuments = async () => {
+    if (groupId === null || groupId === undefined) {
+      return;
+    }
+    const documentRequest = {
+      parameterName: "moneydeposit_smartcontrol",
+      groupId: groupId,
+      processCode: ["PARYATVISION"],
+    };
+    dispatch(moneyDepositActions.setLoading(true));
+    await callApi(getDocumentsApi(documentRequest))
+      .then((response) => {
+        const data = generateTableData(response);
+
+        const newDocMap = generateDocsMapWrapper(response);
+        setDocsMap(newDocMap);
+
+        // set checkbox states
+        const documentChecks = generateCheckboxStates(response);
+        setBbtDocsChecks(documentChecks);
+
+        dispatch(moneyDepositActions.setBbtDocsChecks(documentChecks));
+        if (groupId === "" || response?.bbtDocuments.length === 0) {
+          data[0].children = response?.notExistsDocs;
+        } else {
+          data[0].children = response?.bbtDocuments;
+          data[1].children = response?.notExistsDocs;
+        }
+        setTableData(data);
+        dispatch(moneyDepositActions.setLoading(false));
+      })
+      .catch((ex) => {
+        dispatch(moneyDepositActions.setLoading(false));
+      });
+  };
+
+  const onRowSelected = (_, selectedRow) => {
+    setSelectedRow(selectedRow[0]);
+    if (selectedRow[0]?.documentRemoteId) {
+      openTesla(selectedRow[0].documentRemoteId);
+    }
+  };
+
+  const onRowClicked = (record) => {
+    onRowSelected([record.key], [record]);
+  };
+
+  return (
+    getCashApprovalType(notificationMode) === ApprovalType.LIMIT && (
+      <Table
+        columns={columns}
+        data={tableData}
+        expandable={{ defaultExpandAllRows: true }}
+        onRow={(record) => {
+          return {
+            onClick: (event) => {
+              onRowClicked(record);
+            },
+          };
+        }}
+      />
+    )
+  );
+};
+
+export default MoneyDepositSmartControlTable;
