@@ -1,61 +1,231 @@
-const options = [
-  { value: 'a', textLabel: 'Option 1' },
-  { value: 'b', textLabel: 'Option 2' },
-  { value: 'c', textLabel: 'Option 3' },
-];
-const defaultCheckedList = ['a'];
+import React, { useEffect, useState } from "react";
+import { Table, Checkbox, Typography, Icon } from "ykb-ui";
+import { useShellCommunicator } from "ykb-shell";
+import { useSelector, useDispatch } from "react-redux";
+import { moneyDepositActions } from "../../store/moneyDeposit-store";
+import { ApprovalType } from "../../constants/CommonConstants";
+import { getCashApprovalType } from "../../utils/common/MoneyDepositUtils";
+import { getDocumentsApi } from "../../API/MoneyDepositAPI";
 
-class CheckboxGroupExample extends React.Component {
-  constructor(props) {
-    super(props);
-    this.state = {
-      checkedList: defaultCheckedList,
-      indeterminate: true,
-      checkAll: 0,
+const { Text } = Typography;
+
+const MoneyDepositSmartControlTable = (props) => {
+  const groupId = useSelector((state) => state.groupId);
+  const dispatch = useDispatch();
+  const notificationMode = useSelector((state) => state.notificationMode);
+  const [tableData, setTableData] = useState(null);
+  const { openTeslaViewerWithUrl, fireModuleEvent, callApi } =
+    useShellCommunicator();
+  const [selectedRow, setSelectedRow] = useState(null);
+  const [bbtDocsChecks, setBbtDocsChecks] = useState([]);
+
+  useEffect(() => {
+    getDocuments();
+  }, [groupId]);
+
+  const columns = [
+    {
+      title: "Kontrol Adı",
+      dataIndex: "parameterName",
+      key: "parameterName",
+      render: (text, record) => generateLinks(text, record),
+    },
+    {
+      title: "Kontrol Açıklaması",
+      dataIndex: "description",
+      key: "description",
+    },
+    {
+      title: "Uygun",
+      dataIndex: "status",
+      width: "30%",
+      key: "status",
+      render: (text, record) => generateCheckButtons(text, record),
+    },
+  ];
+
+  const generateTableData = (response) => {
+    let data;
+    if (groupId === "" || response?.bbtDocuments.length === 0) {
+      data = [
+        {
+          key: 1,
+          parameterName: "Diğer İşlem Kontrolleri",
+          description: "",
+          isHeader: true,
+          children: [],
+        },
+      ];
+    } else {
+      data = [
+        {
+          key: 1,
+          parameterName: "Belge Kontrolleri",
+          description: "",
+          isHeader: true,
+          children: [],
+        },
+        {
+          key: 2,
+          parameterName: "Diğer İşlem Kontrolleri",
+          description: "",
+          isHeader: true,
+          children: [],
+        },
+      ];
+    }
+    setTableData(data);
+    return data;
+  };
+
+  const generateLinks = (text, record) => {
+    if(record.documentRemoteId != null) {
+      return (
+        <Text type="secondary" underline>
+          {record.parameterName}
+          <Icon name="external-link" />
+        </Text>
+      );
+    }
+    else {
+      return <Text>{record.parameterName}</Text>;
+    }
+  };
+
+  function openTesla(remoteId) {
+    fireModuleEvent("wsGetDocumentUrl", {
+      documentId: remoteId,
+      documentUniqueKey: "undefined",
+      userID: props?.externalData?.shellData?.user?.userCode,
+      //environment: context.externalData.scopeData.environment,
+      callbackContext: this,
+      callbackFunction: function (documentUrl) {
+        openTeslaViewerWithUrl({
+          data: {
+            urls: [documentUrl],
+          },
+        });
+      },
+    });
+  }
+
+  const generateCheckButtons = (text, record) => {
+    if (record.isHeader) {
+      return null;
+    }
+    if (record.isExist) {
+      return <Checkbox checked={true} disabled={true}></Checkbox>;
+    } else {
+      return (
+        <Checkbox
+          id={record.key}
+          checked={assignCheckState(record.key)}
+          onChange={toggleChecked}
+        ></Checkbox>
+      );
+    }
+  };
+
+  const toggleChecked = (e) => {
+    const id = e.target.id;
+    const updatedChecks = bbtDocsChecks.map((item) => {
+      if (item.id === id) {
+        return { ...item, checked: !item.checked };
+      }
+      return item;
+    });
+    setBbtDocsChecks(updatedChecks);
+    dispatch(moneyDepositActions.setBbtDocsChecks(updatedChecks));
+  };
+
+  const assignCheckState = (id) => {
+    const found = bbtDocsChecks.find((item) => item.id === id);
+    return found ? found.checked : false;
+  };
+
+  const generateCheckboxStates = (response) => {
+    const checks = [];
+    const addDocsToChecks = (docs) => {
+      docs.forEach((doc) => {
+        checks.push({
+          id: doc.key,
+          checked: false,
+        });
+        if (doc.children && doc.children.length > 0) {
+          addDocsToChecks(doc.children);
+        }
+      });
     };
-    this.onChange = this.onChange.bind(this);
-    this.onCheckAllChange = this.onCheckAllChange.bind(this);
-  }
 
-  render() {
-    return (
-      <div>
-        <div style={{ borderBottom: '1px solid #E9E9E9' }}>
-          <Checkbox
-            indeterminate={this.state.indeterminate}
-            onChange={this.onCheckAllChange}
-            checked={this.state.checkAll}
-          >
-            Check all
-          </Checkbox>
-        </div>
-        <br />
+    if (response?.bbtDocuments?.length) {
+      addDocsToChecks(response.bbtDocuments);
+    }
 
-        <CheckboxGroup
-          onChange={this.onChange}
-          value={this.state.checkedList}
-          items={options}
-        />
-      </div>
-    );
-  }
+    if (response?.notExistsDocs?.length) {
+      addDocsToChecks(response.notExistsDocs);
+    }
 
-  onChange(checkedList) {
-    this.setState({
-      checkedList,
-      indeterminate:
-        !!checkedList.length && checkedList.length < options.length,
-      checkAll: checkedList.length === options.length,
-    });
-  }
+    return checks;
+  };
 
-  onCheckAllChange(e) {
-    this.setState({
-      checkedList: e.target.checked ? ['a', 'b', 'c'] : [],
-      indeterminate: false,
-      checkAll: e.target.checked,
-    });
-  }
-}
+  const getDocuments = async () => {
+    if (groupId === null || groupId === undefined) {
+      return;
+    }
+    const documentRequest = {
+      parameterName: "moneydeposit_smartcontrol",
+      groupId: groupId,
+      processCode: ["PARYATVISION"]
+    };
+    dispatch(moneyDepositActions.setLoading(true));
+    await callApi(getDocumentsApi(documentRequest))
+      .then((response) => {
+        const data = generateTableData(response);
+        // set checkbox states
+        const documentChecks = generateCheckboxStates(response);
+        setBbtDocsChecks(documentChecks);
+        dispatch(moneyDepositActions.setBbtDocsChecks(documentChecks));
+        if (groupId === "" || response?.bbtDocuments.length === 0) {
+          data[0].children = response?.notExistsDocs;
+        } else {
+          data[0].children = response?.bbtDocuments;
+          data[1].children = response?.notExistsDocs;
+        }
+        setTableData(data);
+        dispatch(moneyDepositActions.setLoading(false));
+      })
+      .catch((ex) => {
+        dispatch(moneyDepositActions.setLoading(false));
+      });
+  };
 
-<CheckboxGroupExample />;
+  const onRowSelected = (_, selectedRow) => {
+    setSelectedRow(selectedRow[0]);
+    if (selectedRow[0]?.documentRemoteId) {
+      openTesla(selectedRow[0].documentRemoteId);
+    }
+  };
+
+  const onRowClicked = (record) => {
+    onRowSelected([record.key], [record]);
+  };
+
+  return (
+    getCashApprovalType(notificationMode) === ApprovalType.LIMIT && (
+      <Table
+        columns={columns}
+        data={tableData}
+        expandable={{ defaultExpandAllRows: true }}
+        onRow={(record) => {
+          return {
+            onClick: (event) => {
+              onRowClicked(record);
+            },
+          };
+        }}
+      />
+    )
+  );
+};
+
+export default MoneyDepositSmartControlTable;
