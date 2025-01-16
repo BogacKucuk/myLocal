@@ -3,21 +3,83 @@ package com.ykb.corebanking.tellerline.receiptbatch.service;
 import com.ykb.corebanking.tellerline.receiptbatch.clients.dto.HesparAccountServiceDTO;
 import com.ykb.corebanking.tellerline.receiptbatch.dto.ExpenseJobPrepareDTO;
 import com.ykb.corebanking.tellerline.receiptbatch.request.RequestReceiptLogger;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
-public interface IExpenseJobAccountService {
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.times;
 
-    List<ExpenseJobPrepareDTO> findAccountAndGetCommission(List<ExpenseJobPrepareDTO> clientList, Map<Integer, List<HesparAccountServiceDTO>> hesparAccountList, String currentPeriod, List<String> statusList);
+class IExpenseJobAccountServiceTest {
 
-    default void createBatchLogForAlert(IReceiptBatchLogService logger, Object object, Exception e) {
-        RequestReceiptLogger request = new RequestReceiptLogger();
-        request.setRequest(object);
-        request.setLoggerName("pendingCompensateExpense");
-        request.setMethodName("findAccountAndGetCommission");
-        request.setServiceName("CommissionFromExpenseAccount");
-        request.setLogMessage(e.getCause().toString().substring(0, Math.min(e.getCause().toString().length(), 4000)));
-        logger.insertReceiptBatchLog(request);
+    // logger arayüzünü/mock'unu ekliyoruz
+    private IReceiptBatchLogService loggerMock;
+    // test edeceğimiz arayüzü anonim sınıf (anonymous class) olarak implement ediyoruz
+    private IExpenseJobAccountService expenseJobAccountService;
+
+    @BeforeEach
+    void setUp() {
+        loggerMock = Mockito.mock(IReceiptBatchLogService.class);
+        
+        expenseJobAccountService = new IExpenseJobAccountService() {
+            @Override
+            public List<ExpenseJobPrepareDTO> findAccountAndGetCommission(
+                List<ExpenseJobPrepareDTO> clientList,
+                Map<Integer, List<HesparAccountServiceDTO>> hesparAccountList,
+                String currentPeriod,
+                List<String> statusList
+            ) {
+                // Gerçek implementasyonda ne bekleniyorsa
+                // test amacıyla "dummy" bir dönüş yapıyoruz
+                return Collections.emptyList();
+            }
+        };
+    }
+
+    @Test
+    void testCreateBatchLogForAlert() {
+        // GIVEN
+        Object dummyObject = new Object();
+        Exception exception = new Exception("Test Exception", new Throwable("Root Cause"));
+
+        // WHEN
+        expenseJobAccountService.createBatchLogForAlert(loggerMock, dummyObject, exception);
+
+        // THEN
+        // logger'a gönderilen RequestReceiptLogger nesnesini yakalayalım
+        ArgumentCaptor<RequestReceiptLogger> argumentCaptor = ArgumentCaptor.forClass(RequestReceiptLogger.class);
+        verify(loggerMock, times(1)).insertReceiptBatchLog(argumentCaptor.capture());
+
+        RequestReceiptLogger requestReceiptLogger = argumentCaptor.getValue();
+        assertThat(requestReceiptLogger.getRequest()).isEqualTo(dummyObject);
+        assertThat(requestReceiptLogger.getLoggerName()).isEqualTo("pendingCompensateExpense");
+        assertThat(requestReceiptLogger.getMethodName()).isEqualTo("findAccountAndGetCommission");
+        assertThat(requestReceiptLogger.getServiceName()).isEqualTo("CommissionFromExpenseAccount");
+        assertThat(requestReceiptLogger.getLogMessage()).contains("Root Cause");
+    }
+
+    @Test
+    void testFindAccountAndGetCommission() {
+        // GIVEN
+        List<ExpenseJobPrepareDTO> clientList = Collections.emptyList();
+        Map<Integer, List<HesparAccountServiceDTO>> hesparAccountList = Collections.emptyMap();
+        String currentPeriod = "202301";
+        List<String> statusList = Collections.singletonList("ACTIVE");
+
+        // WHEN
+        List<ExpenseJobPrepareDTO> result =
+                expenseJobAccountService.findAccountAndGetCommission(clientList, hesparAccountList, currentPeriod, statusList);
+
+        // THEN
+        // Bu örnekte "dummy" implementasyonda boş bir liste dönüyoruz
+        // Gerçek senaryoda burayı, metot içerisindeki iş mantığını test edecek şekilde
+        // gerçek implementasyon (veya mock) ile test etmelisiniz
+        assertThat(result).isEmpty();
     }
 }
