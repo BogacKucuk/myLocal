@@ -1,381 +1,81 @@
-package com.ykb.corebanking.tellerline.receipt.controller;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import com.ykb.corebanking.tellerline.receipt.controller.request.RequestReceiptAdcCriteria;
-import com.ykb.corebanking.tellerline.receipt.dto.AdcProcessReceiptDTO;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
-
-import com.ykb.corebaking.tellerline.receipt.exception.ReceiptException;
-import com.ykb.corebanking.tellerline.receipt.controller.request.RequestAdcReceiptDisplay;
-import com.ykb.corebanking.tellerline.receipt.controller.request.RequestAdcReceiptListing;
-import com.ykb.corebanking.tellerline.receipt.controller.response.ResponseAdcReceiptDisplay;
-import com.ykb.corebanking.tellerline.receipt.controller.response.ResponseAdcReceiptDisplayList;
-import com.ykb.corebanking.tellerline.receipt.controller.response.ResponseAdcReceiptListing;
-import com.ykb.corebanking.tellerline.receipt.request.RequestReceiptSendMail;
-import com.ykb.corebanking.tellerline.receipt.response.ResponseAdcWrapperSendMail;
-import com.ykb.corebanking.tellerline.receipt.service.interfaces.IReceiptAlternativeDistributionChannelsService;
-import com.ykb.corebanking.tellerline.receipt.service.interfaces.IReceiptLogService;
-import com.ykb.corebanking.tellerline.receipt.service.interfaces.IReceiptMailWrapperService;
-
-import io.github.resilience4j.ratelimiter.annotation.RateLimiter;
-import io.swagger.annotations.Api;
-import io.swagger.annotations.ApiOperation;
-
-@Validated
-@RestController
-@RequestMapping("/receipt/adc")
-@Api("Receipt ADK Operations")
-public class ReceiptAlternativeDistributionChannelsController {
-
-	@Autowired
-	private IReceiptLogService receiptLogService;
-	@Autowired
-	IReceiptAlternativeDistributionChannelsService receiptAlternativeDistributionChannelsService;
-	@Autowired
-	private IReceiptMailWrapperService receiptMailWrapperService;
-
-	@PostMapping("/listing")
-	@ApiOperation("Inquire Receipt ADC")
-    @RateLimiter(name = "rateLimiterForADKListing")
-	public ResponseEntity<ResponseAdcReceiptListing> inquireReceipt(@RequestBody RequestAdcReceiptListing request) {
-        if (request.getAccountNumber() != null && request.getAccountCurrency() != null) {
-            request.setAccountNo(request.getAccountNumber() + "    " + request.getAccountCurrency());
-        }
-		ResponseAdcReceiptListing response = receiptAlternativeDistributionChannelsService.getReceiptList(request);
-		return new ResponseEntity<>(response, HttpStatus.OK);
-	}
-
-
-
-    @PostMapping("/receiptDisplay")
-    @RateLimiter(name = "rateLimiterForADKReceiptDisplay")
-    public ResponseEntity<ResponseAdcReceiptDisplayList> adcGetDisplay(@RequestBody RequestAdcReceiptDisplay requestAdcReceiptDisplay) throws ReceiptException {
-        for (RequestReceiptAdcCriteria requestReceiptAdcCriteria : requestAdcReceiptDisplay.getRequestReceiptAdcCriteriaList()) {
-            if (requestReceiptAdcCriteria.getAccountNumber() != null && requestReceiptAdcCriteria.getAccontCurrency() != null) {
-                requestReceiptAdcCriteria.setAccount(requestReceiptAdcCriteria.getAccountNumber() + "    " + requestReceiptAdcCriteria.getAccontCurrency());
-            }
-        }
-        try {
-            ResponseAdcReceiptDisplayList responseList = new ResponseAdcReceiptDisplayList();
-            List<ResponseAdcReceiptDisplay> response = receiptAlternativeDistributionChannelsService.getReceiptDisplayList(requestAdcReceiptDisplay);
-            responseList.setResponseAdcReceiptDisplay(response);
-            return new ResponseEntity<>(responseList, HttpStatus.OK);
-        } catch (Exception e) {
-            receiptLogService.insertErrorReceiptLog(receiptLogService.createRequestReceiptLog("AdcDisplay", requestAdcReceiptDisplay, e.getMessage()));
-            return new ResponseEntity<>(createAdcErrorResponse(e.getMessage()), HttpStatus.INTERNAL_SERVER_ERROR);
-        }
-    }
+@Test
+void whenInquired_withNullAccountNumber_shouldNotModifyAccountField() {
+    var request = ReceiptAlternativeDistributionChannelsServiceTestUtil.getRequestReceiptAdcInquiry_Fully();
+    request.setAccountNumber(null);       // <-- AccountNumber null
+    request.setAccountCurrency("USD");    // <-- Currency dolu
     
-	@PostMapping(path = "/sendMailAdc")
-    @RateLimiter(name = "rateLimiterForADKSendMail")
-	public ResponseEntity<ResponseAdcWrapperSendMail> sendEmailAdc(@RequestBody RequestReceiptSendMail request) {
-        if (request.getProcessReceiptList() != null && !request.getProcessReceiptList().isEmpty()) {
-            for (AdcProcessReceiptDTO adcProcessReceiptDTO : request.getProcessReceiptList()) {
-                if (adcProcessReceiptDTO.getAccountNumber() != null && adcProcessReceiptDTO.getAccountCurrency() != null) {
-                    adcProcessReceiptDTO.setAccountNo(adcProcessReceiptDTO.getAccountNumber() + "    " + adcProcessReceiptDTO.getAccountCurrency());
-                }
-            }
-        }
-		return new ResponseEntity<>(receiptMailWrapperService.sendMail(request), HttpStatus.OK);
-	}
+    when(service.getReceiptList(Mockito.any()))
+        .thenReturn(ReceiptAlternativeDistributionChannelsServiceTestUtil.getResponseReceiptAdcInquiry_Successfull());
+    
+    ResponseEntity<ResponseAdcReceiptListing> httpResponse = controller.inquireReceipt(request);
+    
+    assertThat(httpResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+    // 'accountNo' set edilmemiş olmalı (if'in false dalı)
+    assertThat(request.getAccountNo()).isNull(); 
+}
 
-
-    private ResponseAdcReceiptDisplayList createAdcErrorResponse(String errorMessage) {
-        ResponseAdcReceiptDisplayList responseList = new ResponseAdcReceiptDisplayList();
-        List<ResponseAdcReceiptDisplay> responseObjectList = new ArrayList<>();
-        ResponseAdcReceiptDisplay responseObject = ResponseAdcReceiptDisplay.builder().errorMessage(errorMessage).isSuccessful(true).build();
-        responseObjectList.add(responseObject);
-        responseList.setResponseAdcReceiptDisplay(responseObjectList);
-        return responseList;
-    }
+@Test
+void whenInquired_withNullAccountCurrency_shouldNotModifyAccountField() {
+    var request = ReceiptAlternativeDistributionChannelsServiceTestUtil.getRequestReceiptAdcInquiry_Fully();
+    request.setAccountNumber("123456");
+    request.setAccountCurrency(null);     // <-- Currency null
+    
+    when(service.getReceiptList(Mockito.any()))
+        .thenReturn(ReceiptAlternativeDistributionChannelsServiceTestUtil.getResponseReceiptAdcInquiry_Successfull());
+    
+    ResponseEntity<ResponseAdcReceiptListing> httpResponse = controller.inquireReceipt(request);
+    
+    assertThat(httpResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+    // 'accountNo' yine set edilmemiş olmalı (if'in false dalı)
+    assertThat(request.getAccountNo()).isNull();
 }
 
 
-package com.ykb.corebanking.tellerline.receipt.controller;
+@Test
+void whenAdcGetDisplay_withNullAccountNumber_shouldNotModifyAccount() throws ReceiptException {
+    var request = ReceiptAlternativeDistributionChannelsServiceTestUtil.getRequestReceiptDisplayAdc();
+    // İlk elemana null accountNumber veriyoruz
+    request.getRequestReceiptAdcCriteriaList().get(0).setAccountNumber(null);
+    request.getRequestReceiptAdcCriteriaList().get(0).setAccontCurrency("EUR");
 
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertTrue;
-import static org.mockito.Mockito.when;
+    when(service.getReceiptDisplayList(Mockito.any()))
+        .thenReturn(ReceiptAlternativeDistributionChannelsServiceTestUtil.getResponseAdcReceiptDisplay());
 
-import com.ykb.corebanking.tellerline.receipt.response.ResponseAdcWrapperSendMail;
-import com.ykb.corebanking.tellerline.receipt.service.interfaces.IReceiptMailWrapperService;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+    ResponseEntity<ResponseAdcReceiptDisplayList> httpResponse = controller.adcGetDisplay(request);
 
-import com.ykb.corebaking.tellerline.receipt.exception.ReceiptException;
-import com.ykb.corebanking.tellerline.receipt.controller.response.ResponseAdcReceiptDisplayList;
-import com.ykb.corebanking.tellerline.receipt.controller.response.ResponseAdcReceiptListing;
-import com.ykb.corebanking.tellerline.receipt.remote.service.interfaces.IAdcElectronicReceiptService;
-import com.ykb.corebanking.tellerline.receipt.service.interfaces.IReceiptAlternativeDistributionChannelsService;
-import com.ykb.corebanking.tellerline.receipt.service.interfaces.IReceiptDisplayService;
-import com.ykb.corebanking.tellerline.receipt.service.interfaces.IReceiptLogService;
-import com.ykb.corebanking.tellerline.receipt.util.ReceiptAlternativeDistributionChannelsServiceTestUtil;
-import com.ykb.corebanking.tellerline.receipt.util.query.exception.QueryException;
-
-@ExtendWith(SpringExtension.class)
-class ReceiptAlternativeDistributionChannelsControllerTest {
-
-	@InjectMocks
-	ReceiptAlternativeDistributionChannelsController controller;
-	
-	@Mock
-	IReceiptAlternativeDistributionChannelsService service;
-	
-	@Mock
-	IReceiptDisplayService receiptDisplayService;
-	
-	@Mock
-	IReceiptLogService receiptLogService;
-	
-	@Mock
-	IAdcElectronicReceiptService adcElectronicReceiptService;
-
-	@Mock
-	IReceiptMailWrapperService receiptMailWrapperService;
-
-
-	@Test
-	void whenInquired_shouldReturnHttpStatusOk() {
-		when(service.getReceiptList(Mockito.any())).thenReturn(ReceiptAlternativeDistributionChannelsServiceTestUtil.getResponseReceiptAdcInquiry_Successfull());
-		ResponseEntity<ResponseAdcReceiptListing> httpResponse = controller.inquireReceipt(ReceiptAlternativeDistributionChannelsServiceTestUtil.getRequestReceiptAdcInquiry_Fully());
-		assertThat(httpResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-		assertTrue(httpResponse.getBody().getIsSuccessful());
-	}
-	
-	@Test
-    void whenAdcGetDisplay_shouldReturnHttpStatusOk() throws ReceiptException, QueryException{
-        when(receiptDisplayService.display(Mockito.any())).thenReturn(ReceiptAlternativeDistributionChannelsServiceTestUtil.getResponseReceiptDisplay());
-        when(service.getReceiptDisplayList(Mockito.any())).thenReturn(ReceiptAlternativeDistributionChannelsServiceTestUtil.getResponseAdcReceiptDisplay());
-        ResponseEntity<ResponseAdcReceiptDisplayList> httpResponse = controller.adcGetDisplay(ReceiptAlternativeDistributionChannelsServiceTestUtil.getRequestReceiptDisplayAdc());
-        assertThat(httpResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-        assertFalse(httpResponse.getBody().getResponseAdcReceiptDisplay().get(0).getIsSuccessful());
-        
-    }
-    @Test
-    void whenAdcGetDisplay_shouldReturnInternalServerError() throws Exception{
-        when(receiptDisplayService.display(Mockito.any())).thenReturn(ReceiptAlternativeDistributionChannelsServiceTestUtil.getResponseReceiptDisplay());
-        when(service.getReceiptDisplayList(Mockito.any())).thenThrow(ReceiptException.class);
-        ResponseEntity<ResponseAdcReceiptDisplayList> httpResponse = controller.adcGetDisplay(ReceiptAlternativeDistributionChannelsServiceTestUtil.getRequestReceiptDisplayAdc());
-        assertThat(httpResponse.getStatusCode()).isEqualTo(HttpStatus.INTERNAL_SERVER_ERROR);
-        
-    }
-
-	@Test
-	void whenInquired_withAccountAndCurrency_shouldModifyAccountField() {
-		var request = ReceiptAlternativeDistributionChannelsServiceTestUtil.getRequestReceiptAdcInquiry_Fully();
-		request.setAccountNumber("123456");
-		request.setAccountCurrency("USD");
-
-		when(service.getReceiptList(Mockito.any())).thenReturn(ReceiptAlternativeDistributionChannelsServiceTestUtil.getResponseReceiptAdcInquiry_Successfull());
-		ResponseEntity<ResponseAdcReceiptListing> httpResponse = controller.inquireReceipt(request);
-
-		assertThat(httpResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-		assertTrue(httpResponse.getBody().getIsSuccessful());
-		assertThat(request.getAccountNo()).isEqualTo("123456    USD");
-	}
-
-	@Test
-	void whenAdcGetDisplay_withAccountAndCurrency_shouldModifyAccountNoField() throws ReceiptException, QueryException {
-		var request = ReceiptAlternativeDistributionChannelsServiceTestUtil.getRequestReceiptDisplayAdc();
-		request.getRequestReceiptAdcCriteriaList().get(0).setAccountNumber("123456");
-		request.getRequestReceiptAdcCriteriaList().get(0).setAccontCurrency("EUR");
-
-		when(service.getReceiptDisplayList(Mockito.any())).thenReturn(ReceiptAlternativeDistributionChannelsServiceTestUtil.getResponseAdcReceiptDisplay());
-		ResponseEntity<ResponseAdcReceiptDisplayList> httpResponse = controller.adcGetDisplay(request);
-
-		assertThat(httpResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-		assertFalse(httpResponse.getBody().getResponseAdcReceiptDisplay().get(0).getIsSuccessful());
-		assertThat(request.getRequestReceiptAdcCriteriaList().get(0).getAccount()).isEqualTo("123456    EUR");
-	}
-
-
-
-	@Test
-	void whenSendEmailAdc_withAccountAndCurrency_shouldModifyAccountNoField() {
-		var request = ReceiptAlternativeDistributionChannelsServiceTestUtil.getRequestReceiptSendMailAdc();
-		request.getProcessReceiptList().get(0).setAccountNumber("000111222");
-		request.getProcessReceiptList().get(0).setAccountCurrency("USD");
-
-		var mockResponse = new ResponseAdcWrapperSendMail();
-		mockResponse.setIsSuccessful(true);
-		when(receiptMailWrapperService.sendMail(Mockito.any())).thenReturn(mockResponse);
-
-
-		ResponseEntity<ResponseAdcWrapperSendMail> httpResponse = controller.sendEmailAdc(request);
-
-		assertThat(httpResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-		assertThat(request.getProcessReceiptList().get(0).getAccountNo()).isEqualTo("000111222    USD");
-		assertTrue(httpResponse.getBody().getIsSuccessful());
-	}
-
-	@Test
-	void whenSendEmailAdc_withNullProcessReceiptList_shouldReturnOkWithoutProcessing() {
-		var request = ReceiptAlternativeDistributionChannelsServiceTestUtil.getRequestReceiptSendMailAdc();
-		request.setProcessReceiptList(null);
-
-		when(receiptMailWrapperService.sendMail(Mockito.any())).thenReturn(new ResponseAdcWrapperSendMail());
-
-
-		ResponseEntity<ResponseAdcWrapperSendMail> httpResponse = controller.sendEmailAdc(request);
-
-		assertThat(httpResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-		assertThat(httpResponse.getBody()).isNotNull();
-	}
-
-
-	
+    assertThat(httpResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+    // 'account' set edilmemiş olmalı
+    assertThat(request.getRequestReceiptAdcCriteriaList().get(0).getAccount()).isNull();
 }
 
+@Test
+void whenSendEmailAdc_withEmptyProcessReceiptList_shouldReturnOkWithoutProcessing() {
+    var request = ReceiptAlternativeDistributionChannelsServiceTestUtil.getRequestReceiptSendMailAdc();
+    request.setProcessReceiptList(Collections.emptyList()); // <-- Boş liste
 
+    when(receiptMailWrapperService.sendMail(Mockito.any()))
+        .thenReturn(new ResponseAdcWrapperSendMail());
 
+    ResponseEntity<ResponseAdcWrapperSendMail> httpResponse = controller.sendEmailAdc(request);
 
-package com.ykb.corebanking.tellerline.receipt.request;
-
-import java.util.List;
-
-import com.ykb.corebanking.tellerline.receipt.dto.AdcProcessReceiptDTO;
-
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter
-@Setter
-public class RequestReceiptSendMail {
-	
-	private String subjectParameterList;
-	private String branchCode;
-	private String customerName;
-	private String customerTypeList;
-	private Integer clientno;
-	private String mailType;
-	private String receiptEmailAddress;
-	private String jobName;
-	private List<AdcProcessReceiptDTO> processReceiptList;
+    assertThat(httpResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+    // Boş liste olduğu için döngüye girmeyecek, bu sayede if’in false dalı test edilmiş olur
 }
 
+@Test
+void whenSendEmailAdc_withNullAccountNumber_shouldNotModifyAccountNo() {
+    var request = ReceiptAlternativeDistributionChannelsServiceTestUtil.getRequestReceiptSendMailAdc();
+    request.getProcessReceiptList().get(0).setAccountNumber(null);
+    request.getProcessReceiptList().get(0).setAccountCurrency("USD");
 
-package com.ykb.corebanking.tellerline.receipt.controller.request;
+    var mockResponse = new ResponseAdcWrapperSendMail();
+    mockResponse.setIsSuccessful(true);
+    when(receiptMailWrapperService.sendMail(Mockito.any())).thenReturn(mockResponse);
 
-import java.util.List;
+    ResponseEntity<ResponseAdcWrapperSendMail> httpResponse = controller.sendEmailAdc(request);
 
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class RequestAdcReceiptDisplay {
-    private List<RequestReceiptAdcCriteria> requestReceiptAdcCriteriaList;
-    private String                       channelCode;
-    private String                       userCode;
-  
-}
-
-package com.ykb.corebanking.tellerline.receipt.controller.request;
-
-import java.sql.Date;
-
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
-@Getter
-@Setter
-@NoArgsConstructor
-@AllArgsConstructor
-@Builder
-public class RequestReceiptAdcCriteria {
-
-    private String  receiptID;
-    private Long    contractNo;
-    private String  account;
-    private String accountNumber;
-    private String accontCurrency;
-    private String  cType;
-    private String  dType;
-    private String  operationType;
-
-    private Integer voucherNo;
-    private Integer clientNo;
-    private Date    transactionDate;
-    private Boolean isVirtualReceipt;
-    private String  procCode;
-
-}
-
-package com.ykb.corebanking.tellerline.receipt.dto;
-
-import lombok.Getter;
-import lombok.Setter;
-@Getter
-@Setter
-public class AdcProcessReceiptDTO {
-    private String  receiptId;
-    private Long    contractNo;
-    private String  accountNo;
-    private String accountNumber;
-    private String accountCurrency;
-    private Boolean isVirtual;
-    private String attachmentName;
-}
-
-package com.ykb.corebanking.tellerline.receipt.controller.request;
-
-import java.math.BigDecimal;
-import java.util.Date;
-
-import lombok.Getter;
-import lombok.Setter;
-
-@Getter
-@Setter
-public class RequestAdcReceiptListing {
-	private Integer clientNo;
-	private String accountNo;
-	private String accountNumber;
-	private String accountCurrency;
-	private BigDecimal contractNo;
-	private String receiptId;
-	private Date beginRelDate;
-	private Date endRelDate;
-	private BigDecimal beginAmount;
-	private BigDecimal endAmount;
-	private String description;
-	private String cardNo;
-	private String channel;
-	private String debitCredit;
-	private String process;
-	private Integer pageNumber;
-	private Integer pageSize;
-	private Integer archiveCount;
-	private Integer capstCount;
-
-}
-
-
-
-	
+    assertThat(httpResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
+    // accountNo set edilmemiş olmalı
+    assertThat(request.getProcessReceiptList().get(0).getAccountNo()).isNull();
+    assertTrue(httpResponse.getBody().getIsSuccessful());
 }
