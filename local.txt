@@ -241,3 +241,141 @@ class ReceiptAlternativeDistributionChannelsControllerTest {
 
 	
 }
+
+
+
+
+package com.ykb.corebanking.tellerline.receipt.request;
+
+import java.util.List;
+
+import com.ykb.corebanking.tellerline.receipt.dto.AdcProcessReceiptDTO;
+
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+public class RequestReceiptSendMail {
+	
+	private String subjectParameterList;
+	private String branchCode;
+	private String customerName;
+	private String customerTypeList;
+	private Integer clientno;
+	private String mailType;
+	private String receiptEmailAddress;
+	private String jobName;
+	private List<AdcProcessReceiptDTO> processReceiptList;
+}
+
+
+package com.ykb.corebanking.tellerline.receipt.controller.request;
+
+import java.util.List;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class RequestAdcReceiptDisplay {
+    private List<RequestReceiptAdcCriteria> requestReceiptAdcCriteriaList;
+    private String                       channelCode;
+    private String                       userCode;
+  
+}
+
+package com.ykb.corebanking.tellerline.receipt.controller.request;
+
+import java.sql.Date;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+public class RequestReceiptAdcCriteria {
+
+    private String  receiptID;
+    private Long    contractNo;
+    private String  account;
+    private String accountNumber;
+    private String accontCurrency;
+    private String  cType;
+    private String  dType;
+    private String  operationType;
+
+    private Integer voucherNo;
+    private Integer clientNo;
+    private Date    transactionDate;
+    private Boolean isVirtualReceipt;
+    private String  procCode;
+
+}
+
+package com.ykb.corebanking.tellerline.receipt.dto;
+
+import lombok.Getter;
+import lombok.Setter;
+@Getter
+@Setter
+public class AdcProcessReceiptDTO {
+    private String  receiptId;
+    private Long    contractNo;
+    private String  accountNo;
+    private String accountNumber;
+    private String accountCurrency;
+    private Boolean isVirtual;
+    private String attachmentName;
+}
+
+package com.ykb.corebanking.tellerline.receipt.controller.request;
+
+import java.math.BigDecimal;
+import java.util.Date;
+
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+public class RequestAdcReceiptListing {
+	private Integer clientNo;
+	private String accountNo;
+	private String accountNumber;
+	private String accountCurrency;
+	private BigDecimal contractNo;
+	private String receiptId;
+	private Date beginRelDate;
+	private Date endRelDate;
+	private BigDecimal beginAmount;
+	private BigDecimal endAmount;
+	private String description;
+	private String cardNo;
+	private String channel;
+	private String debitCredit;
+	private String process;
+	private Integer pageNumber;
+	private Integer pageSize;
+	private Integer archiveCount;
+	private Integer capstCount;
+
+}
+
+
+
+	
+}
