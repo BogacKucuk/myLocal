@@ -1,81 +1,1256 @@
-@Test
-void whenInquired_withNullAccountNumber_shouldNotModifyAccountField() {
-    var request = ReceiptAlternativeDistributionChannelsServiceTestUtil.getRequestReceiptAdcInquiry_Fully();
-    request.setAccountNumber(null);       // <-- AccountNumber null
-    request.setAccountCurrency("USD");    // <-- Currency dolu
-    
-    when(service.getReceiptList(Mockito.any()))
-        .thenReturn(ReceiptAlternativeDistributionChannelsServiceTestUtil.getResponseReceiptAdcInquiry_Successfull());
-    
-    ResponseEntity<ResponseAdcReceiptListing> httpResponse = controller.inquireReceipt(request);
-    
-    assertThat(httpResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-    // 'accountNo' set edilmemiş olmalı (if'in false dalı)
-    assertThat(request.getAccountNo()).isNull(); 
+package com.ykb.corebanking.commission;
+
+import com.dynatrace.oneagent.sdk.OneAgentSDKFactory;
+import com.dynatrace.oneagent.sdk.api.CustomServiceTracer;
+import com.dynatrace.oneagent.sdk.api.OneAgentSDK;
+import com.dynatrace.oneagent.sdk.api.enums.SDKState;
+import com.ykb.corebanking.commission.batch.base.ApplicationArguments;
+import com.ykb.corebanking.commission.infrastructure.configuration.ScheduledJobInitializer;
+import lombok.Generated;
+import lombok.extern.slf4j.Slf4j;
+import org.apache.commons.lang.ArrayUtils;
+import org.slf4j.MDC;
+import org.springframework.batch.core.ExitStatus;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobParametersBuilder;
+import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.boot.builder.SpringApplicationBuilder;
+import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.kafka.annotation.EnableKafka;
+import org.springframework.retry.annotation.EnableRetry;
+import org.springframework.scheduling.annotation.EnableScheduling;
+
+@Generated
+@Slf4j
+@EnableKafka
+@EnableCaching
+@EnableScheduling
+@EnableRetry
+@SpringBootApplication(scanBasePackages = {"com.ykb"})
+@EnableAutoConfiguration(exclude = {SecurityAutoConfiguration.class, ManagementWebSecurityAutoConfiguration.class})
+public class AccountingMain {
+    public static void main(String[] args) {
+        ConfigurableApplicationContext applicationContext = new SpringApplicationBuilder(AccountingMain.class)
+                .initializers(new ScheduledJobInitializer())
+                .run(args);
+
+        int responseCode = 0;
+        if (args.length > 0) {
+            try {
+                String batchBeanName = args[0];
+                OneAgentSDK oneAgentSdk = OneAgentSDKFactory.createInstance();
+                SDKState currentState = oneAgentSdk.getCurrentState();
+                log.info("Dynatrace is current state: {}", currentState.name());
+
+                CustomServiceTracer tracer = oneAgentSdk.traceCustomService("AccountingBatch : ", batchBeanName);
+                tracer.start();
+
+                ApplicationArguments.setArguments((String[]) ArrayUtils.remove(args, 0));
+                JobLauncher jobLauncher = applicationContext.getBean(JobLauncher.class);
+                JobExecution execution = jobLauncher.run(applicationContext.getBean(batchBeanName, Job.class), new JobParametersBuilder().toJobParameters());
+                responseCode = execution.getExitStatus().equals(ExitStatus.COMPLETED) ? 0 : 1;
+
+                tracer.end();
+
+            } catch (Exception e) {
+                log.error("Job failed with exception", e);
+                responseCode = 1;
+            } finally {
+                log.info("Job execution completed. Clearing MDC context");
+                MDC.clear();
+                if (applicationContext != null) {
+                    applicationContext.close();
+                    log.info("********* closed the context");
+                }
+                System.exit(responseCode);
+            }
+        }
+    }
 }
 
-@Test
-void whenInquired_withNullAccountCurrency_shouldNotModifyAccountField() {
-    var request = ReceiptAlternativeDistributionChannelsServiceTestUtil.getRequestReceiptAdcInquiry_Fully();
-    request.setAccountNumber("123456");
-    request.setAccountCurrency(null);     // <-- Currency null
+package com.ykb.corebanking.commission.batch.base;
+
+public class ApplicationArguments {
+
+    private static String[] arguments;
+
+    ApplicationArguments() {
+
+    }
+    public static String[] getArguments() {
+        return arguments;
+    }
+
+    public static void setArguments(String[] arguments) {
+        ApplicationArguments.arguments = arguments;
+    }
+
+}
+
+package com.ykb.corebanking.commission.batch.base;
+
+public class BatchConstants {
+
+    BatchConstants() {
+
+    }
+
+    public static final String JOB_PRM_KEY_VALUE_SEPARATOR = "=";
+
+}
+
+package com.ykb.corebanking.commission.batch.base;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.util.Assert;
+
+@Getter
+@Setter
+@AllArgsConstructor
+public class Tuple<T, K> {
+
+    private final T first;
+    private final K second;
+
+    public static Tuple<String, String> build(String[] items) {
+        Assert.notNull(items, "'items' can not be null");
+        Assert.isTrue(items.length == 2, "'items' must have 2 items in in");
+        return new Tuple<>(items[0], items[1]);
+    }
+
+}
+
+package com.ykb.corebanking.commission.batch.common.statistic;
+
+import lombok.Getter;
+import org.springframework.batch.core.JobExecution;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Optional;
+
+@Getter
+public class JobStatistics {
+
+    static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+
+    private String jobName;
+    private String id;
+    private String version;
+    private List<JobStatsParameter> parameters;
+    private String status;
+    private String startTime;
+    private String endTime;
+    private String exitStatus;
+    private String failureExceptions;
+    private List<StepStatistics> steps;
+
+    public JobStatistics(JobExecution jobExecution) {
+        this.jobName = jobExecution.getJobInstance().getJobName();
+        this.id = jobExecution.getJobInstance().getId().toString();
+        this.version = jobExecution.getJobInstance().getVersion().toString();
+        this.status = jobExecution.getStatus().toString();
+        this.startTime = Optional.ofNullable(jobExecution.getStartTime()).orElse(LocalDateTime.MIN).format(DATE_TIME_FORMATTER);
+        this.endTime = Optional.ofNullable(jobExecution.getEndTime()).orElse(LocalDateTime.MIN).format(DATE_TIME_FORMATTER);
+        this.exitStatus = jobExecution.getExitStatus().toString();
+        this.failureExceptions = printStackTrace(jobExecution.getFailureExceptions());
+        this.parameters = new ArrayList<>();
+        jobExecution.getJobParameters().getParameters().forEach((k, v) -> parameters.add(new JobStatsParameter(k,
+                v.getValue().toString())));
+        this.steps = new ArrayList<>();
+        jobExecution.getStepExecutions().forEach(se -> steps.add(new StepStatistics(se)));
+    }
+
+    static String printStackTrace(List<Throwable> exceptions) {
+        try (ByteArrayOutputStream os = new ByteArrayOutputStream();
+             PrintWriter pw = new PrintWriter(os)) {
+            exceptions.forEach(e -> e.printStackTrace(pw));
+            return new String(os.toByteArray());
+        } catch (IOException e) {
+            return "";
+        }
+    }
+}
+
+package com.ykb.corebanking.commission.batch.common.statistic;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@Getter
+@AllArgsConstructor
+public class JobStatsParameter {
+	private String key;
+	private String value;
+}
+
+package com.ykb.corebanking.commission.batch.common.statistic;
+
+import lombok.Getter;
+import org.springframework.batch.core.StepExecution;
+
+import java.time.LocalDateTime;
+import java.util.Optional;
+
+@Getter
+public class StepStatistics {
+    private String name;
+    private String id;
+    private String version;
+    private String readCount;
+    private String writeCount;
+    private String commitCount;
+    private String rollbackCount;
+    private String readSkipCount;
+    private String processSkipCount;
+    private String writeSkipCount;
+    private String startTime;
+    private String endTime;
+    private String exitStatus;
+    private String failureExceptions;
+
+    StepStatistics(StepExecution execution) {
+        this.name = execution.getStepName();
+        this.id = execution.getId().toString();
+        this.version = execution.getVersion().toString();
+        this.readCount = String.valueOf(execution.getReadCount());
+        this.writeCount = String.valueOf(execution.getWriteCount());
+        this.commitCount = String.valueOf(execution.getCommitCount());
+        this.rollbackCount = String.valueOf(execution.getRollbackCount());
+        this.readSkipCount = String.valueOf(execution.getReadSkipCount());
+        this.processSkipCount = String.valueOf(execution.getProcessSkipCount());
+        this.writeSkipCount = String.valueOf(execution.getWriteSkipCount());
+        this.startTime = Optional.ofNullable(execution.getStartTime()).orElse(LocalDateTime.MIN).format(JobStatistics.DATE_TIME_FORMATTER);
+        this.endTime = Optional.ofNullable(execution.getEndTime()).orElse(LocalDateTime.MIN).format(JobStatistics.DATE_TIME_FORMATTER);
+        this.exitStatus = execution.getExitStatus().toString();
+        this.failureExceptions = JobStatistics.printStackTrace(execution.getFailureExceptions());
+    }
+}
+
+package com.ykb.corebanking.commission.batch.common;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobExecutionListener;
+
+
+@Slf4j
+public class CommonJobExecutionListener implements JobExecutionListener {
+
+    @Override
+    public void beforeJob(JobExecution jobExecution) {
+        CommonJobExecutionStatistics.getInstance().beforeJob(jobExecution);
+    }
+
+    @Override
+    public void afterJob(JobExecution jobExecution) {
+        CommonJobExecutionStatistics.getInstance().afterJob(jobExecution);
+    }
+
+}
+
+package com.ykb.corebanking.commission.batch.common;
+
+import com.ykb.corebanking.commission.batch.common.statistic.JobStatistics;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.core.io.ClassPathResource;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.Map;
+
+
+@Slf4j
+public class CommonJobExecutionStatistics {
+
+    public static CommonJobExecutionStatistics getInstance() {
+        return new CommonJobExecutionStatistics();
+    }
+
+    public void beforeJob(JobExecution jobExecution) {
+        log.info("Job {} is started at {}", jobExecution.getJobInstance().getJobName(), jobExecution.getStartTime());
+    }
+
+    public void afterJob(JobExecution jobExecution) {
+        JobStatistics stats = new JobStatistics(jobExecution);
+        ByteArrayOutputStream bos = new ByteArrayOutputStream();
+        try (PrintWriter pw = new PrintWriter(bos)) {
+            ClassPathResource templateResource = new ClassPathResource("templates/JobStats.ftl");
+            TemplateWriter tw = new TemplateWriter(templateResource, pw);
+            tw.process(Map.of("stats", stats));
+            log.info(new String(bos.toByteArray()));
+        } catch (IOException e) {
+            log.info("Stats: {}", stats);
+        }
+        log.info("Job {} is finished at {} with status={}",
+                jobExecution.getJobInstance().getJobName(), jobExecution.getEndTime(), jobExecution.getStatus());
+    }
+
+}
+
+package com.ykb.corebanking.commission.batch.common;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.ExitStatus;
+import org.springframework.batch.core.StepExecution;
+import org.springframework.batch.core.StepExecutionListener;
+
+
+@Slf4j
+public class CommonStepExecutionListener implements StepExecutionListener {
+
+    @Override
+    public ExitStatus afterStep(StepExecution stepExecution) {
+        log.info("Step {} completed at {} with status: {}", stepExecution.getStepName(), stepExecution.getEndTime(), stepExecution.getStatus());
+        return stepExecution.getExitStatus();
+    }
+
+    @Override
+    public void beforeStep(StepExecution stepExecution) {
+        log.info("Step {} is started at {}", stepExecution.getStepName(), stepExecution.getStartTime());
+    }
+
+}
+
+package com.ykb.corebanking.commission.batch.common;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.listener.ItemListenerSupport;
+import org.springframework.batch.item.Chunk;
+
+@Slf4j
+public class ItemFailureLoggerListener<I, R> extends ItemListenerSupport<I, R> {
+
+    @Override
+    public void onReadError(Exception ex) {
+        log.error("Encountered error on read", ex);
+    }
+
+    @Override
+    public void onWriteError(Exception ex, Chunk<? extends R> item) {
+        log.error("Encountered error on write", ex);
+        if (log.isDebugEnabled()) {
+            log.debug("Failed list: {}", item);
+        }
+    }
+
+}
+
+package com.ykb.corebanking.commission.batch.common;
+
+import org.slf4j.MDC;
+import org.springframework.core.task.TaskDecorator;
+
+import java.util.Map;
+
+public class MdcTaskDecorator implements TaskDecorator {
+
+    @Override
+    public Runnable decorate(Runnable runnable) {
+        final Map<String, String> contextMap = MDC.getCopyOfContextMap();
+        return () -> {
+            try {
+                if (contextMap != null) {
+                    MDC.setContextMap(contextMap);
+                }
+                runnable.run();
+            } finally {
+                MDC.clear();
+            }
+        };
+    }
+
+}
+
+package com.ykb.corebanking.commission.batch.common;
+
+import com.ykb.corebanking.commission.infrastructure.common.exception.AccountingRuntimeException;
+import freemarker.cache.ClassTemplateLoader;
+import freemarker.cache.FileTemplateLoader;
+import freemarker.cache.TemplateLoader;
+import freemarker.core.Environment;
+import freemarker.template.Configuration;
+import freemarker.template.DefaultObjectWrapper;
+import freemarker.template.Template;
+import freemarker.template.TemplateException;
+import org.springframework.core.io.ClassPathResource;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
+
+import java.io.IOException;
+import java.io.Writer;
+
+public class TemplateWriter {
+
+    private final Template template;
+    private final Writer writer;
+
+    public TemplateWriter(Resource templateResource, Writer writer) throws IOException {
+        this(templateResource,writer,"utf-8");
+    }
+
+    public TemplateWriter(Resource templateResource, Writer writer, String defaultEncoding) throws IOException {
+        this.writer = writer;
+
+        final Configuration configuration = new Configuration(Configuration.VERSION_2_3_27);
+        configuration.setTemplateLoader(getTemplateLoader(templateResource));
+        configuration.setObjectWrapper(new DefaultObjectWrapper(Configuration.VERSION_2_3_27));
+        configuration.setDefaultEncoding(defaultEncoding);
+        this.template = configuration.getTemplate(templateResource.getFilename());
+    }
+
+    public void process(Object data) {
+        final Environment environment;
+        try {
+            environment = template.createProcessingEnvironment(data, writer);
+            environment.process();
+        } catch (TemplateException | IOException e) {
+            throw new AccountingRuntimeException(e.getMessage());
+        }
+
+    }
+
+    private TemplateLoader getTemplateLoader(Resource resource) throws IOException {
+        if (resource instanceof ClassPathResource classPathResource) {
+            return new ClassTemplateLoader(classPathResource.getClassLoader(), "/templates");
+        } else if (resource instanceof FileSystemResource fileSystemResource) {
+            return new FileTemplateLoader(fileSystemResource.getFile());
+        } else {
+            throw new IllegalArgumentException("Resource can be FileSystemResource or ClassPathResource");
+        }
+    }
+
+}
+
+package com.ykb.corebanking.commission.batch.configuration;
+
+import com.ykb.corebanking.commission.batch.common.CommonJobExecutionListener;
+import com.ykb.corebanking.commission.batch.common.CommonStepExecutionListener;
+import com.ykb.corebanking.commission.batch.common.ItemFailureLoggerListener;
+import com.ykb.corebanking.commission.batch.common.MdcTaskDecorator;
+import com.ykb.corebanking.commission.infrastructure.configuration.AccountingChainedTransactionManager;
+import lombok.Getter;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.JobExecutionListener;
+import org.springframework.batch.core.job.builder.JobBuilder;
+import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.batch.core.step.builder.StepBuilder;
+import org.springframework.batch.repeat.support.TaskExecutorRepeatTemplate;
+import org.springframework.beans.factory.InitializingBean;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Primary;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.transaction.PlatformTransactionManager;
+
+import javax.sql.DataSource;
+
+@Slf4j
+public class BaseJobConfiguration implements InitializingBean {
+
+    @Getter
+    private DataSource dataSource;
+
+    @Getter
+    private CommonJobExecutionListener commonJobExecutionListener;
+
+    @Autowired
+    private JobRepository jobRepository;
+
+    @Autowired
+    public void setDataSource(DataSource dataSource) {
+        this.dataSource = dataSource;
+    }
+
+    @Autowired
+    @Qualifier("chainedTransactionManager")
+    public AccountingChainedTransactionManager chainedTransactionManager;
+
+    @Autowired
+    @Qualifier("transactionManager")
+    public PlatformTransactionManager commissionTransactionManager;
+
+    @Autowired
+    @Qualifier("cbsliveTransactionManager")
+    public PlatformTransactionManager cbsliveTransactionManager;
+
+    @Bean
+    @Primary
+    public ThreadPoolTaskExecutor processorTaskExecutor() {
+        ThreadPoolTaskExecutor asyncTaskExecutorProcess = new ThreadPoolTaskExecutor();
+        asyncTaskExecutorProcess.setTaskDecorator(new MdcTaskDecorator());
+        return asyncTaskExecutorProcess;
+    }
+
+    public TaskExecutorRepeatTemplate repeatTemplate(ThreadPoolTaskExecutor threadPoolTaskExecutor, int throttleLimit){
+        TaskExecutorRepeatTemplate repeatTemplate = new TaskExecutorRepeatTemplate();
+        repeatTemplate.setTaskExecutor(threadPoolTaskExecutor);
+        repeatTemplate.setThrottleLimit(throttleLimit); // NOSONAR
+        return repeatTemplate;
+    }
+
+    protected JobBuilder getCommonJobBuilderGenericListener(String jobName, JobExecutionListener commonJobExecutionListener) {
+        return new JobBuilder(jobName, jobRepository)
+                .listener(commonJobExecutionListener);
+    }
+
+    protected JobBuilder getCommonJobBuilder(String jobName) {
+        return new JobBuilder(jobName, jobRepository)
+                .listener(commonJobExecutionListener);
+    }
+
+    protected StepBuilder getCommonStepBuilder(String stepName) {
+        return new StepBuilder(stepName, jobRepository)
+                .listener(new ItemFailureLoggerListener<>())
+                .listener(new CommonStepExecutionListener());
+    }
+
+    @Override
+    public void afterPropertiesSet() {
+        log.info("{} is initialized", getClass().getSimpleName());
+    }
+
+    @Autowired
+    public void setCommonJobExecutionListener(CommonJobExecutionListener commonJobExecutionListener) {
+        this.commonJobExecutionListener = commonJobExecutionListener;
+    }
+
+}
+
+package com.ykb.corebanking.commission.infrastructure.configuration;
+
+import org.springframework.data.transaction.ChainedTransactionManager;
+import org.springframework.transaction.PlatformTransactionManager;
+
+public class AccountingChainedTransactionManager extends ChainedTransactionManager {
+    public AccountingChainedTransactionManager(PlatformTransactionManager... transactionManagers) {
+        super(transactionManagers);
+    }
+
+}
+
+package com.ykb.corebanking.commission.batch.configuration;
+
+import com.ykb.corebanking.commission.batch.common.CommonJobExecutionListener;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.integration.config.EnableIntegration;
+
+@Configuration
+@EnableIntegration
+public class GeneralBatchConfiguration {
     
-    when(service.getReceiptList(Mockito.any()))
-        .thenReturn(ReceiptAlternativeDistributionChannelsServiceTestUtil.getResponseReceiptAdcInquiry_Successfull());
-    
-    ResponseEntity<ResponseAdcReceiptListing> httpResponse = controller.inquireReceipt(request);
-    
-    assertThat(httpResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-    // 'accountNo' yine set edilmemiş olmalı (if'in false dalı)
-    assertThat(request.getAccountNo()).isNull();
+    @Bean
+    public CommonJobExecutionListener commonJobExecutionListener() {
+        return new CommonJobExecutionListener();
+    }
+
+}
+
+package com.ykb.corebanking.commission.batch.configuration;
+
+import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseBuilder;
+import org.springframework.jdbc.datasource.embedded.EmbeddedDatabaseType;
+
+import javax.sql.DataSource;
+
+@Configuration
+@EnableBatchProcessing(dataSourceRef = "jobRepoDatasource")
+public class SpringBatchConfiguration {
+
+    @Bean
+    public DataSource jobRepoDatasource() {
+        return new EmbeddedDatabaseBuilder()
+                .setType(EmbeddedDatabaseType.H2)
+                .setName("job-metadata-db")
+                .addScript("classpath:org/springframework/batch/core/schema-drop-h2.sql")
+                .addScript("classpath:org/springframework/batch/core/schema-h2.sql")
+                .build();
+    }
+}
+
+package com.ykb.corebanking.commission.batch.util;
+
+import com.ykb.corebanking.commission.batch.base.BatchConstants;
+import com.ykb.corebanking.commission.batch.base.Tuple;
+import lombok.extern.slf4j.Slf4j;
+
+import java.util.Arrays;
+import java.util.List;
+import java.util.Properties;
+
+@Slf4j
+public class BatchUtil {
+
+    private BatchUtil() { }
+
+    public static Properties parseJobParameters(String[] args) {
+        List<String> jobParameters = Arrays.asList(args);
+        Properties props = new Properties();
+        jobParameters.forEach(prm -> {
+            log.info("Prm to extract: {}", prm);
+            Tuple<String, String> keyValue = Tuple
+                    .build(prm.split(BatchConstants.JOB_PRM_KEY_VALUE_SEPARATOR));
+            log.info("Provided job parameter to be passed, Key:Value => {} : {}",
+                    keyValue.getFirst(),
+                    keyValue.getSecond());
+            props.setProperty(keyValue.getFirst(), keyValue.getSecond());
+        });
+        return props;
+    }
+
+}
+
+package com.ykb.corebanking.commission.batch.jobs.basepricedebit.config;
+
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Configuration;
+
+@Getter
+@Setter
+@Configuration
+public class BasePriceDebitConfig {
+
+    @Getter
+    @Value("${batch.basepricedebit.threadcount}")
+    private Integer threadCount;
+
+    @Getter
+    @Value("${batch.basepricedebit.chunksize}")
+    private Integer chunkSize;
+
+    @Getter
+    @Value("${batch.basepricedebit.corepoolsize}")
+    private Integer corePoolSize;
+
+    @Getter
+    @Value("${batch.basepricedebit.maxpoolsize}")
+    private Integer maxPoolSize;
+
+    @Getter
+    @Value("${batch.basepricedebit.fetchcount}")
+    private Integer fetchCount;
+
+    @Getter
+    @Value("${batch.basepricedebit.pagesize}")
+    private Integer pageSize;
 }
 
 
-@Test
-void whenAdcGetDisplay_withNullAccountNumber_shouldNotModifyAccount() throws ReceiptException {
-    var request = ReceiptAlternativeDistributionChannelsServiceTestUtil.getRequestReceiptDisplayAdc();
-    // İlk elemana null accountNumber veriyoruz
-    request.getRequestReceiptAdcCriteriaList().get(0).setAccountNumber(null);
-    request.getRequestReceiptAdcCriteriaList().get(0).setAccontCurrency("EUR");
+package com.ykb.corebanking.commission.batch.jobs.basepricedebit.constant;
 
-    when(service.getReceiptDisplayList(Mockito.any()))
-        .thenReturn(ReceiptAlternativeDistributionChannelsServiceTestUtil.getResponseAdcReceiptDisplay());
+public class BasePriceDebitConstant {
 
-    ResponseEntity<ResponseAdcReceiptDisplayList> httpResponse = controller.adcGetDisplay(request);
+    private BasePriceDebitConstant() {
+        throw new IllegalStateException("Constant Class");
+    }
 
-    assertThat(httpResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-    // 'account' set edilmemiş olmalı
-    assertThat(request.getRequestReceiptAdcCriteriaList().get(0).getAccount()).isNull();
+    public static final String BATCH_NAME = "basepricedebit";
+    public static final String BATCH_JOB_NAME = "basePriceDebitJob";
+    public static final String BATCH_STEP_NAME = "basePriceDebitStep";
+    public static final String BATCH_READER_NAME = "basePriceDebitJdbcCursorItemReader";
+    public static final String RETURN = "RETURN";
+    public static final String REVERSE = "REVERSE";
+    public static final String CONTRACT_NO = "CONTRACT_NO";
 }
 
-@Test
-void whenSendEmailAdc_withEmptyProcessReceiptList_shouldReturnOkWithoutProcessing() {
-    var request = ReceiptAlternativeDistributionChannelsServiceTestUtil.getRequestReceiptSendMailAdc();
-    request.setProcessReceiptList(Collections.emptyList()); // <-- Boş liste
+package com.ykb.corebanking.commission.batch.jobs.basepricedebit.query;
 
-    when(receiptMailWrapperService.sendMail(Mockito.any()))
-        .thenReturn(new ResponseAdcWrapperSendMail());
+import lombok.AccessLevel;
+import lombok.NoArgsConstructor;
 
-    ResponseEntity<ResponseAdcWrapperSendMail> httpResponse = controller.sendEmailAdc(request);
+@NoArgsConstructor(access = AccessLevel.PRIVATE)
+public final class BasePriceDebitBatchReaderQuery {
 
-    assertThat(httpResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-    // Boş liste olduğu için döngüye girmeyecek, bu sayede if’in false dalı test edilmiş olur
+    public static final String B_CONTROL_SELECT = "distinct (bpt.contract_no) as CONTRACT_NO";
+
+    public static final String B_CONTROL_FROM = "commission.base_price_transaction bpt";
+
+    public static final String B_CONTROL_WHERE = "bpt.transaction_date >= (bpt.transaction_date - TO_NUMBER((select gp.value from commission.general_parameters gp where gp.name = 'BASE_PRICE_DEBIT_BATCH')))";
 }
 
-@Test
-void whenSendEmailAdc_withNullAccountNumber_shouldNotModifyAccountNo() {
-    var request = ReceiptAlternativeDistributionChannelsServiceTestUtil.getRequestReceiptSendMailAdc();
-    request.getProcessReceiptList().get(0).setAccountNumber(null);
-    request.getProcessReceiptList().get(0).setAccountCurrency("USD");
+package com.ykb.corebanking.commission.batch.jobs.basepricedebit.step;
 
-    var mockResponse = new ResponseAdcWrapperSendMail();
-    mockResponse.setIsSuccessful(true);
-    when(receiptMailWrapperService.sendMail(Mockito.any())).thenReturn(mockResponse);
+import com.ykb.corebanking.commission.domain.data.basepricedebit.BasePriceTransactionDTO;
+import com.ykb.corebanking.commission.domain.port.basepricedebit.BasePriceDebitPort;
+import org.jetbrains.annotations.NotNull;
+import org.springframework.batch.item.ItemProcessor;
+import org.springframework.beans.factory.annotation.Autowired;
 
-    ResponseEntity<ResponseAdcWrapperSendMail> httpResponse = controller.sendEmailAdc(request);
+public class BasePriceDebitProcessor implements ItemProcessor<BasePriceTransactionDTO, BasePriceTransactionDTO> {
 
-    assertThat(httpResponse.getStatusCode()).isEqualTo(HttpStatus.OK);
-    // accountNo set edilmemiş olmalı
-    assertThat(request.getProcessReceiptList().get(0).getAccountNo()).isNull();
-    assertTrue(httpResponse.getBody().getIsSuccessful());
+    @Autowired
+    private BasePriceDebitPort basePriceDebitPort;
+
+    @Override
+    public BasePriceTransactionDTO process(@NotNull BasePriceTransactionDTO basePriceTransactionDTO) throws Exception {
+        return basePriceDebitPort.generateEntityFromTransactionDTO(basePriceTransactionDTO);
+    }
+}
+
+package com.ykb.corebanking.commission.batch.jobs.basepricedebit.step;
+
+import com.ykb.corebanking.commission.domain.data.basepricedebit.BasePriceTransactionDTO;
+import com.ykb.corebanking.commission.domain.port.basepricedebit.BasePriceDebitPort;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.configuration.annotation.StepScope;
+import org.springframework.batch.item.Chunk;
+import org.springframework.batch.item.ItemWriter;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+@Slf4j
+@StepScope
+@Component
+public class BasePriceDebitWriter implements ItemWriter<BasePriceTransactionDTO> {
+
+    @Autowired
+    private BasePriceDebitPort basePriceDebitPort;
+
+    @Override
+    public void write(Chunk<? extends BasePriceTransactionDTO> list) throws Exception {
+        log.info("Base Price Debit Batch. Write Started. Items: " + list.size());
+        if (!list.isEmpty()) {
+            basePriceDebitPort.updateBasePriceTransaction(list.getItems());
+        }
+        log.info("Base Price Debit Batch. Write End.");
+    }
+}
+
+package com.ykb.corebanking.commission.domain.data.basepricedebit;
+
+import com.ykb.corebanking.commission.infrastructure.adapters.jpa.commission.basepricedebit.entity.BasePriceTransactionEntity;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+import java.math.BigDecimal;
+import java.util.Date;
+import java.util.List;
+
+/**
+ * @author U094310 Busra Uygun created on 20.12.2023 Project : base-price-debit-batch
+ */
+
+@Getter
+@Setter
+@AllArgsConstructor
+@NoArgsConstructor
+public class BasePriceTransactionDTO {
+    private Long id;
+    private String status;
+    private Date transactionDate;
+    private Long basePriceDefinitionId;
+    private Long customerNo;
+    private Long contractNo;
+    private BigDecimal inquiryId;
+    private BigDecimal paidAmount;
+    private BigDecimal calculatedAmount;
+    private String transactionTypeCode;
+    private String exemptionLocationCode;
+    private Integer changeAmountFlag;
+    private BigDecimal debtAmount;
+    private BigDecimal cumulativeAmount;
+    private Integer baseAmountExceededFlag;
+    private List<BasePriceTransactionEntity> basePriceTransactionEntityList;
+    boolean isAddedToList = true;
+}
+
+package com.ykb.corebanking.commission.domain.port.basepricedebit;
+
+import com.ykb.corebanking.commission.domain.data.basepricedebit.BasePriceTransactionDTO;
+
+import java.util.List;
+
+public interface BasePriceDebitPort {
+    BasePriceTransactionDTO generateEntityFromTransactionDTO(BasePriceTransactionDTO basePriceTransactionDTO);
+
+    void updateBasePriceTransaction(List<? extends BasePriceTransactionDTO> list);
+}
+
+package com.ykb.corebanking.commission.batch.jobs.basepricedebit;
+
+import com.ykb.corebanking.commission.batch.configuration.BaseJobConfiguration;
+import com.ykb.corebanking.commission.batch.jobs.basepricedebit.config.BasePriceDebitConfig;
+import com.ykb.corebanking.commission.batch.jobs.basepricedebit.constant.BasePriceDebitConstant;
+import com.ykb.corebanking.commission.batch.jobs.basepricedebit.query.BasePriceDebitBatchReaderQuery;
+import com.ykb.corebanking.commission.batch.jobs.basepricedebit.step.BasePriceDebitProcessor;
+import com.ykb.corebanking.commission.batch.jobs.basepricedebit.step.BasePriceDebitWriter;
+import com.ykb.corebanking.commission.domain.data.basepricedebit.BasePriceTransactionDTO;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.Step;
+import org.springframework.batch.item.database.JdbcPagingItemReader;
+import org.springframework.batch.item.database.Order;
+import org.springframework.batch.item.database.builder.JdbcPagingItemReaderBuilder;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.core.io.Resource;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+
+import javax.sql.DataSource;
+import java.util.Collections;
+
+@Lazy
+@Configuration
+public class BasePriceDebitJob extends BaseJobConfiguration {
+
+    @Value("classpath:sql/commission/batch/basepricedebit/getBasePriceTransactions.sql")
+    private Resource sqlResource;
+
+    @Autowired
+    private BasePriceDebitConfig basePriceDebitConfig;
+
+    @Bean(name = BasePriceDebitConstant.BATCH_NAME)
+    public Job basePriceDebitJob(@Qualifier("commissionDatasource") DataSource dataSource) {
+        setDataSource(dataSource);
+        return getCommonJobBuilder(BasePriceDebitConstant.BATCH_JOB_NAME)
+                .start(basePriceDebitJobStep(processorTaskExecutor()))
+                .build();
+    }
+
+    @Bean
+    public Step basePriceDebitJobStep(ThreadPoolTaskExecutor processorTaskExecutor) {
+        processorTaskExecutor.setCorePoolSize(basePriceDebitConfig.getCorePoolSize());
+        processorTaskExecutor.setMaxPoolSize(basePriceDebitConfig.getMaxPoolSize());
+        return getCommonStepBuilder(BasePriceDebitConstant.BATCH_STEP_NAME)
+                .<BasePriceTransactionDTO, BasePriceTransactionDTO>chunk(basePriceDebitConfig.getChunkSize(), chainedTransactionManager)
+                .reader(basePriceDebitJdbcCursorItemReader())
+                .processor(basePriceDebitProcessor())
+                .writer(basePriceDebitWriter())
+                .taskExecutor(processorTaskExecutor)
+                .stepOperations(repeatTemplate(processorTaskExecutor, basePriceDebitConfig.getThreadCount()))
+                .build();
+    }
+
+    @Bean
+    public JdbcPagingItemReader<BasePriceTransactionDTO> basePriceDebitJdbcCursorItemReader() {
+        return new JdbcPagingItemReaderBuilder<BasePriceTransactionDTO>()
+                .name(BasePriceDebitConstant.BATCH_READER_NAME)
+                .dataSource(getDataSource())
+                .selectClause(BasePriceDebitBatchReaderQuery.B_CONTROL_SELECT)
+                .fromClause(BasePriceDebitBatchReaderQuery.B_CONTROL_FROM)
+                .whereClause(BasePriceDebitBatchReaderQuery.B_CONTROL_WHERE)
+                .sortKeys(Collections.singletonMap(BasePriceDebitConstant.CONTRACT_NO, Order.ASCENDING))
+                .rowMapper(new BeanPropertyRowMapper<>(BasePriceTransactionDTO.class))
+                .pageSize(basePriceDebitConfig.getPageSize())
+                .fetchSize(basePriceDebitConfig.getFetchCount())
+                .saveState(false)
+                .build();
+    }
+
+    @Bean
+    public BasePriceDebitProcessor basePriceDebitProcessor() {
+        return new BasePriceDebitProcessor();
+    }
+
+    @Bean
+    public BasePriceDebitWriter basePriceDebitWriter() {
+        return new BasePriceDebitWriter();
+    }
+}
+
+
+package com.ykb.corebanking.commission.batch.jobs.basepricedebit.step;
+
+import com.ykb.corebanking.commission.domain.data.basepricedebit.BasePriceTransactionDTO;
+import com.ykb.corebanking.commission.domain.port.basepricedebit.BasePriceDebitPort;
+import org.jetbrains.annotations.NotNull;
+import org.springframework.batch.item.ItemProcessor;
+import org.springframework.beans.factory.annotation.Autowired;
+
+public class BasePriceDebitProcessor implements ItemProcessor<BasePriceTransactionDTO, BasePriceTransactionDTO> {
+
+    @Autowired
+    private BasePriceDebitPort basePriceDebitPort;
+
+    @Override
+    public BasePriceTransactionDTO process(@NotNull BasePriceTransactionDTO basePriceTransactionDTO) throws Exception {
+        return basePriceDebitPort.generateEntityFromTransactionDTO(basePriceTransactionDTO);
+    }
+}
+
+package com.ykb.corebanking.commission.batch.jobs.commitmentagreement;
+
+import com.ykb.corebanking.commission.batch.common.ItemFailureLoggerListener;
+import com.ykb.corebanking.commission.batch.configuration.BaseJobConfiguration;
+import com.ykb.corebanking.commission.batch.jobs.commitmentagreement.config.CommitmentAgreementConfig;
+import com.ykb.corebanking.commission.batch.jobs.commitmentagreement.constant.CommitmentAgreementConstant;
+import com.ykb.corebanking.commission.batch.jobs.commitmentagreement.listener.CommitmentAgreementListener;
+import com.ykb.corebanking.commission.batch.jobs.commitmentagreement.step.CommitmentAgreementProcessor;
+import com.ykb.corebanking.commission.batch.jobs.commitmentagreement.step.CommitmentAgreementWriter;
+import com.ykb.corebanking.commission.domain.data.commitment.CommitmentCustomerDTO;
+import com.ykb.corebanking.commission.infrastructure.common.util.SqlUtils;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.Step;
+import org.springframework.batch.core.configuration.annotation.JobScope;
+import org.springframework.batch.core.configuration.annotation.StepScope;
+import org.springframework.batch.item.ItemProcessor;
+import org.springframework.batch.item.ItemWriter;
+import org.springframework.batch.item.database.JdbcBatchItemWriter;
+import org.springframework.batch.item.database.builder.JdbcBatchItemWriterBuilder;
+import org.springframework.batch.item.database.builder.JdbcCursorItemReaderBuilder;
+import org.springframework.batch.item.support.CompositeItemWriter;
+import org.springframework.batch.item.support.SynchronizedItemStreamReader;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.core.io.Resource;
+import org.springframework.jdbc.core.BeanPropertyRowMapper;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+
+import javax.sql.DataSource;
+import java.util.Arrays;
+import java.util.List;
+
+@Lazy
+@Configuration
+public class CommitmentAgreementJob extends BaseJobConfiguration {
+
+    @Autowired
+    private CommitmentAgreementConfig config;
+
+    @Value("classpath:sql/commission/commitment/agreement/getCommitmentCustomerEnded.sql")
+    private Resource sqlResource;
+
+    @Value("classpath:sql/commission/commitment/agreement/updateCommitmentCustomerStatus.sql")
+    private Resource updateCommitmentCustomerStatusResource;
+
+    @Bean(name = CommitmentAgreementConstant.BATCH_NAME)
+    public Job commitmentAgreementJob(CommitmentAgreementListener commitmentAgreementListener, @Qualifier("commissionDatasource") DataSource commissionDatasource) {
+        setDataSource(commissionDatasource);
+        return getCommonJobBuilderGenericListener(CommitmentAgreementConstant.BATCH_JOB_NAME, commitmentAgreementListener)
+                .start(commitmentAgreementPreparationStep(processorTaskExecutor(), commissionDatasource))
+                .build();
+    }
+
+    @Bean
+    @JobScope
+    public Step commitmentAgreementPreparationStep(ThreadPoolTaskExecutor processorTaskExecutor, @Qualifier("commissionDatasource") DataSource commissionDatasource) {
+        processorTaskExecutor.setCorePoolSize(config.getCommitmentAgreementCorePoolSize());
+        processorTaskExecutor.setMaxPoolSize(config.getCommitmentAgreementMaxPoolSize());
+        ItemFailureLoggerListener<CommitmentCustomerDTO, List<CommitmentCustomerDTO>> itemFailureLoggerListener = new ItemFailureLoggerListener<>();
+        return getCommonStepBuilder(CommitmentAgreementConstant.BATCH_STEP_NAME)
+                .<CommitmentCustomerDTO, CommitmentCustomerDTO>chunk(config.getCommitmentAgreementChunkSize(), chainedTransactionManager)
+                .listener(itemFailureLoggerListener)
+                .reader(commitmentAgreementReader())
+                .processor(commitmentAgreementProcessor())
+                .writer(commitmentCompositeItemWriter(commissionDatasource))
+                .taskExecutor(processorTaskExecutor)
+                .stepOperations(repeatTemplate(processorTaskExecutor,config.getCommitmentAgreementThreadCount()))
+                .build();
+    }
+
+    @Bean
+    @StepScope
+    public SynchronizedItemStreamReader<CommitmentCustomerDTO> commitmentAgreementReader() {
+        JdbcCursorItemReaderBuilder<CommitmentCustomerDTO> readerBuilder = new JdbcCursorItemReaderBuilder<>();
+        readerBuilder.saveState(false);
+        readerBuilder.dataSource(getDataSource());
+        readerBuilder.sql(SqlUtils.readSql(sqlResource));
+        readerBuilder.fetchSize(config.getCommitmentAgreementFetchCount());
+        readerBuilder.rowMapper(new BeanPropertyRowMapper<>(CommitmentCustomerDTO.class));
+        SynchronizedItemStreamReader<CommitmentCustomerDTO> synchronizedItemStreamReader = new SynchronizedItemStreamReader<>();
+        synchronizedItemStreamReader.setDelegate(readerBuilder.build());
+        return synchronizedItemStreamReader;
+    }
+
+    @Bean
+    @StepScope
+    public ItemProcessor<CommitmentCustomerDTO, CommitmentCustomerDTO> commitmentAgreementProcessor() {
+        return new CommitmentAgreementProcessor();
+    }
+
+    @Bean
+    @StepScope
+    public CompositeItemWriter<CommitmentCustomerDTO> commitmentCompositeItemWriter(@Qualifier("commissionDatasource") DataSource commissionDatasource){
+        CompositeItemWriter<CommitmentCustomerDTO> writer = new CompositeItemWriter<>();
+        writer.setDelegates(Arrays.asList(commitmentCustomerJdbcWriter(commissionDatasource), commitmentAgreementServiceWriter()));
+        return writer;
+    }
+
+    @Bean
+    @StepScope
+    public ItemWriter<CommitmentCustomerDTO> commitmentAgreementServiceWriter() {
+        return new CommitmentAgreementWriter();
+    }
+
+    @Bean
+    @StepScope
+    public JdbcBatchItemWriter<CommitmentCustomerDTO> commitmentCustomerJdbcWriter(@Qualifier("commissionDatasource") DataSource commissionDatasource) {
+        JdbcBatchItemWriterBuilder<CommitmentCustomerDTO> writerBuilder = new JdbcBatchItemWriterBuilder<>();
+        writerBuilder.dataSource(commissionDatasource);
+        writerBuilder.namedParametersJdbcTemplate(new NamedParameterJdbcTemplate(commissionDatasource));
+        writerBuilder.sql(SqlUtils.readSql(updateCommitmentCustomerStatusResource));
+        writerBuilder.itemSqlParameterSourceProvider(item -> new MapSqlParameterSource()
+                .addValue("id", item.getId())
+                .addValue("status", item.getStatusCode()));
+        return writerBuilder.build();
+    }
+
+}
+
+package com.ykb.corebanking.commission.batch.jobs.commitmentagreement.config;
+
+import lombok.Getter;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Configuration;
+
+@Configuration
+public class CommitmentAgreementConfig {
+
+    @Getter
+    @Value("${batch.commitmentagreement.threadcount}")
+    private Integer commitmentAgreementThreadCount;
+
+    @Getter
+    @Value("${batch.commitmentagreement.chunksize}")
+    private Integer commitmentAgreementChunkSize;
+
+    @Getter
+    @Value("${batch.commitmentagreement.corepoolsize}")
+    private Integer commitmentAgreementCorePoolSize;
+
+    @Getter
+    @Value("${batch.commitmentagreement.maxpoolsize}")
+    private Integer commitmentAgreementMaxPoolSize;
+
+    @Getter
+    @Value("${batch.commitmentagreement.fetchcount}")
+    private Integer commitmentAgreementFetchCount;
+
+}
+
+package com.ykb.corebanking.commission.batch.jobs.commitmentagreement.constant;
+
+public class CommitmentAgreementConstant {
+
+    private CommitmentAgreementConstant() {
+        throw new IllegalStateException("Constant Class");
+    }
+
+    public static final String BATCH_NAME = "commitmentagreement";
+    public static final String BATCH_JOB_NAME = "commitmentAgreementJob";
+    public static final String BATCH_STEP_NAME = "commitmentAgreementStep";
+
+    public static final String START_MESSAGE = "Commitment Agreement Batch Started";
+    public static final String END_MESSAGE = "Commitment Agreement Batch Finished Status: ";
+
+    public static final String ERROR_NOT_FOUND_MESSAGE = "Commitment Agreement Batch Query Data is Empty ID: ";
+
+    public static final String ERROR_MESSAGE = "Commitment Agreement Batch Data Error: ";
+
+}
+
+package com.ykb.corebanking.commission.batch.jobs.commitmentagreement.listener;
+
+import com.ykb.corebanking.commission.batch.common.CommonJobExecutionStatistics;
+import com.ykb.corebanking.commission.batch.jobs.commitmentagreement.constant.CommitmentAgreementConstant;
+import com.ykb.corebanking.commission.domain.data.accounting.LogType;
+import com.ykb.corebanking.commission.domain.port.LoggingPort;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.BatchStatus;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobExecutionListener;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Lazy;
+import org.springframework.stereotype.Component;
+
+@Lazy
+@Slf4j
+@Component
+public class CommitmentAgreementListener implements JobExecutionListener {
+
+    @Autowired
+    private LoggingPort loggingPort;
+
+    @Override
+    public void beforeJob(JobExecution jobExecution) {
+        CommonJobExecutionStatistics.getInstance().beforeJob(jobExecution);
+        loggingPort.info(LogType.COMMITMENT, CommitmentAgreementConstant.START_MESSAGE);
+    }
+
+    @Override
+    public void afterJob(JobExecution jobExecution) {
+        CommonJobExecutionStatistics.getInstance().afterJob(jobExecution);
+        if (jobExecution.getStatus() == BatchStatus.FAILED) {
+            String exception = CommitmentAgreementConstant.END_MESSAGE + jobExecution.getExitStatus().getExitCode() + " Error: " + jobExecution.getExitStatus().getExitDescription();
+            loggingPort.info(LogType.COMMITMENT, exception);
+        }else{
+            loggingPort.info(LogType.COMMITMENT, CommitmentAgreementConstant.END_MESSAGE + jobExecution.getExitStatus().getExitCode());
+        }
+    }
+
+}
+
+package com.ykb.corebanking.commission.batch.jobs.commitmentagreement.step;
+
+import com.ykb.corebanking.commission.batch.jobs.commitmentagreement.constant.CommitmentAgreementConstant;
+import com.ykb.corebanking.commission.domain.data.accounting.LogType;
+import com.ykb.corebanking.commission.domain.data.commitment.CommitmentCustomerAgreementDTO;
+import com.ykb.corebanking.commission.domain.data.commitment.CommitmentCustomerDTO;
+import com.ykb.corebanking.commission.domain.domainmodel.commitment.exception.CommitmentException;
+import com.ykb.corebanking.commission.domain.enums.commitment.CommitmentProduct;
+import com.ykb.corebanking.commission.domain.enums.commitment.CommitmentStatus;
+import com.ykb.corebanking.commission.domain.port.LoggingPort;
+import com.ykb.corebanking.commission.infrastructure.adapters.jpa.commission.commitment.CommitmentAgreementAdapter;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.item.ItemProcessor;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import java.math.BigDecimal;
+import java.math.RoundingMode;
+import java.util.List;
+
+@Slf4j
+public class CommitmentAgreementProcessor implements ItemProcessor<CommitmentCustomerDTO, CommitmentCustomerDTO>{
+
+    @Autowired
+    private LoggingPort loggingPort;
+
+    @Autowired
+    private CommitmentAgreementAdapter commitmentAgreementJdbcAdapter;
+
+    @Override
+    public CommitmentCustomerDTO process(CommitmentCustomerDTO commitmentCustomerDTO) throws CommitmentException {
+        Boolean commitmentApproval = Boolean.FALSE;
+        Boolean commitmentConditionsNotMet = Boolean.FALSE;
+        List<CommitmentCustomerAgreementDTO> customerAgreementList = commitmentAgreementJdbcAdapter.getCommitmentCustomerEndedDetailAndHistory(commitmentCustomerDTO.getId());
+        if(customerAgreementList.isEmpty()){
+            loggingPort.info(LogType.COMMITMENT, CommitmentAgreementConstant.ERROR_NOT_FOUND_MESSAGE+commitmentCustomerDTO.getId());
+            return commitmentCustomerDTO;
+        }
+        try{
+            for(CommitmentCustomerAgreementDTO customerAgreementDTO: customerAgreementList){
+                CommitmentProduct product = CommitmentProduct.getCommitmentProductTypeByCode(customerAgreementDTO.getProductCode());
+                if(product.getIsAmount().equals(Boolean.TRUE) && customerAgreementDTO.getRealizedAmount().compareTo(customerAgreementDTO.getAmount()) < 0){
+                    BigDecimal rate = customerAgreementDTO.getBrokenPromiseRate().divide(BigDecimal.valueOf(100f),2, RoundingMode.HALF_UP);
+                    BigDecimal brokenPromiseRateAmount = customerAgreementDTO.getAmount().multiply(rate);
+                    BigDecimal difference = customerAgreementDTO.getAmount().subtract(customerAgreementDTO.getRealizedAmount());
+                    if(difference.compareTo(brokenPromiseRateAmount) > 0){
+                        commitmentConditionsNotMet = Boolean.TRUE;
+                    }
+                    commitmentApproval = Boolean.TRUE;
+                }else if(product.getIsAmount().equals(Boolean.FALSE) && customerAgreementDTO.getRealizedCount() < 1){
+                    commitmentConditionsNotMet = Boolean.TRUE;
+                }
+                if(commitmentConditionsNotMet.equals(Boolean.TRUE)){
+                    break;
+                }
+            }
+            commitmentCustomerDTO.setStatusCode(CommitmentStatus.COMMITMENT_ACCEPTED.getCode());
+            if(commitmentConditionsNotMet.equals(Boolean.TRUE)){
+                commitmentCustomerDTO.setStatusCode(CommitmentStatus.COLLECTION_WAITING.getCode());
+            }else if(commitmentApproval.equals(Boolean.TRUE)){
+                commitmentCustomerDTO.setStatusCode(CommitmentStatus.APPROVAL_WAITING_PROCESS.getCode());
+            }
+        }catch (Exception e){
+            loggingPort.info(LogType.COMMITMENT, CommitmentAgreementConstant.ERROR_MESSAGE + e.getLocalizedMessage());
+            commitmentCustomerDTO.setStatusCode(CommitmentStatus.COMMITMENT_CONTINUE.getCode());
+        }
+        return commitmentCustomerDTO;
+    }
+
+}
+
+package com.ykb.corebanking.commission.domain.port;
+
+import com.ykb.corebanking.commission.domain.data.accounting.LogType;
+
+import java.math.BigDecimal;
+import java.util.Map;
+
+public interface LoggingPort {
+    void info(LogType logType,BigDecimal inquiryId,BigDecimal contractNo, String logMessage);
+    void info(LogType logType,String logMessage);
+    void error(LogType logType,BigDecimal inquiryId,BigDecimal contractNo,String logMessage);
+    void error(LogType logType,String logMessage);
+    void debug(LogType logType,BigDecimal inquiryId,BigDecimal contractNo,String logMessage);
+    void debug(LogType logType,String logMessage);
+    void alert(LogType logType,BigDecimal inquiryId,BigDecimal contractNo,String logMessage);
+    void alert(LogType logType,String logMessage);
+    void addToCounterMetric(String name, String description, Map<String,String> tagNameValueMap);
+}
+
+package com.ykb.corebanking.commission.domain.data.commitment;
+
+import com.ykb.corebanking.commission.domain.data.inheritance.CommitmentCustomerInheritanceDTO;
+import lombok.Getter;
+import lombok.Setter;
+
+@Getter
+@Setter
+public class CommitmentCustomerDTO extends CommitmentCustomerInheritanceDTO {
+    private Long id;
+    private Long commitmentEntryApprovalId;
+    private Long integrationReferenceID;
+    private String portfolioSbu;
+}
+
+package com.ykb.corebanking.commission.infrastructure.adapters.jpa.commission.commitment;
+
+import com.ykb.corebanking.commission.domain.data.commitment.CommitmentCustomerAgreementDTO;
+import com.ykb.corebanking.commission.domain.domainmodel.commitment.exception.CommitmentException;
+import com.ykb.corebanking.commission.domain.port.commitment.CommitmentAgreementJdbcPort;
+import com.ykb.corebanking.commission.infrastructure.adapters.jpa.commission.commitment.jdbc.CommitmentCustomerEndedDetailAndHistoryRepository;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.util.List;
+
+@Slf4j
+@Service
+public class CommitmentAgreementAdapter implements CommitmentAgreementJdbcPort {
+
+    @Autowired
+    private CommitmentCustomerEndedDetailAndHistoryRepository commitmentCustomerEndedDetailAndHistoryRepository;
+
+    @Override
+    public List<CommitmentCustomerAgreementDTO> getCommitmentCustomerEndedDetailAndHistory(Long commitmentCustomerId) throws CommitmentException {
+        return commitmentCustomerEndedDetailAndHistoryRepository.getCommitmentCustomerEndedDetailAndHistory(commitmentCustomerId);
+    }
+
+}
+
+package com.ykb.corebanking.commission.infrastructure.adapters.jpa.commission.commitment.jdbc;
+
+import com.ykb.corebanking.commission.domain.data.commitment.CommitmentCustomerAgreementDTO;
+import com.ykb.corebanking.commission.domain.domainmodel.commitment.exception.CommitmentException;
+
+import java.util.List;
+
+public interface CommitmentCustomerEndedDetailAndHistoryRepository {
+    List<CommitmentCustomerAgreementDTO> getCommitmentCustomerEndedDetailAndHistory(Long commitmentCustomerId) throws CommitmentException;
 }
