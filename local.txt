@@ -1,21 +1,20 @@
 @Test
-void adcGetDisplay_withFullCriteriaAndValidKwcaac_shouldSetDtoFields() throws ReceiptException {
+void adcGetDisplay_withNullAccountNumberOrCurrency_shouldNotSetAccountField() throws ReceiptException {
     // Arrange
     RequestAdcReceiptDisplay requestAdc = new RequestAdcReceiptDisplay();
     RequestReceiptAdcCriteria criteria = new RequestReceiptAdcCriteria();
-    criteria.setAccountNumber("555555");
-    criteria.setAccountCurrency("TRY");
+    criteria.setAccountNumber(null);
+    criteria.setAccountCurrency("EUR"); // accountNumber null -> if'e girmez
     requestAdc.setRequestReceiptAdcCriteriaList(Collections.singletonList(criteria));
 
-    // Controller aslında List<ResponseAdcReceiptDisplay> bekliyor, 
-    // biz de o list'i döndüreceğiz.
-    ResponseAdcReceiptDisplay displayDto = ResponseAdcReceiptDisplay.builder()
-            .account("1234    TRY") // parseKwcaac için 4 boşluk
+    // parseKwcaac invalid test. 
+    // Service metodu gerçekte List<ResponseAdcReceiptDisplay> döndürüyor.
+    ResponseAdcReceiptDisplay dto = ResponseAdcReceiptDisplay.builder()
+            .account("invalid format") // parseKwcaac -> Optional.empty()
             .build();
-    // Mock’un döndüreceği liste
-    List<ResponseAdcReceiptDisplay> mockDisplayList = Collections.singletonList(displayDto);
+    List<ResponseAdcReceiptDisplay> mockDisplayList = Collections.singletonList(dto);
 
-    // Service metodunu bu listeyle mocklayalım
+    // when(...) ile list döndürecek şekilde mocklayın:
     when(service.getReceiptDisplayList(Mockito.any())).thenReturn(mockDisplayList);
 
     // Act
@@ -23,9 +22,10 @@ void adcGetDisplay_withFullCriteriaAndValidKwcaac_shouldSetDtoFields() throws Re
 
     // Assert
     assertEquals(HttpStatus.OK, result.getStatusCode());
-    // requestAdcCriteria içinde setAccount yapılmış mı?
-    assertEquals("555555 TRY", criteria.getAccount());
-    // parseKwcaac sonucu
-    assertEquals("1234", displayDto.getAccountNumber());
-    assertEquals("TRY", displayDto.getAccountCurrency());
+    // if'e girmediği için account set edilmemeli
+    assertNull(criteria.getAccount());
+
+    // parseKwcaac -> empty döneceği için dto'ya accountNumber / accountCurrency set edilmemeli
+    assertNull(dto.getAccountNumber());
+    assertNull(dto.getAccountCurrency());
 }
