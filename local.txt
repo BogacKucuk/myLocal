@@ -1,92 +1,17 @@
-package com.ykb.corebanking.safedepositbox.safedepositboxbe;
 
-import com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common.CustomJobParameters;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.batch.core.ExitStatus;
-import org.springframework.batch.core.Job;
-import org.springframework.batch.core.JobExecution;
-import org.springframework.batch.core.JobParametersBuilder;
-import org.springframework.batch.core.launch.JobLauncher; // Spring Batch interface
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
-import org.springframework.cache.annotation.EnableCaching;
-import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
-import org.springframework.cloud.openfeign.EnableFeignClients;
-import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.context.annotation.ComponentScan;
+***************************
+APPLICATION FAILED TO START
+***************************
 
-@Slf4j
-@SpringBootApplication
-@ComponentScan(basePackages = {"com.ykb.corebanking.safedepositbox.safedepositboxbe"})
-@EnableCaching
-@EnableFeignClients
-@EnableDiscoveryClient
-@EnableAutoConfiguration(exclude = {SecurityAutoConfiguration.class, ManagementWebSecurityAutoConfiguration.class})
-public class SafedepositboxBeApplication {
+Description:
 
-    public static void main(String[] args) {
+Field jobLauncher in com.ykb.corebanking.safedepositbox.safedepositboxbe.controller.JobLauncerController required a bean of type 'com.ykb.corebanking.safedepositbox.safedepositboxbe.service.IJobLauncher' that could not be found.
 
-        // Eski koddaki environment ayarları
-        String name = System.getenv("SPRING_APPLICATION_NAME");
-        if (name != null) {
-            System.setProperty("spring.application.name", name);
-        }
+The injection point has the following annotations:
+	- @org.springframework.beans.factory.annotation.Autowired(required=true)
 
-        // Spring Boot Context
-        ConfigurableApplicationContext ctx =
-                SpringApplication.run(SafedepositboxBeApplication.class, args);
 
-        // Batch job param var mı?
-        if (args != null && args.length > 0) {
-            String jobName = args[0];  // Örn: "dummyParameterInsertJob"
-            int exitCode = 0;
-            try {
-                // parse key=value parametreler
-                CustomJobParameters<String, Object> customParams =
-                        ctx.getBean(CustomJobParameters.class);
-                for (int i = 1; i < args.length; i++) {
-                    String[] kv = args[i].split("=");
-                    if (kv.length == 2) {
-                        customParams.addParameter(kv[0], kv[1]);
-                    }
-                }
+Action:
 
-                /**
-                 * FARK: Bean injection’ı tip bazlı yapıyoruz:
-                 * org.springframework.batch.core.launch.JobLauncher
-                 * Bu, user-defined "JobLauncher" sınıfıyla isim çakışsa bile 
-                 * batch interface tipinden bean'i bulur (override devrede).
-                 */
-                JobLauncher batchLauncher =
-                        ctx.getBean(JobLauncher.class); // TIP BAZLI
+Consider defining a bean of type 'com.ykb.corebanking.safedepositbox.safedepositboxbe.service.IJobLauncher' in your configuration.
 
-                // job bean'ini al
-                Job job = ctx.getBean(jobName, Job.class);
-
-                // job tetikle
-                JobExecution execution = batchLauncher.run(
-                        job,
-                        new JobParametersBuilder()
-                                .addLong("startTime", System.currentTimeMillis())
-                                .toJobParameters()
-                );
-
-                if (!ExitStatus.COMPLETED.equals(execution.getExitStatus())) {
-                    exitCode = 1;
-                }
-            } catch (Exception e) {
-                log.error("Batch job failed with exception", e);
-                exitCode = 1;
-            } finally {
-                // batch bitti, kapat
-                ctx.close();
-                System.exit(exitCode);
-            }
-        }
-
-        // Argüman yoksa normal web flow
-    }
-}
