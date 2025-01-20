@@ -1,89 +1,88 @@
-package com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common.stats;
+***************************
+APPLICATION FAILED TO START
+***************************
 
-import lombok.Getter;
-import org.springframework.batch.core.JobExecution;
-import org.springframework.batch.core.JobParameter;
-import org.springframework.batch.core.JobParameters;
-import org.springframework.batch.core.StepExecution;
+Description:
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.PrintWriter;
-import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
-import java.util.*;
+The bean 'jobLauncher', defined in class path resource [org/springframework/boot/autoconfigure/batch/BatchAutoConfiguration$SpringBootBatchConfiguration.class], could not be registered. A bean with that name has already been defined in file [C:\repo\safedepositbox-be\target\classes\com\ykb\corebanking\safedepositbox\safedepositboxbe\service\impl\JobLauncher.class] and overriding is disabled.
 
-/**
- * Bu sınıf, Job ve Step istatistiklerini tutar; 
- * job parametreleri, exception gibi bilgileri log için 
- * CommonJobExecutionStatistics tarafından kullanılır.
- */
-@Getter
-public class JobStatistics {
+Action:
 
-    private static final DateTimeFormatter DATE_TIME_FORMATTER =
-            DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+Consider renaming one of the beans or enabling overriding by setting spring.main.allow-bean-definition-overriding=true
 
-    private final String jobName;
-    private final Long jobInstanceId;
-    private final String jobStatus;
-    private final String startTime;
-    private final String endTime;
-    private final String exitStatus;
-    private final String failureExceptions;
 
-    private final List<JobStatsParameter> parameters = new ArrayList<>();
-    private final List<StepStatistics> stepStatistics = new ArrayList<>();
 
-    public JobStatistics(JobExecution jobExecution) {
-        this.jobName = jobExecution.getJobInstance().getJobName();
-        this.jobInstanceId = jobExecution.getJobInstance().getId();
-        this.jobStatus = jobExecution.getStatus().toString();
+package com.ykb.corebanking.safedepositbox.safedepositboxbe.service.impl;
 
-        // Tarihleri formatlıyoruz (LocalDateTime -> String).
-        this.startTime = Optional.ofNullable(jobExecution.getStartTime())
-                .orElse(LocalDateTime.MIN)
-                .format(DATE_TIME_FORMATTER);
+import java.text.MessageFormat;
+import java.util.Calendar;
 
-        this.endTime = Optional.ofNullable(jobExecution.getEndTime())
-                .orElse(LocalDateTime.MIN)
-                .format(DATE_TIME_FORMATTER);
+import javax.validation.Valid;
+import javax.validation.constraints.NotNull;
 
-        this.exitStatus = jobExecution.getExitStatus().toString();
-        this.failureExceptions = printExceptions(jobExecution.getFailureExceptions());
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
 
-        // Job parametrelerini alıp "JobStatsParameter" listesine ekliyoruz.
-        JobParameters jobParams = jobExecution.getJobParameters();
-        for (Map.Entry<String, JobParameter<?>> entry : jobParams.getParameters().entrySet()) {
-            String key = entry.getKey();
-            // getValue() -> Object, toString() / String.valueOf(...) ile alıyoruz.
-            String val = String.valueOf(entry.getValue().getValue());
-            this.parameters.add(new JobStatsParameter(key, val));
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.dto.JobDefinitionDTO;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.exception.JobCouldNotBeLocatedException;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.exception.JobDefinitionNotFoundException;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.exception.JobException;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.exception.JobValidationException;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.mapper.IJobDefinitionMapper;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.request.RequestJobLauncher;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.request.RequestJobLocator;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.request.RequestJobValidation;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.response.ResponseJobExecutor;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.response.ResponseJobLauncher;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.response.ResponseJobLocator;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.service.IJobExecutor;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.service.IJobLauncher;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.service.IJobLocator;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.service.IJobValidationService;
+
+import lombok.extern.slf4j.Slf4j;
+
+
+@Service
+@Slf4j
+public class JobLauncher implements IJobLauncher {
+
+    @Autowired
+    private IJobLocator           jobLocator;
+
+    @Autowired
+    private IJobValidationService jobValidationService;
+
+    @Override
+    public ResponseJobLauncher launch(@Valid @NotNull RequestJobLauncher requestJobLauncer) throws JobException {
+        ResponseJobLocator responseJobLocator = null;
+        try {
+            log.info(MessageFormat.format("Trying to find job with given name {0}.", requestJobLauncer.getName()));
+            responseJobLocator = jobLocator.locate(RequestJobLocator.builder().name(requestJobLauncer.getName()).build());
+            log.info("Job located.");
+        } catch (JobCouldNotBeLocatedException jobCouldNotBeLocatedException) {
+            log.info(MessageFormat.format("Job could not be located for {0}.", requestJobLauncer.getName()));
+            throw new JobException(jobCouldNotBeLocatedException.getMessage());
+        } catch (JobDefinitionNotFoundException e) {
+            log.info(MessageFormat.format("Job definition not found for {0}.", requestJobLauncer.getName()));
+            throw new JobException(e.getMessage());
         }
-
-        // Step bazında istatistik
-        for (StepExecution stepExec : jobExecution.getStepExecutions()) {
-            stepStatistics.add(new StepStatistics(stepExec));
+        JobDefinitionDTO jobDefinitionDTO = responseJobLocator.getJobDefinitionDTO();
+        try {
+            log.info("Started to validate job definition.");
+            jobValidationService.validate(RequestJobValidation.builder().jobDefinitionDTO(jobDefinitionDTO).build());
+            log.info("Job definition validated.");
+        } catch (JobValidationException e) {
+            log.info("Job definition is not valid. An exception thrown: " + e.getMessage());
+            throw new JobException(e.getMessage());
         }
+        IJobExecutor jobExecutor = responseJobLocator.getJobExecutor();
+        log.info("Job is starting...");
+        log.info("Job started.");
+        ResponseJobExecutor response = jobExecutor.start(IJobDefinitionMapper.INSTANCE.toRequest(jobDefinitionDTO));
+        log.info("Job ended without any exception... Successful.");
+        return ResponseJobLauncher.builder().jobId(jobDefinitionDTO.getId()).jobStarted(Calendar.getInstance().getTime()).jobDefinition(jobDefinitionDTO).jobStatisticId(response.getJobStatisticId())
+                .build();
     }
 
-    /**
-     * Failure exception listesini String'e dönüştürme metodu
-     * ByteArrayOutputStream + PrintWriter kullanıyor.
-     */
-    private static String printExceptions(List<Throwable> exceptions) {
-        if (exceptions == null || exceptions.isEmpty()) {
-            return "";
-        }
-        try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
-             PrintWriter pw = new PrintWriter(bos)) {
-            for (Throwable t : exceptions) {
-                t.printStackTrace(pw);
-            }
-            pw.flush();
-            return bos.toString();
-        } catch (IOException e) {
-            return "";
-        }
-    }
 }
