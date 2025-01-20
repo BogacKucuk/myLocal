@@ -617,3 +617,301 @@ public class DummyParameterInsertJobConfiguration extends BaseJobConfiguration {
         };
     }
 }
+
+
+package com.ykb.corebanking.safedepositbox.safedepositboxbe;
+
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common.CustomJobParameters;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.ExitStatus;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobParametersBuilder;
+import org.springframework.batch.core.launch.JobLauncher; // Spring Batch interface
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+import org.springframework.cloud.openfeign.EnableFeignClients;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.annotation.ComponentScan;
+
+@Slf4j
+@SpringBootApplication
+@ComponentScan(basePackages = {"com.ykb.corebanking.safedepositbox.safedepositboxbe"})
+@EnableCaching
+@EnableFeignClients
+@EnableDiscoveryClient
+@EnableAutoConfiguration(exclude = {SecurityAutoConfiguration.class, ManagementWebSecurityAutoConfiguration.class})
+public class SafedepositboxBeApplication {
+
+    public static void main(String[] args) {
+
+        // Eski koddaki environment ayarları
+        String name = System.getenv("SPRING_APPLICATION_NAME");
+        if (name != null) {
+            System.setProperty("spring.application.name", name);
+        }
+
+        // Spring Boot Context
+        ConfigurableApplicationContext ctx =
+                SpringApplication.run(SafedepositboxBeApplication.class, args);
+
+        // Batch job param var mı?
+        if (args != null && args.length > 0) {
+            String jobName = args[0];  // Örn: "dummyParameterInsertJob"
+            int exitCode = 0;
+            try {
+                // parse key=value parametreler
+                CustomJobParameters<String, Object> customParams =
+                        ctx.getBean(CustomJobParameters.class);
+                for (int i = 1; i < args.length; i++) {
+                    String[] kv = args[i].split("=");
+                    if (kv.length == 2) {
+                        customParams.addParameter(kv[0], kv[1]);
+                    }
+                }
+
+                /**
+                 * FARK: Bean injection’ı tip bazlı yapıyoruz:
+                 * org.springframework.batch.core.launch.JobLauncher
+                 * Bu, user-defined "JobLauncher" sınıfıyla isim çakışsa bile
+                 * batch interface tipinden bean'i bulur (override devrede).
+                 */
+                JobLauncher batchLauncher =
+                        ctx.getBean(JobLauncher.class); // TIP BAZLI
+
+                // job bean'ini al
+                Job job = ctx.getBean(jobName, Job.class);
+
+                // job tetikle
+                JobExecution execution = batchLauncher.run(
+                        job,
+                        new JobParametersBuilder()
+                                .addLong("startTime", System.currentTimeMillis())
+                                .toJobParameters()
+                );
+
+                if (!ExitStatus.COMPLETED.equals(execution.getExitStatus())) {
+                    exitCode = 1;
+                }
+            } catch (Exception e) {
+                log.error("Batch job failed with exception", e);
+                exitCode = 1;
+            } finally {
+                // batch bitti, kapat
+                ctx.close();
+                System.exit(exitCode);
+            }
+        }
+
+        // Argüman yoksa normal web flow
+    }
+}
+
+spring:
+  main:
+    allow-bean-definition-overriding: true
+
+  application:
+    name: COREBANKING.SAFEDEPOSITBOX.safedepositbox-be
+
+  datasource:
+    driver-class-name: oracle.jdbc.OracleDriver
+    url: jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=oprkbarcdbt.sys.yapikredi.com.tr)(PORT=1818)))(CONNECT_DATA=(SERVICE_NAME=SRVTEST_TBU)))
+    jdbcUrl: jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=oprkbarcdbt.sys.yapikredi.com.tr)(PORT=1818)))(CONNECT_DATA=(SERVICE_NAME=SRVTEST_TBU)))
+    username: SAFEDEPOSITBOX
+    password: safetbu1*
+    hikari:
+      connection-test-query: SELECT 1 FROM DUAL
+      minimum-idle: 1
+      maximum-pool-size: 20
+      max-lifetime: 60000
+      idle-timeout: 10000
+      connection-timeout: 10000
+      data-source-properties:
+        oracle.jdbc.ReadTimeout: 10000
+        oracle.net.READ_TIMEOUT: 10000
+        oracle.net.CONNECT_TIMEOUT: 10000
+        "[v$session.program]": ${spring.application.name}
+
+  batch:
+    jdbc:
+      initialize-schema: always  # Oracle için batch tablolarını otomatik oluştur (development amaçlı)
+
+  jpa:
+    show-sql: false
+    generate-ddl: false
+    database-platform: org.hibernate.dialect.OracleDialect
+    properties:
+      hibernate:
+        enable_lazy_load_no_trans: true
+        jdbc:
+          batch_size: 100
+        order_inserts: true
+        order_updates: true
+
+server:
+  port: 55400
+
+eureka:
+  client:
+    enabled: false
+
+runtime:
+  platform: local
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+
+harmoni:
+  adapter:
+    restendpoint: http://betest.yapikredi.com.tr/Harmoni/rest
+    #restendpoint: http://localhost:9080/HMN_INF_WSServer/rest
+
+safedepositbox:
+  caches:
+    SafeDepositBoxOneDayCache:
+      timeToLive: 1d
+      cacheNullValues: false
+    SafeDepositBoxWeeklyCache:
+      timeToLive: 7d
+      cacheNullValues: false
+
+redis:
+  readTimeout: 100ms
+  connectTimeout: 100ms
+
+architecture:
+  redis:
+    service:
+      name: COREBANKING.SAFEDEPOSITBOX.Redis
+
+messaging:
+  queues:
+    safeDepositBoxErrorLogQueue:
+      name: safeDepositBox_error_log_to_generation_q
+      routingKey: safeDepositBox_error_log_to_generation_rk
+      enabled: true
+      durable: false
+      exchange:
+        name: safeDepositBox_error_log_generation_exchange
+        durable: false
+        type: direct
+        retryCount: 1
+      arguments:
+        x-message-ttl: 30000
+        x-queue-mode: lazy
+    safeDepositBoxInfoLogQueue:
+      name: safeDepositBox_info_log_to_generation_q
+      routingKey: safeDepositBox_info_log_to_generation_rk
+      enabled: true
+      durable: false
+      exchange:
+        name: safeDepositBox_info_log_generation_exchange
+        durable: false
+        type: direct
+        retryCount: 1
+      arguments:
+        x-message-ttl: 30000
+        x-queue-mode: lazy
+    jobStatistic:
+      name: safedeposit_job_statistic_q
+      routingKey: safedeposit_job_statistic_rk
+      enabled: true
+      durable: false
+      exchange:
+        name: safedeposit_job_statistic_exchange
+        durable: false
+        type: direct
+        retryCount: 1
+      arguments:
+        x-message-ttl: 30000
+        x-queue-mode: lazy
+  environments:
+    local:
+      host: localhost
+      vhost: '/'
+      username: admin
+      userspec: passrmq01
+    dev:
+      host: 10.59.9.53
+      port: 5577
+      vhost: gise-vhost
+      username: admin
+      userspec: passrmq01
+  rabbit:
+    useRabbitFlag: true
+    environment: dev
+    service: COREBANKING.SAFEDEPOSITBOX.RabbitMQ
+
+resilience4j.ratelimiter:
+  instances:
+    rateLimiterForErrorLogger:
+      limitForPeriod: 10
+      limitRefreshPeriod: 1s
+      timeoutDuration: 0
+      registerHealthIndicator: true
+      eventConsumerBufferSize: 10
+    rateLimiterForInfoLogger:
+      limitForPeriod: 10
+      limitRefreshPeriod: 500ms
+      timeoutDuration: 0
+      registerHealthIndicator: true
+      eventConsumerBufferSize: 10
+
+loginfrastructure:
+  asynchronous:
+    corePoolSize: 1
+    maxPoolSize: 3
+    threadQueueCapacity: 500
+    threadPoolKeepAliveSeconds: 60
+  loggers:
+    sherlog:
+      enabled: true
+    safeDepositBoxlog:
+      enabled: true
+      services:
+        DefaultService:
+          isLogActive: false
+          logLevel: ERROR
+        FeignClient:
+          isLogActive: false
+          logLevel: ERROR
+        RestController:
+          isLogActive: false
+          logLevel: ERROR
+    flowXKafkaLog:
+      enabled: true
+      queueTimeout: 2000ms
+
+kafka:
+  safeDepositBox:
+    platform: ABCD
+    address: ovrmonkfkmng1.kfs.local:9092, ovrmonkfkmng2.kfs.local:9092, ovrmonkfkmng3.kfs.local:9092
+    topic: SAFEDEPOSITBOX
+    prefix: FLOWX
+    postfix: TST
+    retry:
+      interval: 2000
+      maxAttempts: 3
+
+
+# Aşağıda Definition projesinde gördüğümüz gibi
+# "batch-configuration" prefix’i altına job parametreleri
+# (threadPool, steps, chunkSize vs.) ekleyebiliriz.
+batch-configuration:
+  jobs:
+    dummyParameterInsertJob:
+      threadPool:
+        corePoolSize: 2
+        maxPoolSize: 4
+      steps:
+        dummyParameterInsertStep:
+          chunkSize: 5
