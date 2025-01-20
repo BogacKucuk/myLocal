@@ -1,406 +1,560 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
-	<modelVersion>4.0.0</modelVersion>
-	<parent>
-		<groupId>com.ykb.sdlc.pom</groupId>
-		<artifactId>root-pom-spring-boot</artifactId>
-		<version>3.3.2-SNAPSHOT</version>
-		<relativePath/> <!-- lookup parent from repository -->
-	</parent>
-	<groupId>com.ykb.corebanking.safedepositbox</groupId>
-	<artifactId>safedepositbox-be</artifactId>
-	<version>0.0.1-SNAPSHOT</version>
-	<name>safedepositbox-be</name>
-	<description>SafeDepositBox</description>
-	<properties>
-		<java.version>17</java.version>
-		<pivotal-cloud-dependencies.version>4.1.3</pivotal-cloud-dependencies.version>
-		<spring-cloud.version>2023.0.3</spring-cloud.version>
-		<ykb-micro-tools.version>3.3.2-LIV-101</ykb-micro-tools.version>
-		<dep.springdoc-openapi-ui.version>1.5.12</dep.springdoc-openapi-ui.version>
-		<io.github.resilience4j.version>2.2.0</io.github.resilience4j.version>
-		<dep.lombok.version>1.18.26</dep.lombok.version>
-		<dep.mapstruct-binding.version>0.2.0</dep.mapstruct-binding.version>
-        <dep.mapstruct.version>1.5.2.Final</dep.mapstruct.version>
-        <dep.cxf.version>4.0.4</dep.cxf.version>
-        <dep.cxf-auto-configure.version>4.0.4</dep.cxf-auto-configure.version>
-        <dep.powermock.version>2.0.6</dep.powermock.version>
-        <dep.oracle.version>11.2.0.4</dep.oracle.version>
-        
-	</properties>
-	<dependencies>
-		<dependency>
-			<groupId>io.github.resilience4j</groupId>
-			<artifactId>resilience4j-spring-boot2</artifactId>
-			<version>${io.github.resilience4j.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>com.ykb.architecture.services</groupId>
-			<artifactId>service-catalog-starter-2-release</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>io.pivotal.spring.cloud</groupId>
-			<artifactId>spring-cloud-services-starter-config-client</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>io.pivotal.spring.cloud</groupId>
-			<artifactId>spring-cloud-services-starter-service-registry</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springdoc</groupId>
-			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-			<version>2.6.0</version>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.cloud</groupId>
-			<artifactId>spring-cloud-starter-bootstrap</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.freemarker</groupId>
-			<artifactId>freemarker</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.batch</groupId>
-			<artifactId>spring-batch-core</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.batch</groupId>
-			<artifactId>spring-batch-integration</artifactId>
-		</dependency>
-		<dependency>
-			<artifactId>spring-batch-test</artifactId>
-			<groupId>org.springframework.batch</groupId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-		 	 <groupId>com.oracle.ojdbc</groupId>
-		  	<artifactId>orai18n</artifactId>
-		  	<version>19.3.0.0</version>
-		</dependency>
-		<dependency>
-			<groupId>com.oracle.database.jdbc</groupId>
-			<artifactId>ojdbc8</artifactId>
-			<scope>runtime</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-test</artifactId>
-			<scope>test</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter</artifactId>
-			<exclusions>
-				<exclusion>
-					<groupId>org.springframework.boot</groupId>
-					<artifactId>spring-boot-starter-logging</artifactId>
-				</exclusion>
-			</exclusions>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-jdbc</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-data-jpa</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-starter-log4j2</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>com.ykb.architecture.services</groupId>
-			<artifactId>micro-error</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>com.ykb.architecture.services</groupId>
-			<artifactId>service-catalog-starter-2-release</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>com.ykb.architecture.services</groupId>
-			<artifactId>sherlog-spring-boot-starter</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>com.ykb.architecture.services</groupId>
-			<artifactId>micro-security-starter</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>io.pivotal.spring.cloud</groupId>
-			<artifactId>spring-cloud-services-starter-config-client</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>io.pivotal.spring.cloud</groupId>
-			<artifactId>spring-cloud-services-starter-service-registry</artifactId>
-		</dependency>
-		<dependency>
-			<groupId>org.springdoc</groupId>
-			<artifactId>springdoc-openapi-starter-webmvc-ui</artifactId>
-			<version>2.3.0</version>
-		</dependency>
-		 <dependency>
-            <groupId>org.springdoc</groupId>
-            <artifactId>springdoc-openapi-ui</artifactId>
-            <version>${dep.springdoc-openapi-ui.version}</version>
-        </dependency>
-		<dependency>
-            <artifactId>spring-cloud-starter</artifactId>
-            <groupId>org.springframework.cloud</groupId>
-        </dependency>
-        <dependency>
-            <artifactId>spring-cloud-starter-openfeign</artifactId>
-            <groupId>org.springframework.cloud</groupId>
-		</dependency>
-		<dependency>
-            <groupId>org.springframework.cloud</groupId>
-            <artifactId>spring-cloud-loadbalancer</artifactId>
-        </dependency>
-		<dependency>
-			<groupId>com.h2database</groupId>
-			<artifactId>h2</artifactId>
-			<scope>runtime</scope>
-		</dependency>
-		<dependency>
-			<groupId>org.projectlombok</groupId>
-			<artifactId>lombok</artifactId>
-			<optional>true</optional>
-		</dependency>
-		<dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-web</artifactId>
-        </dependency>
-        
-        <dependency>
-		  <groupId>org.springframework.boot</groupId>
-		  <artifactId>spring-boot-starter-amqp</artifactId>
-		</dependency>
+package com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common.stats;
 
-        <dependency>
-            <groupId>io.pivotal.spring.cloud</groupId>
-            <artifactId>cloudfoundry-certificate-truster</artifactId>
-            <version>1.0.1.RELEASE</version>
-        </dependency>
-        
-		<dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-aop</artifactId>
-		</dependency>
-		<dependency>
-  			<groupId>org.json</groupId>
-  			<artifactId>json</artifactId>
-  			<version>20220924</version>
-  		</dependency>
-		<dependency>
-			<groupId>org.springframework.boot</groupId>
-			<artifactId>spring-boot-configuration-processor</artifactId>
-			<optional>true</optional>
-		</dependency>
-		 <dependency>
-            <groupId>org.projectlombok</groupId>
-            <artifactId>lombok</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        
-         <dependency>
-            <artifactId>mapstruct</artifactId>
-            <groupId>org.mapstruct</groupId>
-            <version>${dep.mapstruct.version}</version>
-        </dependency>
-        
-		<dependency>
-			<groupId>org.apache.cxf</groupId>
-			<artifactId>cxf-spring-boot-autoconfigure</artifactId>
-			<version>${dep.cxf-auto-configure.version}</version>
-		</dependency>
-		<dependency>
-			<groupId>org.apache.cxf</groupId>
-			<artifactId>cxf-spring-boot-starter-jaxws</artifactId>
-			<version>${dep.cxf-auto-configure.version}</version>
-		</dependency>
-		
-		<dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-validation</artifactId>
-        </dependency>
-		<dependency>
-			<groupId>org.mockito</groupId>
-			<artifactId>mockito-core</artifactId>
-			<version>3.6.28</version>
-			<scope>test</scope>
-		</dependency>
+import lombok.Getter;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobParameter;
+import org.springframework.batch.core.JobParameters;
+import org.springframework.batch.core.StepExecution;
 
-		<dependency>
-		    <groupId>uk.org.webcompere</groupId>
-		    <artifactId>system-stubs-jupiter</artifactId>
-		    <version>2.1.3</version>
-		    <scope>test</scope>
-		</dependency>
-		<!-- Spring Cache and Redis Dependencies -->
-       	<dependency>
-           	<groupId>org.springframework.boot</groupId>
-           	<artifactId>spring-boot-starter-data-redis</artifactId>
-       	</dependency>
-       	<dependency>
-           	<groupId>redis.clients</groupId>
-           	<artifactId>jedis</artifactId>
-       	</dependency>
-       	<dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-cache</artifactId>
-        </dependency>
-       	<dependency>
-           	<groupId>org.springframework.session</groupId>
-           	<artifactId>spring-session-data-redis</artifactId>
-       	</dependency>
-		<!-- -->
-		<!-- Embedded Redis For Local Testing -->
-        <dependency>
-           	<groupId>it.ozimov</groupId>
-           	<artifactId>embedded-redis</artifactId>
-           	<version>0.7.2</version>
-       	</dependency>
-		<!-- -->	
-		<dependency>
-		    <groupId>javax.validation</groupId>
-		    <artifactId>validation-api</artifactId>
-		    <version>2.0.1.Final</version>
-		</dependency>	
-        <dependency>
-            <artifactId>powermock-module-junit4</artifactId>
-            <groupId>org.powermock</groupId>
-            <version>${dep.powermock.version}</version>
-            <scope>test</scope>
-        </dependency>
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-            <scope>test</scope>
-            <exclusions>
-                <exclusion>
-                    <groupId>org.junit.vintage</groupId>
-                    <artifactId>junit-vintage-engine</artifactId>
-                </exclusion>
-            </exclusions>
-        </dependency>
-        
-        <dependency>
-            <groupId>org.springframework.kafka</groupId>
-            <artifactId>spring-kafka</artifactId>
-        </dependency>
-        
-	</dependencies>
-	<dependencyManagement>
-		<dependencies>
-			<dependency>
-				<groupId>org.springframework.cloud</groupId>
-				<artifactId>spring-cloud-dependencies</artifactId>
-				<version>${spring-cloud.version}</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-			<dependency>
-				<groupId>io.pivotal.spring.cloud</groupId>
-				<artifactId>spring-cloud-services-dependencies</artifactId>
-				<version>${pivotal-cloud-dependencies.version}</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-			<dependency>
-				<groupId>com.ykb.architecture.services</groupId>
-				<artifactId>ykb-micro-tools</artifactId>
-				<version>${ykb-micro-tools.version}</version>
-				<type>pom</type>
-				<scope>import</scope>
-			</dependency>
-		</dependencies>
-	</dependencyManagement>
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
 
-	<build>
-        <plugins>
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-compiler-plugin</artifactId>
-                <configuration>
-                    <annotationProcessorPaths>
-                        <path>
-                            <groupId>org.projectlombok</groupId>
-                            <artifactId>lombok</artifactId>
-                            <version>${dep.lombok.version}</version>
-                        </path>
-                        <path>
-                            <groupId>org.mapstruct</groupId>
-                            <artifactId>mapstruct-processor</artifactId>
-                            <version>${dep.mapstruct.version}</version>
-                        </path>
-                        <path>
-                            <groupId>org.projectlombok</groupId>
-                            <artifactId>lombok-mapstruct-binding</artifactId>
-                            <version>${dep.mapstruct-binding.version}</version>
-                        </path>
-                    </annotationProcessorPaths>
-                </configuration>
-            </plugin>
-			<!-- Use: mvn antrun:run -->
-            <plugin>
-                <groupId>org.apache.maven.plugins</groupId>
-                <artifactId>maven-antrun-plugin</artifactId>
-                <executions>
-                    <execution>
-                        <id>download-replace files</id>
-                        <phase></phase>
-                        <goals>
-                            <goal>run</goal>
-                        </goals>
-                    </execution>
-                </executions>
-                <dependencies>
-                    <dependency>
-                        <groupId>org.apache.cxf</groupId>
-                        <artifactId>cxf-tools-wsdlto-core</artifactId>
-                        <version>${dep.cxf.version}</version>
-                    </dependency>
-                    <dependency>
-                        <groupId>org.apache.cxf</groupId>
-                        <artifactId>cxf-tools-wsdlto-frontend-jaxws</artifactId>
-                        <version>${dep.cxf.version}</version>
-                    </dependency>
-                    <dependency>
-                        <groupId>org.apache.cxf</groupId>
-                        <artifactId>cxf-tools-wsdlto-databinding-jaxb</artifactId>
-                        <version>${dep.cxf.version}</version>
-                    </dependency>
-                    <dependency>
-                        <groupId>org.apache.cxf</groupId>
-                        <artifactId>cxf-rt-ws-addr</artifactId>
-                        <version>${dep.cxf.version}</version>
-                    </dependency>
-                </dependencies>
-            </plugin>
-            <plugin>
-                <groupId>org.jacoco</groupId>
-                <artifactId>jacoco-maven-plugin</artifactId>
-                <version>0.8.8</version>
-                <executions>
-                    <execution>
-                        <goals>
-                            <goal>prepare-agent</goal>
-                        </goals>
-                    </execution>
-                    <execution>
-                        <id>report</id>
-                        <phase>test</phase>
-                        <goals>
-                            <goal>report</goal>
-                        </goals>
-                    </execution>
-                </executions>
-            </plugin>
-        </plugins>
-    </build>
+@Getter
+public class JobStatistics {
 
-</project>
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+
+    private final String jobName;
+    private final Long jobInstanceId;
+    private final String jobStatus;
+    private final String startTime;
+    private final String endTime;
+    private final String exitStatus;
+    private final String failureExceptions;
+    private final List<JobStatsParameter> parameters = new ArrayList<>();
+    private final List<StepStatistics> stepStatistics = new ArrayList<>();
+
+    public JobStatistics(JobExecution jobExecution) {
+        this.jobName = jobExecution.getJobInstance().getJobName();
+        this.jobInstanceId = jobExecution.getJobInstance().getId();
+        this.jobStatus = jobExecution.getStatus().toString();
+
+        this.startTime = Optional.ofNullable(jobExecution.getStartTime())
+                .orElse(LocalDateTime.MIN).format(DATE_TIME_FORMATTER);
+
+        this.endTime = Optional.ofNullable(jobExecution.getEndTime())
+                .orElse(LocalDateTime.MIN).format(DATE_TIME_FORMATTER);
+
+        this.exitStatus = jobExecution.getExitStatus().toString();
+        this.failureExceptions = printExceptions(jobExecution.getFailureExceptions());
+
+        // Job Parametrelerini al
+        JobParameters jobParams = jobExecution.getJobParameters();
+        for (Map.Entry<String, JobParameter> entry : jobParams.getParameters().entrySet()) {
+            this.parameters.add(new JobStatsParameter(entry.getKey(), entry.getValue().getValue().toString()));
+        }
+
+        // Step bazında istatistik
+        for (StepExecution stepExec : jobExecution.getStepExecutions()) {
+            stepStatistics.add(new StepStatistics(stepExec));
+        }
+    }
+
+    private static String printExceptions(List<Throwable> exceptions) {
+        if (exceptions == null || exceptions.isEmpty()) {
+            return "";
+        }
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+             PrintWriter pw = new PrintWriter(bos)) {
+            for (Throwable t : exceptions) {
+                t.printStackTrace(pw);
+            }
+            pw.flush();
+            return new String(bos.toByteArray());
+        } catch (IOException e) {
+            return "";
+        }
+    }
+}
+
+
+
+
+
+
+package com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common.stats;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@Getter
+@AllArgsConstructor
+public class JobStatsParameter {
+    private String key;
+    private String value;
+}
+
+
+
+
+
+
+
+
+
+package com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common.stats;
+
+import lombok.Getter;
+import org.springframework.batch.core.StepExecution;
+import org.springframework.batch.item.ExecutionContext;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Optional;
+
+@Getter
+public class StepStatistics {
+
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+
+    private final Long stepId;
+    private final String stepName;
+    private final String status;
+    private final String startTime;
+    private final String endTime;
+    private final String exitStatus;
+    private final long readCount;
+    private final long writeCount;
+    private final long commitCount;
+    private final long skipCount;
+    private final long rollbackCount;
+    private final String failureExceptions;
+
+    public StepStatistics(StepExecution stepExecution) {
+        this.stepId = stepExecution.getId();
+        this.stepName = stepExecution.getStepName();
+        this.status = stepExecution.getStatus().toString();
+
+        this.startTime = Optional.ofNullable(stepExecution.getStartTime())
+                .orElse(LocalDateTime.MIN).format(DATE_TIME_FORMATTER);
+
+        this.endTime = Optional.ofNullable(stepExecution.getEndTime())
+                .orElse(LocalDateTime.MIN).format(DATE_TIME_FORMATTER);
+
+        this.exitStatus = stepExecution.getExitStatus().toString();
+        this.readCount = stepExecution.getReadCount();   // long
+        this.writeCount = stepExecution.getWriteCount(); // long
+        this.commitCount = stepExecution.getCommitCount();
+        this.skipCount = stepExecution.getSkipCount();
+        this.rollbackCount = stepExecution.getRollbackCount();
+
+        this.failureExceptions = JobStatisticsUtil.printExceptions(stepExecution.getFailureExceptions());
+    }
+}
+
+
+
+
+
+
+
+package com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common.stats;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.List;
+
+public class JobStatisticsUtil {
+
+    public static String printExceptions(List<Throwable> exceptions) {
+        if(exceptions == null || exceptions.isEmpty()) return "";
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+             PrintWriter pw = new PrintWriter(bos)) {
+            for(Throwable t: exceptions){
+                t.printStackTrace(pw);
+            }
+            pw.flush();
+            return bos.toString();
+        } catch (IOException e) {
+            return "";
+        }
+    }
+}
+
+
+
+
+
+
+package com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common.stats;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.stereotype.Component;
+
+@Slf4j
+@Component
+public class CommonJobExecutionStatistics {
+
+    public void beforeJob(JobExecution jobExecution) {
+        log.info("Job {} is starting at {}", jobExecution.getJobInstance().getJobName(), jobExecution.getStartTime());
+    }
+
+    public void afterJob(JobExecution jobExecution) {
+        JobStatistics stats = new JobStatistics(jobExecution);
+        log.info("----- JOB STATISTICS -----");
+        log.info("JobName: {}", stats.getJobName());
+        log.info("Status: {}", stats.getJobStatus());
+        log.info("StartTime: {}", stats.getStartTime());
+        log.info("EndTime: {}", stats.getEndTime());
+        log.info("ExitStatus: {}", stats.getExitStatus());
+
+        if (!stats.getFailureExceptions().isEmpty()) {
+            log.error("Failure Exceptions:\n{}", stats.getFailureExceptions());
+        }
+
+        // Step details
+        stats.getStepStatistics().forEach(stepStats -> {
+            log.info("Step: {}, ReadCount: {}, WriteCount: {}, Status: {}",
+                    stepStats.getStepName(),
+                    stepStats.getReadCount(),
+                    stepStats.getWriteCount(),
+                    stepStats.getStatus());
+        });
+
+        log.info("----- END JOB STATISTICS -----");
+    }
+}
+
+
+
+
+
+
+
+
+
+package com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common.stats;
+
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobExecutionListener;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+@Component
+public class CommonJobExecutionListener implements JobExecutionListener {
+
+    @Autowired
+    private CommonJobExecutionStatistics jobStats;
+
+    @Override
+    public void beforeJob(JobExecution jobExecution) {
+        jobStats.beforeJob(jobExecution);
+    }
+
+    @Override
+    public void afterJob(JobExecution jobExecution) {
+        jobStats.afterJob(jobExecution);
+    }
+}
+
+
+
+
+
+
+
+
+
+package com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common.stats;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.ExitStatus;
+import org.springframework.batch.core.StepExecution;
+import org.springframework.batch.core.StepExecutionListener;
+import org.springframework.stereotype.Component;
+
+@Slf4j
+@Component
+public class CommonStepExecutionListener implements StepExecutionListener {
+
+    @Override
+    public void beforeStep(StepExecution stepExecution) {
+        log.info("Step {} started at {}", stepExecution.getStepName(), stepExecution.getStartTime());
+    }
+
+    @Override
+    public ExitStatus afterStep(StepExecution stepExecution) {
+        log.info("Step {} finished at {} with status: {}",
+                stepExecution.getStepName(), stepExecution.getEndTime(), stepExecution.getStatus());
+        return stepExecution.getExitStatus();
+    }
+}
+
+
+
+
+
+
+
+package com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.annotation.OnProcessError;
+import org.springframework.batch.core.annotation.OnReadError;
+import org.springframework.batch.core.annotation.OnWriteError;
+import org.springframework.batch.core.listener.ItemListenerSupport;
+import org.springframework.batch.item.Chunk;
+import org.springframework.stereotype.Component;
+
+@Slf4j
+@Component
+public class ItemFailureLoggerListener<I,O> extends ItemListenerSupport<I,O> {
+
+    @Override
+    @OnReadError
+    public void onReadError(Exception ex) {
+        log.error("Error on read", ex);
+    }
+
+    @Override
+    @OnProcessError
+    public void onProcessError(I item, Exception ex) {
+        log.error("Error on process. item={}", item, ex);
+    }
+
+    @Override
+    @OnWriteError
+    public void onWriteError(Exception ex, Chunk<? extends O> items) {
+        log.error("Error on write. Chunk size: {}", items.size(), ex);
+    }
+}
+
+
+
+
+
+
+
+
+// ...
+Step dummyParameterInsertStep() {
+    return getCommonStepBuilder(STEP_NAME)
+        .repository(jobRepository)
+        .<ParameterDTO, ParameterDTO>chunk(dummyConfig.getChunkSize(), transactionManager)
+        .reader(dummyParameterReader())
+        .processor(dummyParameterProcessor())
+        .writer(dummyParameterWriter())
+        .listener(commonStepExecutionListener)
+        // Tek seferde .listener(itemFailureLoggerListener) ambiguous => 
+        // Aşağıdaki gibi 3 satırda ekliyoruz:
+        .listener((org.springframework.batch.core.ItemReadListener<? super ParameterDTO>) itemFailureLoggerListener)
+        .listener((org.springframework.batch.core.ItemProcessListener<? super ParameterDTO, ? super ParameterDTO>) itemFailureLoggerListener)
+        .listener((org.springframework.batch.core.ItemWriteListener<? super ParameterDTO>) itemFailureLoggerListener)
+        .taskExecutor(defaultBatchTaskExecutor())
+        .build();
+}
+
+
+
+
+package com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.jobs.dummyparameterinsert;
+
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common.ItemFailureLoggerListener;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common.stats.CommonJobExecutionListener;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common.stats.CommonStepExecutionListener;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.config.BaseJobConfiguration;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.jobs.dummyparameterinsert.config.DummyParameterInsertConfig;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.dto.ParameterDTO;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.entity.ParameterEntity;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.repository.ParameterRepository;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.Step;
+import org.springframework.batch.core.configuration.annotation.StepScope;
+import org.springframework.batch.core.item.*;
+import org.springframework.batch.core.job.builder.FlowBuilder;
+import org.springframework.batch.core.job.flow.Flow;
+import org.springframework.batch.item.support.ListItemReader;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+@Configuration
+public class DummyParameterInsertJobConfiguration extends BaseJobConfiguration {
+
+    public static final String JOB_NAME = "dummyParameterInsertJob";
+    public static final String STEP_NAME = "dummyParameterInsertStep";
+
+    @Autowired
+    private DummyParameterInsertConfig dummyConfig;
+
+    @Autowired
+    private ParameterRepository parameterRepository;
+
+    @Autowired
+    private CommonJobExecutionListener commonJobExecutionListener;
+
+    @Autowired
+    private CommonStepExecutionListener commonStepExecutionListener;
+
+    @Autowired
+    private ItemFailureLoggerListener<ParameterDTO, ParameterDTO> itemFailureLoggerListener;
+
+    @Bean(name = JOB_NAME)
+    public Job dummyParameterInsertJob() {
+        return getCommonJobBuilder(JOB_NAME)
+                .repository(jobRepository)
+                .listener(commonJobExecutionListener) // job-level listener
+                .start(dummyParameterInsertFlow())
+                .end()
+                .build();
+    }
+
+    @Bean
+    public Flow dummyParameterInsertFlow() {
+        return new FlowBuilder<Flow>("dummyParameterInsertFlow")
+                .start(dummyParameterInsertStep())
+                .end();
+    }
+
+    @Bean
+    public Step dummyParameterInsertStep() {
+        // chunkSize application-local.yml'den @Value ile DummyParameterInsertConfig’e geliyor
+        return getCommonStepBuilder(STEP_NAME)
+                .repository(jobRepository)
+                .<ParameterDTO, ParameterDTO>chunk(dummyConfig.getChunkSize(), transactionManager)
+                .reader(dummyParameterReader())
+                .processor(dummyParameterProcessor())
+                .writer(dummyParameterWriter())
+                // Step-level listeners
+                .listener(commonStepExecutionListener)
+                // Üç ayrı satırda ekleyerek "ambiguous method call" sorununu çözüyoruz
+                .listener((org.springframework.batch.core.ItemReadListener<? super ParameterDTO>) itemFailureLoggerListener)
+                .listener((org.springframework.batch.core.ItemProcessListener<? super ParameterDTO, ? super ParameterDTO>) itemFailureLoggerListener)
+                .listener((org.springframework.batch.core.ItemWriteListener<? super ParameterDTO>) itemFailureLoggerListener)
+                .taskExecutor(defaultBatchTaskExecutor())
+                .build();
+    }
+
+    @Bean
+    @StepScope
+    public ItemReader<ParameterDTO> dummyParameterReader() {
+        List<ParameterDTO> dummyList = new ArrayList<>();
+        for (int i = 1; i <= 5; i++) {
+            ParameterDTO dto = new ParameterDTO();
+            dto.setName("BATCH_DUMMY_" + i);
+            dto.setParameterKey("KEY_" + i);
+            dto.setValue("VAL_" + i);
+            dto.setDescription("Dummy record " + i);
+            dto.setStatus("A");
+            dto.setUserCode("batchUser");
+            dto.setCreateDate(new Date());
+            dto.setSourceName("DummyBatch");
+            dto.setIsSingle("Y");
+            dummyList.add(dto);
+        }
+        return new ListItemReader<>(dummyList);
+    }
+
+    @Bean
+    @StepScope
+    public ItemProcessor<ParameterDTO, ParameterDTO> dummyParameterProcessor() {
+        return item -> {
+            // Örnek: item.setDescription(item.getDescription() + " processed");
+            return item;
+        };
+    }
+
+    @Bean
+    @StepScope
+    public ItemWriter<ParameterDTO> dummyParameterWriter() {
+        return new ItemWriter<>() {
+            @Override
+            public void write(Chunk<? extends ParameterDTO> chunk) throws Exception {
+                List<ParameterEntity> entities = new ArrayList<>();
+                for (ParameterDTO dto : chunk) {
+                    ParameterEntity e = new ParameterEntity();
+                    e.setName(dto.getName());
+                    e.setParameterKey(dto.getParameterKey());
+                    e.setValue(dto.getValue());
+                    e.setDescription(dto.getDescription());
+                    e.setStatus(dto.getStatus());
+                    e.setUserCode(dto.getUserCode());
+                    e.setCreateDate(dto.getCreateDate());
+                    e.setSourceName(dto.getSourceName());
+                    e.setIsSingle(dto.getIsSingle());
+                    entities.add(e);
+                }
+                parameterRepository.saveAll(entities);
+            }
+        };
+    }
+}
+
+
+
+
+package com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.jobs.dummyparameterinsert.config;
+
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Configuration;
+
+@Getter
+@Setter
+@Configuration
+public class DummyParameterInsertConfig {
+
+    @Value("${batch-configuration.jobs.dummyParameterInsertJob.threadPool.corePoolSize:2}")
+    private int corePoolSize;
+
+    @Value("${batch-configuration.jobs.dummyParameterInsertJob.threadPool.maxPoolSize:4}")
+    private int maxPoolSize;
+
+    @Value("${batch-configuration.jobs.dummyParameterInsertJob.steps.dummyParameterInsertStep.chunkSize:5}")
+    private int chunkSize;
+}
+
+
+
+
+@SpringBootApplication
+public class SafedepositboxBeApplication {
+
+    public static void main(String[] args) {
+        ConfigurableApplicationContext ctx = SpringApplication.run(SafedepositboxBeApplication.class, args);
+
+        if (args != null && args.length > 0) {
+            String jobName = args[0];
+            int exitCode = 0;
+            try {
+                // parse ek parametreler vs
+                CustomJobParameters<String, Object> customParams = ctx.getBean(CustomJobParameters.class);
+                for (int i = 1; i < args.length; i++) {
+                    String[] kv = args[i].split("=");
+                    if (kv.length == 2) {
+                        customParams.addParameter(kv[0], kv[1]);
+                    }
+                }
+
+                JobLauncher jobLauncher = ctx.getBean(JobLauncher.class);
+                Job job = ctx.getBean(jobName, Job.class);
+                JobExecution execution = jobLauncher.run(
+                        job,
+                        new JobParametersBuilder()
+                                .addLong("startTime", System.currentTimeMillis())
+                                .toJobParameters()
+                );
+                if(!ExitStatus.COMPLETED.equals(execution.getExitStatus())){
+                    exitCode = 1;
+                }
+            } catch (Exception e) {
+                e.printStackTrace();
+                exitCode = 1;
+            } finally {
+                ctx.close();
+                System.exit(exitCode);
+            }
+        }
+    }
+}
