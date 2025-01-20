@@ -1,3 +1,433 @@
+package com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common.stats;
+
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobExecutionListener;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+
+@Component
+public class CommonJobExecutionListener implements JobExecutionListener {
+
+    @Autowired
+    private CommonJobExecutionStatistics jobStats;
+
+    @Override
+    public void beforeJob(JobExecution jobExecution) {
+        jobStats.beforeJob(jobExecution);
+    }
+
+    @Override
+    public void afterJob(JobExecution jobExecution) {
+        jobStats.afterJob(jobExecution);
+    }
+}
+
+
+package com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common.stats;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.stereotype.Component;
+
+@Slf4j
+@Component
+public class CommonJobExecutionStatistics {
+
+    public void beforeJob(JobExecution jobExecution) {
+        log.info("Job {} is starting at {}", jobExecution.getJobInstance().getJobName(), jobExecution.getStartTime());
+    }
+
+    public void afterJob(JobExecution jobExecution) {
+        JobStatistics stats = new JobStatistics(jobExecution);
+        log.info("----- JOB STATISTICS -----");
+        log.info("JobName: {}", stats.getJobName());
+        log.info("Status: {}", stats.getJobStatus());
+        log.info("StartTime: {}", stats.getStartTime());
+        log.info("EndTime: {}", stats.getEndTime());
+        log.info("ExitStatus: {}", stats.getExitStatus());
+
+        if (!stats.getFailureExceptions().isEmpty()) {
+            log.error("Failure Exceptions:\n{}", stats.getFailureExceptions());
+        }
+
+        // Step details
+        stats.getStepStatistics().forEach(stepStats -> {
+            log.info("Step: {}, ReadCount: {}, WriteCount: {}, Status: {}",
+                    stepStats.getStepName(),
+                    stepStats.getReadCount(),
+                    stepStats.getWriteCount(),
+                    stepStats.getStatus());
+        });
+
+        log.info("----- END JOB STATISTICS -----");
+    }
+}
+
+
+package com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common.stats;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.ExitStatus;
+import org.springframework.batch.core.StepExecution;
+import org.springframework.batch.core.StepExecutionListener;
+import org.springframework.stereotype.Component;
+
+@Slf4j
+@Component
+public class CommonStepExecutionListener implements StepExecutionListener {
+
+    @Override
+    public void beforeStep(StepExecution stepExecution) {
+        log.info("Step {} started at {}", stepExecution.getStepName(), stepExecution.getStartTime());
+    }
+
+    @Override
+    public ExitStatus afterStep(StepExecution stepExecution) {
+        log.info("Step {} finished at {} with status: {}",
+                stepExecution.getStepName(), stepExecution.getEndTime(), stepExecution.getStatus());
+        return stepExecution.getExitStatus();
+    }
+}
+
+
+package com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common.stats;
+
+import lombok.Getter;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobParameter;
+import org.springframework.batch.core.JobParameters;
+import org.springframework.batch.core.StepExecution;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.*;
+
+/**
+ * Bu sınıf, Job ve Step istatistiklerini tutar;
+ * job parametreleri, exception gibi bilgileri log için
+ * CommonJobExecutionStatistics tarafından kullanılır.
+ */
+@Getter
+public class JobStatistics {
+
+    private static final DateTimeFormatter DATE_TIME_FORMATTER =
+            DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+
+    private final String jobName;
+    private final Long jobInstanceId;
+    private final String jobStatus;
+    private final String startTime;
+    private final String endTime;
+    private final String exitStatus;
+    private final String failureExceptions;
+
+    private final List<JobStatsParameter> parameters = new ArrayList<>();
+    private final List<StepStatistics> stepStatistics = new ArrayList<>();
+
+    public JobStatistics(JobExecution jobExecution) {
+        this.jobName = jobExecution.getJobInstance().getJobName();
+        this.jobInstanceId = jobExecution.getJobInstance().getId();
+        this.jobStatus = jobExecution.getStatus().toString();
+
+        // Tarihleri formatlıyoruz (LocalDateTime -> String).
+        this.startTime = Optional.ofNullable(jobExecution.getStartTime())
+                .orElse(LocalDateTime.MIN)
+                .format(DATE_TIME_FORMATTER);
+
+        this.endTime = Optional.ofNullable(jobExecution.getEndTime())
+                .orElse(LocalDateTime.MIN)
+                .format(DATE_TIME_FORMATTER);
+
+        this.exitStatus = jobExecution.getExitStatus().toString();
+        this.failureExceptions = printExceptions(jobExecution.getFailureExceptions());
+
+        // Job parametrelerini alıp "JobStatsParameter" listesine ekliyoruz.
+        JobParameters jobParams = jobExecution.getJobParameters();
+        for (Map.Entry<String, JobParameter<?>> entry : jobParams.getParameters().entrySet()) {
+            String key = entry.getKey();
+            // getValue() -> Object, toString() / String.valueOf(...) ile alıyoruz.
+            String val = String.valueOf(entry.getValue().getValue());
+            this.parameters.add(new JobStatsParameter(key, val));
+        }
+
+        // Step bazında istatistik
+        for (StepExecution stepExec : jobExecution.getStepExecutions()) {
+            stepStatistics.add(new StepStatistics(stepExec));
+        }
+    }
+
+    /**
+     * Failure exception listesini String'e dönüştürme metodu
+     * ByteArrayOutputStream + PrintWriter kullanıyor.
+     */
+    private static String printExceptions(List<Throwable> exceptions) {
+        if (exceptions == null || exceptions.isEmpty()) {
+            return "";
+        }
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+             PrintWriter pw = new PrintWriter(bos)) {
+            for (Throwable t : exceptions) {
+                t.printStackTrace(pw);
+            }
+            pw.flush();
+            return bos.toString();
+        } catch (IOException e) {
+            return "";
+        }
+    }
+}
+
+
+package com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common.stats;
+
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
+import java.io.PrintWriter;
+import java.util.List;
+
+public class JobStatisticsUtil {
+
+    public static String printExceptions(List<Throwable> exceptions) {
+        if(exceptions == null || exceptions.isEmpty()) return "";
+        try (ByteArrayOutputStream bos = new ByteArrayOutputStream();
+             PrintWriter pw = new PrintWriter(bos)) {
+            for(Throwable t: exceptions){
+                t.printStackTrace(pw);
+            }
+            pw.flush();
+            return bos.toString();
+        } catch (IOException e) {
+            return "";
+        }
+    }
+}
+
+
+
+package com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common.stats;
+
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+
+@Getter
+@AllArgsConstructor
+public class JobStatsParameter {
+    private String key;
+    private String value;
+}
+
+
+
+
+package com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common.stats;
+
+import lombok.Getter;
+import org.springframework.batch.core.StepExecution;
+import org.springframework.batch.item.ExecutionContext;
+
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.Optional;
+
+@Getter
+public class StepStatistics {
+
+    private static final DateTimeFormatter DATE_TIME_FORMATTER = DateTimeFormatter.ofPattern("yyyy/MM/dd HH:mm:ss");
+
+    private final Long stepId;
+    private final String stepName;
+    private final String status;
+    private final String startTime;
+    private final String endTime;
+    private final String exitStatus;
+    private final long readCount;
+    private final long writeCount;
+    private final long commitCount;
+    private final long skipCount;
+    private final long rollbackCount;
+    private final String failureExceptions;
+
+    public StepStatistics(StepExecution stepExecution) {
+        this.stepId = stepExecution.getId();
+        this.stepName = stepExecution.getStepName();
+        this.status = stepExecution.getStatus().toString();
+
+        this.startTime = Optional.ofNullable(stepExecution.getStartTime())
+                .orElse(LocalDateTime.MIN).format(DATE_TIME_FORMATTER);
+
+        this.endTime = Optional.ofNullable(stepExecution.getEndTime())
+                .orElse(LocalDateTime.MIN).format(DATE_TIME_FORMATTER);
+
+        this.exitStatus = stepExecution.getExitStatus().toString();
+        this.readCount = stepExecution.getReadCount();   // long
+        this.writeCount = stepExecution.getWriteCount(); // long
+        this.commitCount = stepExecution.getCommitCount();
+        this.skipCount = stepExecution.getSkipCount();
+        this.rollbackCount = stepExecution.getRollbackCount();
+
+        this.failureExceptions = JobStatisticsUtil.printExceptions(stepExecution.getFailureExceptions());
+    }
+}
+
+
+package com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common;
+
+import org.springframework.stereotype.Component;
+
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+@Component
+public class CustomJobParameters<K,V> {
+    private final Map<K,V> parameters;
+
+    public CustomJobParameters() {
+        this.parameters = new ConcurrentHashMap<>();
+    }
+
+    public void addParameter(K key, V value) {
+        parameters.put(key, value);
+    }
+
+    public V getByKey(K key) {
+        return parameters.get(key);
+    }
+}
+
+
+package com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.annotation.OnProcessError;
+import org.springframework.batch.core.annotation.OnReadError;
+import org.springframework.batch.core.annotation.OnWriteError;
+import org.springframework.batch.core.listener.ItemListenerSupport;
+import org.springframework.batch.item.Chunk;
+import org.springframework.stereotype.Component;
+
+@Slf4j
+@Component
+public class ItemFailureLoggerListener<I,O> extends ItemListenerSupport<I,O> {
+
+    @Override
+    @OnReadError
+    public void onReadError(Exception ex) {
+        log.error("Error on read", ex);
+    }
+
+    @Override
+    @OnProcessError
+    public void onProcessError(I item, Exception ex) {
+        log.error("Error on process. item={}", item, ex);
+    }
+
+    @Override
+    @OnWriteError
+    public void onWriteError(Exception ex, Chunk<? extends O> items) {
+        log.error("Error on write. Chunk size: {}", items.size(), ex);
+    }
+}
+
+
+
+package com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.config;
+
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.job.builder.JobBuilder;
+import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.batch.core.step.builder.StepBuilder;
+import org.springframework.batch.repeat.support.TaskExecutorRepeatTemplate;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.core.task.TaskExecutor;
+import org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor;
+import org.springframework.transaction.PlatformTransactionManager;
+
+@Slf4j
+public abstract class BaseJobConfiguration {
+
+    @Autowired
+    protected JobRepository jobRepository;
+
+    @Autowired
+    protected PlatformTransactionManager transactionManager;
+
+    @Autowired
+    protected JobConfigurationParameter jobConfigurationParameter;
+
+    @Bean
+    public TaskExecutor defaultBatchTaskExecutor() {
+        // Varsayılan bir executor
+        ThreadPoolTaskExecutor executor = new ThreadPoolTaskExecutor();
+        executor.setCorePoolSize(2);
+        executor.setMaxPoolSize(4);
+        executor.setThreadNamePrefix("batch-thread-");
+        executor.initialize();
+        return executor;
+    }
+
+    protected JobBuilder getCommonJobBuilder(String jobName) {
+        return new JobBuilder(jobName, jobRepository);
+    }
+
+    protected StepBuilder getCommonStepBuilder(String stepName) {
+        return new StepBuilder(stepName, jobRepository);
+    }
+
+    protected TaskExecutorRepeatTemplate repeatTemplate(TaskExecutor taskExecutor, int throttleLimit) {
+        TaskExecutorRepeatTemplate repeatTemplate = new TaskExecutorRepeatTemplate();
+        repeatTemplate.setTaskExecutor(taskExecutor);
+        repeatTemplate.setThrottleLimit(throttleLimit);
+        return repeatTemplate;
+    }
+
+}
+
+
+package com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.config;
+
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.boot.context.properties.ConfigurationProperties;
+import org.springframework.context.annotation.Configuration;
+
+import java.util.HashMap;
+import java.util.Map;
+
+@Configuration
+@ConfigurationProperties(prefix = "batch-configuration")
+@Getter
+@Setter
+public class JobConfigurationParameter {
+
+    private Map<String, JobParameter> jobs = new HashMap<>();
+
+    @Getter
+    @Setter
+    public static class JobParameter {
+        private ThreadPoolParameter threadPool;
+        private Map<String, StepParameter> steps = new HashMap<>();
+    }
+
+    @Getter
+    @Setter
+    public static class ThreadPoolParameter {
+        private Integer corePoolSize;
+        private Integer maxPoolSize;
+    }
+
+    @Getter
+    @Setter
+    public static class StepParameter {
+        private Integer chunkSize;
+        // pageSize, fetchSize, throttleLimit vs. ekleyebilirsiniz.
+    }
+}
+
+
 package com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.config;
 
 import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
@@ -24,13 +454,166 @@ public class SpringBatchConfiguration {
 }
 
 
+package com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.jobs.dummyparameterinsert.config;
+
+import lombok.Getter;
+import lombok.Setter;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.annotation.Configuration;
+
+@Getter
+@Setter
+@Configuration
+public class DummyParameterInsertConfig {
+
+    @Value("${batch-configuration.jobs.dummyParameterInsertJob.threadPool.corePoolSize:2}")
+    private int corePoolSize;
+
+    @Value("${batch-configuration.jobs.dummyParameterInsertJob.threadPool.maxPoolSize:4}")
+    private int maxPoolSize;
+
+    @Value("${batch-configuration.jobs.dummyParameterInsertJob.steps.dummyParameterInsertStep.chunkSize:5}")
+    private int chunkSize;
+}
 
 
-org.springframework.beans.factory.NoSuchBeanDefinitionException: No bean named 'dummyparameterinsert' available
-	at org.springframework.beans.factory.support.DefaultListableBeanFactory.getBeanDefinition(DefaultListableBeanFactory.java:895) ~[spring-beans-6.1.11.jar:6.1.11]
-	at org.springframework.beans.factory.support.AbstractBeanFactory.getMergedLocalBeanDefinition(AbstractBeanFactory.java:1362) ~[spring-beans-6.1.11.jar:6.1.11]
-	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:300) ~[spring-beans-6.1.11.jar:6.1.11]
-	at org.springframework.beans.factory.support.AbstractBeanFactory.doGetBean(AbstractBeanFactory.java:275) ~[spring-beans-6.1.11.jar:6.1.11]
-	at org.springframework.beans.factory.support.AbstractBeanFactory.getBean(AbstractBeanFactory.java:205) ~[spring-beans-6.1.11.jar:6.1.11]
-	at org.springframework.context.support.AbstractApplicationContext.getBean(AbstractApplicationContext.java:1249) ~[spring-context-6.1.11.jar:6.1.11]
-	at com.ykb.corebanking.safedepositbox.safedepositboxbe.SafedepositboxBeApplication.main(SafedepositboxBeApplication.java:67) [classes/:?]
+
+package com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.jobs.dummyparameterinsert;
+
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common.ItemFailureLoggerListener;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common.stats.CommonJobExecutionListener;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common.stats.CommonStepExecutionListener;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.config.BaseJobConfiguration;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.jobs.dummyparameterinsert.config.DummyParameterInsertConfig;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.dto.ParameterDTO;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.entity.ParameterEntity;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.repository.ParameterRepository;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.Step;
+import org.springframework.batch.core.configuration.annotation.StepScope;
+import org.springframework.batch.core.job.builder.FlowBuilder;
+import org.springframework.batch.core.job.flow.Flow;
+import org.springframework.batch.item.Chunk;
+import org.springframework.batch.item.ItemProcessor;
+import org.springframework.batch.item.ItemReader;
+import org.springframework.batch.item.ItemWriter;
+import org.springframework.batch.item.support.ListItemReader;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
+
+@Configuration
+public class DummyParameterInsertJobConfiguration extends BaseJobConfiguration {
+
+    public static final String JOB_NAME = "dummyParameterInsertJob";
+    public static final String STEP_NAME = "dummyParameterInsertStep";
+
+    @Autowired
+    private DummyParameterInsertConfig dummyConfig;
+
+    @Autowired
+    private ParameterRepository parameterRepository;
+
+    @Autowired
+    private CommonJobExecutionListener commonJobExecutionListener;
+
+    @Autowired
+    private CommonStepExecutionListener commonStepExecutionListener;
+
+    @Autowired
+    private ItemFailureLoggerListener<ParameterDTO, ParameterDTO> itemFailureLoggerListener;
+
+    @Bean(name = JOB_NAME)
+    public Job dummyParameterInsertJob() {
+        return getCommonJobBuilder(JOB_NAME)
+                .repository(jobRepository)
+                .listener(commonJobExecutionListener) // job-level listener
+                .start(dummyParameterInsertFlow())
+                .end()
+                .build();
+    }
+
+    @Bean
+    public Flow dummyParameterInsertFlow() {
+        return new FlowBuilder<Flow>("dummyParameterInsertFlow")
+                .start(dummyParameterInsertStep())
+                .end();
+    }
+
+    @Bean
+    public Step dummyParameterInsertStep() {
+        // chunkSize application-local.yml'den @Value ile DummyParameterInsertConfig’e geliyor
+        return getCommonStepBuilder(STEP_NAME)
+                .repository(jobRepository)
+                .<ParameterDTO, ParameterDTO>chunk(dummyConfig.getChunkSize(), transactionManager)
+                .reader(dummyParameterReader())
+                .processor(dummyParameterProcessor())
+                .writer(dummyParameterWriter())
+                // Step-level listeners
+                .listener(commonStepExecutionListener)
+                // Üç ayrı satırda ekleyerek "ambiguous method call" sorununu çözüyoruz
+                .listener((org.springframework.batch.core.ItemReadListener<? super ParameterDTO>) itemFailureLoggerListener)
+                .listener((org.springframework.batch.core.ItemProcessListener<? super ParameterDTO, ? super ParameterDTO>) itemFailureLoggerListener)
+                .listener((org.springframework.batch.core.ItemWriteListener<? super ParameterDTO>) itemFailureLoggerListener)
+                .taskExecutor(defaultBatchTaskExecutor())
+                .build();
+    }
+
+    @Bean
+    @StepScope
+    public ItemReader<ParameterDTO> dummyParameterReader() {
+        List<ParameterDTO> dummyList = new ArrayList<>();
+        for (int i = 1; i <= 5; i++) {
+            ParameterDTO dto = new ParameterDTO();
+            dto.setName("BATCH_DUMMY_" + i);
+            dto.setParameterKey("KEY_" + i);
+            dto.setValue("VAL_" + i);
+            dto.setDescription("Dummy record " + i);
+            dto.setStatus("A");
+            dto.setUserCode("batchUser");
+            dto.setCreateDate(new Date());
+            dto.setSourceName("DummyBatch");
+            dto.setIsSingle("Y");
+            dummyList.add(dto);
+        }
+        return new ListItemReader<>(dummyList);
+    }
+
+    @Bean
+    @StepScope
+    public ItemProcessor<ParameterDTO, ParameterDTO> dummyParameterProcessor() {
+        return item -> {
+            // Örnek: item.setDescription(item.getDescription() + " processed");
+            return item;
+        };
+    }
+
+    @Bean
+    @StepScope
+    public ItemWriter<ParameterDTO> dummyParameterWriter() {
+        return new ItemWriter<>() {
+            @Override
+            public void write(Chunk<? extends ParameterDTO> chunk) throws Exception {
+                List<ParameterEntity> entities = new ArrayList<>();
+                for (ParameterDTO dto : chunk) {
+                    ParameterEntity e = new ParameterEntity();
+                    e.setName(dto.getName());
+                    e.setParameterKey(dto.getParameterKey());
+                    e.setValue(dto.getValue());
+                    e.setDescription(dto.getDescription());
+                    e.setStatus(dto.getStatus());
+                    e.setUserCode(dto.getUserCode());
+                    e.setCreateDate(dto.getCreateDate());
+                    e.setSourceName(dto.getSourceName());
+                    e.setIsSingle(dto.getIsSingle());
+                    entities.add(e);
+                }
+                parameterRepository.saveAll(entities);
+            }
+        };
+    }
+}
