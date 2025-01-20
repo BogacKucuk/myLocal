@@ -1,240 +1,31 @@
-// ========================
-// ReceiptAlternativeDistributionChannelsControllerTest.java
-// ========================
+@Test
+void adcGetDisplay_withFullCriteriaAndValidKwcaac_shouldSetDtoFields() throws ReceiptException {
+    // Arrange
+    RequestAdcReceiptDisplay requestAdc = new RequestAdcReceiptDisplay();
+    RequestReceiptAdcCriteria criteria = new RequestReceiptAdcCriteria();
+    criteria.setAccountNumber("555555");
+    criteria.setAccountCurrency("TRY");
+    requestAdc.setRequestReceiptAdcCriteriaList(Collections.singletonList(criteria));
 
-@ExtendWith(SpringExtension.class)
-class ReceiptAlternativeDistributionChannelsControllerTest {
+    // Controller aslında List<ResponseAdcReceiptDisplay> bekliyor, 
+    // biz de o list'i döndüreceğiz.
+    ResponseAdcReceiptDisplay displayDto = ResponseAdcReceiptDisplay.builder()
+            .account("1234    TRY") // parseKwcaac için 4 boşluk
+            .build();
+    // Mock’un döndüreceği liste
+    List<ResponseAdcReceiptDisplay> mockDisplayList = Collections.singletonList(displayDto);
 
-    @InjectMocks
-    ReceiptAlternativeDistributionChannelsController controller;
+    // Service metodunu bu listeyle mocklayalım
+    when(service.getReceiptDisplayList(Mockito.any())).thenReturn(mockDisplayList);
 
-    @Mock
-    IReceiptAlternativeDistributionChannelsService service;
+    // Act
+    ResponseEntity<ResponseAdcReceiptDisplayList> result = controller.adcGetDisplay(requestAdc);
 
-    @Mock
-    IReceiptLogService receiptLogService;
-
-    @Mock
-    IReceiptMailWrapperService receiptMailWrapperService;
-
-    // -- Var olan testler burada. Bunları değiştirmiyoruz, altına yeni testler ekliyoruz. --
-
-    /**
-     * Yeni test 1: 
-     *  - request'te accountNumber ve accountCurrency dolu olsun 
-     *  - response.getResultList() içinde kwCaac "1234    USD" (4 boşluk) olsun 
-     *    -> parseKwcaac başarılı dönsün 
-     *  - Tüm satırlar cover edilsin.
-     */
-    @Test
-    void inquireReceipt_withFullAccountInfo_andValidKwcaac_shouldParseAndSetFields() {
-        // Arrange
-        RequestAdcReceiptListing request = new RequestAdcReceiptListing();
-        request.setAccountNumber("123456");
-        request.setAccountCurrency("USD");
-
-        // Mock service cevabı:
-        ResponseAdcReceiptListing responseMock = new ResponseAdcReceiptListing();
-        ReceiptAdcReceiptListingDTO dto = new ReceiptAdcReceiptListingDTO();
-        // kwCaac içinde 4 boşluk var: "1234    USD"
-        dto.setKwCaac("1234    USD");
-        responseMock.setResultList(Collections.singletonList(dto));
-        when(service.getReceiptList(Mockito.any())).thenReturn(responseMock);
-
-        // Act
-        ResponseEntity<ResponseAdcReceiptListing> result = controller.inquireReceipt(request);
-
-        // Assert
-        assertEquals(HttpStatus.OK, result.getStatusCode());
-        // accountNo'nun birleştiğini kontrol edelim
-        assertEquals("123456 USD", request.getAccountNo());
-
-        // parseKwcaac sonucu
-        assertEquals("1234", responseMock.getResultList().get(0).getAccountNumber());
-        assertEquals("USD", responseMock.getResultList().get(0).getAccountCurrency());
-    }
-
-    /**
-     * Yeni test 2:
-     *  - request'te accountNumber veya accountCurrency NULL olsun
-     *    -> if bloğu içine girmemeli, accountNo set edilmemeli
-     */
-    @Test
-    void inquireReceipt_withNullAccountNumberOrCurrency_shouldNotSetAccountNo() {
-        // Arrange
-        RequestAdcReceiptListing request = new RequestAdcReceiptListing();
-        request.setAccountNumber(null); 
-        request.setAccountCurrency("USD");
-
-        ResponseAdcReceiptListing responseMock = new ResponseAdcReceiptListing();
-        // kwCaac'ı 4 boşluklu verelim ya da boş verelim 
-        // (burada parseKwcaac coverage için bir senaryo daha yakalayabiliriz)
-        ReceiptAdcReceiptListingDTO dto = new ReceiptAdcReceiptListingDTO();
-        dto.setKwCaac("ABCD EFG"); // Tek boşluk -> parseKwcaac boş dönecek
-        responseMock.setResultList(Collections.singletonList(dto));
-
-        when(service.getReceiptList(Mockito.any())).thenReturn(responseMock);
-
-        // Act
-        ResponseEntity<ResponseAdcReceiptListing> result = controller.inquireReceipt(request);
-
-        // Assert
-        assertEquals(HttpStatus.OK, result.getStatusCode());
-        // if içine girilmemiş olmalı
-        assertNull(request.getAccountNo());
-
-        // parseKwcaac bu string'i parçalayamadığından Optional.empty() döner
-        assertNull(dto.getAccountNumber());
-        assertNull(dto.getAccountCurrency());
-    }
-
-    /**
-     * Yeni test 3:
-     *  - request'te accountNumber ve currency dolu
-     *  - ama kwCaac geçersiz formatta (ör. "123456 USD" tek boşluk) 
-     *    -> parseKwcaac Optional.empty() dönecek
-     */
-    @Test
-    void inquireReceipt_withValidAccountButInvalidKwcaacFormat_shouldNotSetDtoFields() {
-        // Arrange
-        RequestAdcReceiptListing request = new RequestAdcReceiptListing();
-        request.setAccountNumber("123456");
-        request.setAccountCurrency("USD");
-
-        ResponseAdcReceiptListing responseMock = new ResponseAdcReceiptListing();
-        ReceiptAdcReceiptListingDTO dto = new ReceiptAdcReceiptListingDTO();
-        // Burada tek boşluk var -> parseKwcaac() Optional.empty()
-        dto.setKwCaac("987654 USD"); 
-        responseMock.setResultList(Collections.singletonList(dto));
-
-        when(service.getReceiptList(Mockito.any())).thenReturn(responseMock);
-
-        // Act
-        ResponseEntity<ResponseAdcReceiptListing> result = controller.inquireReceipt(request);
-
-        // Assert
-        assertEquals(HttpStatus.OK, result.getStatusCode());
-        // parseKwcaac başarısız olduğundan dto field'ları set edilmez
-        assertNull(dto.getAccountNumber());
-        assertNull(dto.getAccountCurrency());
-    }
-
-    /**
-     * Yeni test 4 (adcGetDisplay):
-     *  - requestAdcCriteria içinde accountNumber ve accountCurrency dolu
-     *  - parseKwcaac için de 4 boşluklu bir account değeri dönsün ki coverage tam olsun.
-     */
-    @Test
-    void adcGetDisplay_withFullCriteriaAndValidKwcaac_shouldSetDtoFields() throws ReceiptException {
-        // Arrange
-        RequestAdcReceiptDisplay requestAdc = new RequestAdcReceiptDisplay();
-        RequestReceiptAdcCriteria criteria = new RequestReceiptAdcCriteria();
-        criteria.setAccountNumber("555555");
-        criteria.setAccountCurrency("TRY");
-        requestAdc.setRequestReceiptAdcCriteriaList(Collections.singletonList(criteria));
-
-        // Mock service list cevabı
-        ResponseAdcReceiptDisplayList responseMock = new ResponseAdcReceiptDisplayList();
-        ResponseAdcReceiptDisplay displayDto = ResponseAdcReceiptDisplay.builder()
-                .account("1234    TRY") // 4 boşluk -> parseKwcaac başarılı
-                .build();
-        responseMock.setResponseAdcReceiptDisplay(Collections.singletonList(displayDto));
-
-        when(service.getReceiptDisplayList(Mockito.any())).thenReturn(responseMock);
-
-        // Act
-        ResponseEntity<ResponseAdcReceiptDisplayList> result = controller.adcGetDisplay(requestAdc);
-
-        // Assert
-        assertEquals(HttpStatus.OK, result.getStatusCode());
-        // setAccount(...) yapılmış mı?
-        assertEquals("555555 TRY", criteria.getAccount());
-        // parseKwcaac sonucu
-        assertEquals("1234", displayDto.getAccountNumber());
-        assertEquals("TRY", displayDto.getAccountCurrency());
-    }
-
-    /**
-     * Yeni test 5 (adcGetDisplay):
-     *  - accountNumber veya accountCurrency null ise setAccount(...) yapılmasın.
-     *  - parseKwcaac invalid string ile coverage.
-     */
-    @Test
-    void adcGetDisplay_withNullAccountNumberOrCurrency_shouldNotSetAccountField() throws ReceiptException {
-        // Arrange
-        RequestAdcReceiptDisplay requestAdc = new RequestAdcReceiptDisplay();
-        RequestReceiptAdcCriteria criteria = new RequestReceiptAdcCriteria();
-        criteria.setAccountNumber(null);
-        criteria.setAccountCurrency("EUR"); // accountNumber null -> if'e girmez
-        requestAdc.setRequestReceiptAdcCriteriaList(Collections.singletonList(criteria));
-
-        // parseKwcaac invalid test
-        ResponseAdcReceiptDisplayList responseMock = new ResponseAdcReceiptDisplayList();
-        ResponseAdcReceiptDisplay dto = ResponseAdcReceiptDisplay.builder()
-                .account("invalid format") // parseKwcaac -> Optional.empty()
-                .build();
-        responseMock.setResponseAdcReceiptDisplay(Collections.singletonList(dto));
-
-        when(service.getReceiptDisplayList(Mockito.any())).thenReturn(responseMock);
-
-        // Act
-        ResponseEntity<ResponseAdcReceiptDisplayList> result = controller.adcGetDisplay(requestAdc);
-
-        // Assert
-        assertEquals(HttpStatus.OK, result.getStatusCode());
-        // if'e girmedi, account null kalmalı
-        assertNull(criteria.getAccount());
-
-        // parseKwcaac -> empty olduğu için set edilmemiş olmalı
-        assertNull(dto.getAccountNumber());
-        assertNull(dto.getAccountCurrency());
-    }
-
-    /**
-     * Yeni test 6 (adcGetDisplay):
-     *  - Servis çağrısında exception fırlatılınca catch blogu tetiklensin, 
-     *    HTTP 500 dönsün, coverage tamamlansın.
-     */
-    @Test
-    void adcGetDisplay_whenServiceThrowsException_shouldReturnInternalServerError() throws ReceiptException {
-        // Arrange
-        RequestAdcReceiptDisplay requestAdc = new RequestAdcReceiptDisplay();
-        requestAdc.setRequestReceiptAdcCriteriaList(Collections.emptyList());
-
-        // service.getReceiptDisplayList(...) Exception atıyoruz
-        when(service.getReceiptDisplayList(Mockito.any())).thenThrow(new RuntimeException("Test Exception"));
-
-        // Act
-        ResponseEntity<ResponseAdcReceiptDisplayList> result = controller.adcGetDisplay(requestAdc);
-
-        // Assert
-        assertEquals(HttpStatus.INTERNAL_SERVER_ERROR, result.getStatusCode());
-        // Log’un yazılmış olması beklenir. (Burada sadece metot çağrısını verify edebiliriz)
-        Mockito.verify(receiptLogService).insertErrorReceiptLog(Mockito.any());
-        // Error response dönüldü mü?
-        assertNotNull(result.getBody());
-        assertEquals("Test Exception", result.getBody().getResponseAdcReceiptDisplay().get(0).getErrorMessage());
-    }
-
-    // Diğer mevcut testler...
-}
-
-
-
-// ========================
-// ReceiptAlternativeDistributionChannelsServiceTestUtil.java
-// ========================
-public class ReceiptAlternativeDistributionChannelsServiceTestUtil {
-
-    // Örnek: parseKwcaac için valid string üreten yardımcı metot
-    public static String createValidKwcaac() {
-        // "1234    TRY" -> ortada 4 boşluk olacak
-        return "1234    TRY";
-    }
-
-    public static String createInvalidKwcaac() {
-        return "invalid string"; // tek boşluk vs.
-    }
-
-    // vb. başka metotlar...
+    // Assert
+    assertEquals(HttpStatus.OK, result.getStatusCode());
+    // requestAdcCriteria içinde setAccount yapılmış mı?
+    assertEquals("555555 TRY", criteria.getAccount());
+    // parseKwcaac sonucu
+    assertEquals("1234", displayDto.getAccountNumber());
+    assertEquals("TRY", displayDto.getAccountCurrency());
 }
