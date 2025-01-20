@@ -5,9 +5,6 @@ spring:
   application:
     name: COREBANKING.SAFEDEPOSITBOX.safedepositbox-be
 
-  profiles:
-    active: local
-
   datasource:
     driver-class-name: oracle.jdbc.OracleDriver
     url: jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=oprkbarcdbt.sys.yapikredi.com.tr)(PORT=1818)))(CONNECT_DATA=(SERVICE_NAME=SRVTEST_TBU)))
@@ -26,12 +23,9 @@ spring:
         oracle.net.CONNECT_TIMEOUT: 10000
         "[v$session.program]": ${spring.application.name}
 
-  # Spring Batch tablo yaratma ayarı:
   batch:
     jdbc:
-      initialize-schema: always
-    # Eğer bu tabloyu production'da otomatik oluşturmak istemiyorsanız,
-    # dev/test environment'larda kullanın.
+      initialize-schema: always  # Oracle için batch tablolarını otomatik oluştur (development amaçlı)
 
   jpa:
     show-sql: false
@@ -192,3 +186,17 @@ kafka:
     retry:
       interval: 2000
       maxAttempts: 3
+
+
+# Aşağıda Definition projesinde gördüğümüz gibi
+# "batch-configuration" prefix’i altına job parametreleri 
+# (threadPool, steps, chunkSize vs.) ekleyebiliriz.
+batch-configuration:
+  jobs:
+    dummyParameterInsertJob:
+      threadPool:
+        corePoolSize: 2
+        maxPoolSize: 4
+      steps:
+        dummyParameterInsertStep:
+          chunkSize: 5
