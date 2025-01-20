@@ -218,3 +218,23 @@ class ReceiptAlternativeDistributionChannelsControllerTest {
 
     // Diğer mevcut testler...
 }
+
+
+
+// ========================
+// ReceiptAlternativeDistributionChannelsServiceTestUtil.java
+// ========================
+public class ReceiptAlternativeDistributionChannelsServiceTestUtil {
+
+    // Örnek: parseKwcaac için valid string üreten yardımcı metot
+    public static String createValidKwcaac() {
+        // "1234    TRY" -> ortada 4 boşluk olacak
+        return "1234    TRY";
+    }
+
+    public static String createInvalidKwcaac() {
+        return "invalid string"; // tek boşluk vs.
+    }
+
+    // vb. başka metotlar...
+}
