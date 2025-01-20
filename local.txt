@@ -1,107 +1,217 @@
-package com.ykb.corebanking.safedepositbox.safedepositboxbe;
+spring:
+  application:
+    name: COREBANKING.SAFEDEPOSITBOX.safedepositbox-be
+  cloud:
+    services:
+      registrationMethod: direct
+    discovery:
+      enabled: true
+      client:
+        simple:
+          instances:
+            -COREBANKING.ACCOUNT.account[0].uri: http://account-corebanking-tst.troubleshoot.cldnp.yapikredi.com.tr
+            -COREBANKING.COMMISSION.calculation[0].uri: http://calculation-corebanking-tst.troubleshoot.cldnp.yapikredi.com.tr
+            -CARDPAYMENTS.CREDITCARDPRODUCT.credit-card-product-integration-micro[0].uri: http://credit-card-product-management-micro-cardpayments-tst.troubleshoot.cldnp.yapikredi.com.tr
+            -WORKFLOW.IDENTITYCONTROL.identitycontrol-management[0].uri: http://identitycontrol-management-workflow-tst.troubleshoot.cldnp.yapikredi.com.tr
+            -CUSTOMER.KPS.kps-service[0].uri: http://kps-service-customer-tst.troubleshoot.cldnp.yapikredi.com.tr
+  datasource:
+    driver-class-name: oracle.jdbc.OracleDriver
+    url: jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=oprkbarcdbt.sys.yapikredi.com.tr)(PORT=1818)))(CONNECT_DATA=(SERVICE_NAME=SRVTEST_TBU)))
+    jdbcUrl: jdbc:oracle:thin:@(DESCRIPTION=(ADDRESS_LIST=(ADDRESS=(PROTOCOL=TCP)(HOST=oprkbarcdbt.sys.yapikredi.com.tr)(PORT=1818)))(CONNECT_DATA=(SERVICE_NAME=SRVTEST_TBU)))
+    username: SAFEDEPOSITBOX
+    password: safetbu1*
+    hikari:
+      connection-test-query: SELECT 1 FROM DUAL
+      minimum-idle: 1
+      maximum-pool-size: 20
+      max-lifetime: 60000
+      idle-timeout: 10000
+      connection-timeout: 10000
+      data-source-properties:
+        oracle.jdbc.ReadTimeout: 10000
+        oracle.net.READ_TIMEOUT: 10000
+        oracle.net.CONNECT_TIMEOUT: 10000
+        "[v$session.program]": ${spring.application.name}
+  jpa:
+    show-sql: false
+    generate-ddl: false
+    database-platform: org.hibernate.dialect.OracleDialect
+    properties:
+      hibernate:
+        enable_lazy_load_no_trans: true
+        jdbc:
+          batch_size: 100
+        order_inserts: true
+        order_updates: true
+server:
+  port: 55400
 
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
-import org.springframework.cache.annotation.EnableCaching;
-import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
-import org.springframework.cloud.openfeign.EnableFeignClients;
-import org.springframework.context.annotation.ComponentScan;
+eureka:
+  client:
+    enabled: false
 
+runtime:
+  platform: local
+  
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'  
+  
+harmoni:
+  adapter:
+    restendpoint: http://betest.yapikredi.com.tr/Harmoni/rest
+    #restendpoint: http://localhost:9080/HMN_INF_WSServer/rest
+    
+safedepositbox:
+  caches:
+    SafeDepositBoxOneDayCache:
+      timeToLive: 1d
+      cacheNullValues: false
+    SafeDepositBoxWeeklyCache:
+      timeToLive: 7d
+      cacheNullValues: false
 
-@SpringBootApplication
-@ComponentScan(basePackages = { "com.ykb.corebanking.safedepositbox.safedepositboxbe" })
-@EnableCaching
-@EnableFeignClients
-@EnableDiscoveryClient
-@EnableAutoConfiguration(exclude = { SecurityAutoConfiguration.class, ManagementWebSecurityAutoConfiguration.class })
-public class SafedepositboxBeApplication {
+redis:
+  readTimeout: 100ms
+  connectTimeout: 100ms
 
-	public static void main(String[] args) {
-	    String name = System.getenv("SPRING_APPLICATION_NAME");
-        if (name != null)
-            System.setProperty("spring.application.name", name);
-        SpringApplication.run(SafedepositboxBeApplication.class, args);
-	}
+architecture:
+  redis:
+    service:
+      name: COREBANKING.SAFEDEPOSITBOX.Redis
+   
+messaging:
+  queues:
+    safeDepositBoxErrorLogQueue:
+      name: safeDepositBox_error_log_to_generation_q
+      routingKey: safeDepositBox_error_log_to_generation_rk
+      enabled: true
+      durable: false
+      exchange: 
+        name: safeDepositBox_error_log_generation_exchange
+        durable: false
+        type: direct
+        retryCount: 1
+      arguments: 
+        x-message-ttl: 30000
+        x-queue-mode: lazy 
+    safeDepositBoxInfoLogQueue:
+      name: safeDepositBox_info_log_to_generation_q
+      routingKey: safeDepositBox_info_log_to_generation_rk
+      enabled: true
+      durable: false
+      exchange: 
+        name: safeDepositBox_info_log_generation_exchange
+        durable: false
+        type: direct
+        retryCount: 1
+      arguments: 
+        x-message-ttl: 30000
+        x-queue-mode: lazy
+    jobStatistic:
+      name: safedeposit_job_statistic_q
+      routingKey: safedeposit_job_statistic_rk
+      enabled: true
+      durable: false
+      exchange:
+        name: safedeposit_job_statistic_exchange
+        durable: false
+        type: direct
+        retryCount: 1
+      arguments:
+        x-message-ttl: 30000
+        x-queue-mode: lazy
+  environments:
+    local:
+      host: localhost
+      vhost: '/'
+      username: admin
+      userspec: passrmq01
+    dev:
+      host: 10.59.9.53
+      port: 5577
+      vhost: gise-vhost
+      username: admin
+      userspec: passrmq01
+  rabbit:
+    useRabbitFlag: true
+    environment: dev
+    service: COREBANKING.SAFEDEPOSITBOX.RabbitMQ
+      
+resilience4j.ratelimiter:
+    instances:
+        rateLimiterForErrorLogger:
+            limitForPeriod: 10
+            limitRefreshPeriod: 1s
+            timeoutDuration: 0
+            registerHealthIndicator: true
+            eventConsumerBufferSize: 10
+        rateLimiterForInfoLogger:
+            limitForPeriod: 10
+            limitRefreshPeriod: 500ms
+            timeoutDuration: 0
+            registerHealthIndicator: true
+            eventConsumerBufferSize: 10
+            
+            
+loginfrastructure:
+  asynchronous:
+    corePoolSize: 1
+    maxPoolSize: 3
+    threadQueueCapacity: 500
+    threadPoolKeepAliveSeconds: 60
+  loggers:
+    sherlog:
+      enabled: true
+    safeDepositBoxlog:
+      enabled: true
+      services:
+        DefaultService:
+          isLogActive: false
+          logLevel: ERROR
+        FeignClient:
+          isLogActive: false
+          logLevel: ERROR
+        RestController:
+          isLogActive: false
+          logLevel: ERROR
+    flowXKafkaLog:
+      enabled: true
+      queueTimeout: 2000ms
 
-}
+kafka:
+  safeDepositBox:
+    platform: ABCD
+    address: ovrmonkfkmng1.kfs.local:9092, ovrmonkfkmng2.kfs.local:9092, ovrmonkfkmng3.kfs.local:9092
+    topic: SAFEDEPOSITBOX
+    prefix: FLOWX
+    postfix: TST
+    retry:
+      interval: 2000
+      maxAttempts: 3  
+         
+		 
+		 
+package com.ykb.corebanking.safedepositbox.safedepositboxbe.dto;
 
-
-package com.ykb.corebanking.safedepositbox.safedepositboxbe.entity;
-
-import java.io.Serializable;
 import java.util.Date;
 
-import jakarta.persistence.Column;
-import jakarta.persistence.Entity;
-import jakarta.persistence.GeneratedValue;
-import jakarta.persistence.GenerationType;
-import jakarta.persistence.Id;
-import jakarta.persistence.SequenceGenerator;
-import jakarta.persistence.Table;
 import lombok.Getter;
 import lombok.Setter;
 
-@Entity
-@Table(name = "PARAMETER")
 @Getter
 @Setter
-public class ParameterEntity implements Serializable {
-
-    private static final long serialVersionUID = -520977940355607889L;
-
-    @Id
-    @GeneratedValue(strategy = GenerationType.IDENTITY, generator = "SEQ_PARAMETER")
-    @SequenceGenerator(name = "SEQ_PARAMETER", sequenceName = "SEQ_PARAMETER", allocationSize = 1)
-    @Column(name = "ID")
-    private Long              id;
-
-    @Column(name = "NAME")
-    private String            name;
-
-    @Column(name = "PARAMETER_KEY")
-    private String            parameterKey;
-
-    @Column(name = "PARAMETER_VALUE")
-    private String            value;
-
-    @Column(name = "DESCRIPTION")
-    private String            description;
-
-    @Column(name = "STATUS")
-    private String            status;
-
-    @Column(name = "USER_CODE")
-    private String            userCode;
-
-    @Column(name = "CREATE_DATE")
-    private Date              createDate;
-
-    @Column(name = "SOURCE_NAME")
-    private String            sourceName;
-
-    @Column(name = "IS_SINGLE")
-    private String            isSingle;
-}
-
-package com.ykb.corebanking.safedepositbox.safedepositboxbe.repository;
-
-import java.util.List;
-
-import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.data.jpa.repository.JpaSpecificationExecutor;
-
-import com.ykb.corebanking.safedepositbox.safedepositboxbe.entity.ParameterEntity;
-
-public interface ParameterRepository extends JpaRepository<ParameterEntity, Long>, JpaSpecificationExecutor<ParameterEntity> {
-
-    List<ParameterEntity> findByName(String name);
-
-    ParameterEntity findByNameAndParameterKey(String name, String parameterKey);
-    
-    List<ParameterEntity> findByNameContaining(String name);
-    
-    List<ParameterEntity> findByNameAndParameterKeyIn(String name, List<String> keyList);
+public class ParameterDTO {
+    private Long   id;
+    private String name;
+    private String parameterKey;
+    private String value;
+    private String description;
+    private String status;
+    private String userCode;
+    private Date   createDate;
+    private String sourceName;
+    private String isSingle;
 }
