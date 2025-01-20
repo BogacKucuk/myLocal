@@ -1,5 +1,7 @@
 package com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.config;
 
+import org.springframework.batch.core.configuration.annotation.DefaultBatchConfigurer;
+import org.springframework.batch.core.configuration.annotation.EnableBatchProcessing;
 import org.springframework.batch.core.launch.JobLauncher;
 import org.springframework.batch.core.launch.support.SimpleJobLauncher;
 import org.springframework.batch.core.repository.JobRepository;
@@ -8,30 +10,59 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.transaction.PlatformTransactionManager;
 
 /**
- * Bu konfigürasyon sınıfı, Spring Batch'in JobLauncher bean’ini 
- * "springBatchJobLauncher" ismiyle kayıt eder.
- * Böylece "jobLauncher" bean'ine sahip user-defined class ile 
- * çakışma yaşamaz.
+ * Bu konfigürasyon, Spring Batch'in JobLauncher'ını
+ * "jobLauncher" yerine "springBatchJobLauncher" ismiyle
+ * bean olarak kaydeder. Böylece user-defined "jobLauncher"
+ * ile çakışma olmadan batch işlemleri yapılabilir.
  */
 @Configuration
-public class BatchLauncherConfiguration {
+@EnableBatchProcessing
+public class CustomBatchConfig extends DefaultBatchConfigurer {
+
+    private final PlatformTransactionManager transactionManager;
+
+    public CustomBatchConfig(PlatformTransactionManager transactionManager) {
+        this.transactionManager = transactionManager;
+    }
 
     /**
-     * Spring Batch JobLauncher'ını “springBatchJobLauncher” adında 
-     * kaydediyoruz. 
+     * DefaultBatchConfigurer, "createJobLauncher()" metoduyla
+     * varsayılan bir launcher döndürüyor.
+     * Biz bu bean'i "springBatchJobLauncher" adıyla kayıt ediyoruz.
      */
     @Bean(name = "springBatchJobLauncher")
-    public JobLauncher springBatchJobLauncher(JobRepository jobRepository,
-                                              PlatformTransactionManager transactionManager) throws Exception {
+    @Override
+    public JobLauncher getJobLauncher() {
+        // DefaultBatchConfigurer'daki getJobLauncher() 
+        // eğer henüz oluşturulmadıysa createJobLauncher() çağırır.
+        return super.getJobLauncher();
+    }
+
+    /**
+     * İsteğe bağlı: createJobLauncher'ı override ederek
+     * concurrency ayarları vs. ekleyebilirsiniz.
+     */
+    @Override
+    protected JobLauncher createJobLauncher() throws Exception {
+        JobRepository jobRepository = getJobRepository();
         SimpleJobLauncher launcher = new SimpleJobLauncher();
         launcher.setJobRepository(jobRepository);
-        // İsteğe bağlı concurrency ayarları
         launcher.afterPropertiesSet();
         return launcher;
     }
+
+    /**
+     * Eğer transactionManager'ı da set etmek isterseniz
+     * protected method setTransactionManager(transactionManager) vb. 
+     * override edebilirsiniz. 
+     * Varsayılanda "null" olabilir, ancak chunk transaction'lar 
+     * jobRepository üzerinden de yönetilebilir.
+     */
+    @Override
+    protected PlatformTransactionManager getTransactionManager() {
+        return this.transactionManager;
+    }
 }
-
-
 
 
 
@@ -42,8 +73,8 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.JobExecution;
-import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.batch.core.launch.JobLauncher;
+import org.springframework.batch.core.JobParametersBuilder;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration;
 import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
@@ -57,30 +88,28 @@ import org.springframework.context.annotation.ComponentScan;
 
 @Slf4j
 @SpringBootApplication
-@ComponentScan(basePackages = { "com.ykb.corebanking.safedepositbox.safedepositboxbe" })
+@ComponentScan(basePackages = {"com.ykb.corebanking.safedepositbox.safedepositboxbe"})
 @EnableCaching
 @EnableFeignClients
 @EnableDiscoveryClient
-@EnableAutoConfiguration(exclude = { SecurityAutoConfiguration.class, ManagementWebSecurityAutoConfiguration.class })
+@EnableAutoConfiguration(exclude = {SecurityAutoConfiguration.class, ManagementWebSecurityAutoConfiguration.class})
 public class SafedepositboxBeApplication {
 
     public static void main(String[] args) {
-        // Eski kodunuz: spring.application.name ayarı
         String name = System.getenv("SPRING_APPLICATION_NAME");
         if (name != null) {
             System.setProperty("spring.application.name", name);
         }
 
-        // Spring Boot context
         ConfigurableApplicationContext ctx = SpringApplication.run(SafedepositboxBeApplication.class, args);
 
-        // Batch argümanı kontrolü
+        // Batch argüman kontrolü
         if (args != null && args.length > 0) {
-            String jobName = args[0];  // "dummyParameterInsertJob" vb.
+            String jobName = args[0]; // "dummyParameterInsertJob" vb.
             int exitCode = 0;
             try {
-                // Kalan parametreleri parse edelim (key=value) -> CustomJobParameters
-                CustomJobParameters<String,Object> customParams = ctx.getBean(CustomJobParameters.class);
+                // parse extra args
+                CustomJobParameters<String, Object> customParams = ctx.getBean(CustomJobParameters.class);
                 for (int i = 1; i < args.length; i++) {
                     String[] kv = args[i].split("=");
                     if (kv.length == 2) {
@@ -88,21 +117,19 @@ public class SafedepositboxBeApplication {
                     }
                 }
 
-                // FARK: Artık springBatchJobLauncher bean'ini alıyoruz
-                JobLauncher jobLauncher = ctx.getBean("springBatchJobLauncher", JobLauncher.class);
+                // FARK: Bean name "springBatchJobLauncher"
+                JobLauncher batchLauncher = 
+                        ctx.getBean("springBatchJobLauncher", JobLauncher.class);
 
-                // Hangi job tetiklenecek?
                 Job job = ctx.getBean(jobName, Job.class);
 
-                // Job’i parametre vererek çalıştır
-                JobExecution execution = jobLauncher.run(
+                JobExecution execution = batchLauncher.run(
                         job,
                         new JobParametersBuilder()
                                 .addLong("startTime", System.currentTimeMillis())
                                 .toJobParameters()
                 );
 
-                // Durum kontrolü
                 if (!ExitStatus.COMPLETED.equals(execution.getExitStatus())) {
                     exitCode = 1;
                 }
@@ -114,6 +141,6 @@ public class SafedepositboxBeApplication {
                 System.exit(exitCode);
             }
         }
-        // Argüman yoksa normal application flow
+        // Argüman yoksa normal web akışı
     }
 }
