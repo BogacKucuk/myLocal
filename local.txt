@@ -14,8 +14,9 @@ import java.time.format.DateTimeFormatter;
 import java.util.*;
 
 /**
- * Bu sınıf, Job ve Step istatistiklerini saklayıp,
- * failureExceptions vb. bilgileri loglama amacıyla kullanılmaktadır.
+ * Bu sınıf, Job ve Step istatistiklerini tutar; 
+ * job parametreleri, exception gibi bilgileri log için 
+ * CommonJobExecutionStatistics tarafından kullanılır.
  */
 @Getter
 public class JobStatistics {
@@ -39,7 +40,7 @@ public class JobStatistics {
         this.jobInstanceId = jobExecution.getJobInstance().getId();
         this.jobStatus = jobExecution.getStatus().toString();
 
-        // Tarihleri LocalDateTime olarak formatlıyoruz.
+        // Tarihleri formatlıyoruz (LocalDateTime -> String).
         this.startTime = Optional.ofNullable(jobExecution.getStartTime())
                 .orElse(LocalDateTime.MIN)
                 .format(DATE_TIME_FORMATTER);
@@ -51,24 +52,24 @@ public class JobStatistics {
         this.exitStatus = jobExecution.getExitStatus().toString();
         this.failureExceptions = printExceptions(jobExecution.getFailureExceptions());
 
-        // Job parametrelerini alıp JobStatsParameter listesine ekliyoruz.
+        // Job parametrelerini alıp "JobStatsParameter" listesine ekliyoruz.
         JobParameters jobParams = jobExecution.getJobParameters();
-        for (Map.Entry<String, JobParameter> entry : jobParams.getParameters().entrySet()) {
+        for (Map.Entry<String, JobParameter<?>> entry : jobParams.getParameters().entrySet()) {
             String key = entry.getKey();
-            // Değerleri toString yerine String.valueOf ile alıyoruz.
+            // getValue() -> Object, toString() / String.valueOf(...) ile alıyoruz.
             String val = String.valueOf(entry.getValue().getValue());
             this.parameters.add(new JobStatsParameter(key, val));
         }
 
-        // Her bir StepExecution için StepStatistics oluşturup listeye ekliyoruz.
+        // Step bazında istatistik
         for (StepExecution stepExec : jobExecution.getStepExecutions()) {
             stepStatistics.add(new StepStatistics(stepExec));
         }
     }
 
     /**
-     * Failure exception listesini String'e dönüştürmek için
-     * ByteArrayOutputStream + PrintWriter kullanıyoruz.
+     * Failure exception listesini String'e dönüştürme metodu
+     * ByteArrayOutputStream + PrintWriter kullanıyor.
      */
     private static String printExceptions(List<Throwable> exceptions) {
         if (exceptions == null || exceptions.isEmpty()) {
