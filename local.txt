@@ -1,31 +1,126 @@
-@Test
-void adcGetDisplay_withNullAccountNumberOrCurrency_shouldNotSetAccountField() throws ReceiptException {
-    // Arrange
-    RequestAdcReceiptDisplay requestAdc = new RequestAdcReceiptDisplay();
-    RequestReceiptAdcCriteria criteria = new RequestReceiptAdcCriteria();
-    criteria.setAccountNumber(null);
-    criteria.setAccountCurrency("EUR"); // accountNumber null -> if'e girmez
-    requestAdc.setRequestReceiptAdcCriteriaList(Collections.singletonList(criteria));
+package com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.jobs.dummyparameterinsert;
 
-    // parseKwcaac invalid test. 
-    // Service metodu gerçekte List<ResponseAdcReceiptDisplay> döndürüyor.
-    ResponseAdcReceiptDisplay dto = ResponseAdcReceiptDisplay.builder()
-            .account("invalid format") // parseKwcaac -> Optional.empty()
-            .build();
-    List<ResponseAdcReceiptDisplay> mockDisplayList = Collections.singletonList(dto);
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.config.BaseJobConfiguration;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.safedepositboxbe.dto.ParameterDTO;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.entity.ParameterEntity;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.repository.ParameterRepository;
+import org.springframework.batch.core.Job;
+import org.springframework.batch.core.Step;
+import org.springframework.batch.core.configuration.annotation.StepScope;
+import org.springframework.batch.core.item.Chunk;
+import org.springframework.batch.core.item.ItemProcessor;
+import org.springframework.batch.core.item.ItemReader;
+import org.springframework.batch.core.item.ItemWriter;
+import org.springframework.batch.core.job.builder.FlowBuilder;
+import org.springframework.batch.core.job.flow.Flow;
+import org.springframework.batch.core.repository.JobRepository;
+import org.springframework.batch.item.support.ListItemReader;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 
-    // when(...) ile list döndürecek şekilde mocklayın:
-    when(service.getReceiptDisplayList(Mockito.any())).thenReturn(mockDisplayList);
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.List;
 
-    // Act
-    ResponseEntity<ResponseAdcReceiptDisplayList> result = controller.adcGetDisplay(requestAdc);
+@Configuration
+public class DummyParameterInsertJobConfiguration extends BaseJobConfiguration {
 
-    // Assert
-    assertEquals(HttpStatus.OK, result.getStatusCode());
-    // if'e girmediği için account set edilmemeli
-    assertNull(criteria.getAccount());
+    @Autowired
+    private ParameterRepository parameterRepository;
 
-    // parseKwcaac -> empty döneceği için dto'ya accountNumber / accountCurrency set edilmemeli
-    assertNull(dto.getAccountNumber());
-    assertNull(dto.getAccountCurrency());
+    /**
+     * Job bean'inin adı "dummyparameterinsert" olsun.
+     * Main'de Program Arguments'ta "dummyparameterinsert" yazdığımızda 
+     * bu job tetiklenecek.
+     */
+    @Bean(name = "dummyparameterinsert")
+    public Job dummyParameterInsertJob(JobRepository jobRepository) {
+        // Tek adım veya Flow + Decider örneği yapabiliriz.
+        // Burada mini bir flow örneği gösterelim (tek step de olabilir).
+        return jobBuilder("dummyparameterinsert")
+                .repository(jobRepository)
+                .start(dummyParameterInsertFlow())
+                .end()
+                .build();
+    }
+
+    /**
+     * Flow tanımı: 
+     * Aslında tek step var ama FlowBuilder ile eklemiş oluyoruz.
+     */
+    @Bean
+    public Flow dummyParameterInsertFlow() {
+        return new FlowBuilder<Flow>("dummyParameterInsertFlow")
+                .start(dummyParameterInsertStep())
+                .end();
+    }
+
+    @Bean
+    public Step dummyParameterInsertStep() {
+        return stepBuilder("dummyParameterInsertStep")
+                .repository(jobRepository)
+                .<ParameterDTO, ParameterDTO>chunk(5, transactionManager)
+                .reader(dummyParameterItemReader())
+                .processor(dummyParameterItemProcessor())
+                .writer(dummyParameterItemWriter())
+                .build();
+    }
+
+    @Bean
+    @StepScope
+    public ItemReader<ParameterDTO> dummyParameterItemReader() {
+        // 5 adet sahte ParameterDTO oluşturup ListItemReader'a veriyoruz.
+        List<ParameterDTO> dummyList = new ArrayList<>();
+        for (int i = 1; i <= 5; i++) {
+            ParameterDTO dto = new ParameterDTO();
+            dto.setName("BATCH_DUMMY_" + i);
+            dto.setParameterKey("KEY_" + i);
+            dto.setValue("VALUE_" + i);
+            dto.setDescription("Dummy record " + i);
+            dto.setStatus("A");
+            dto.setUserCode("BATCHUSER");
+            dto.setCreateDate(new Date());
+            dto.setSourceName("BatchDummy");
+            dto.setIsSingle("Y");
+            dummyList.add(dto);
+        }
+        return new ListItemReader<>(dummyList);
+    }
+
+    @Bean
+    @StepScope
+    public ItemProcessor<ParameterDTO, ParameterDTO> dummyParameterItemProcessor() {
+        // Sadece pass-through, isterseniz loglama vs. yapılabilir
+        return item -> {
+            // Örnek: item.setDescription(item.getDescription() + " - processed");
+            return item;
+        };
+    }
+
+    @Bean
+    @StepScope
+    public ItemWriter<ParameterDTO> dummyParameterItemWriter() {
+        return new ItemWriter<ParameterDTO>() {
+            @Override
+            public void write(Chunk<? extends ParameterDTO> chunk) throws Exception {
+                List<ParameterEntity> entities = new ArrayList<>();
+                for (ParameterDTO dto : chunk) {
+                    ParameterEntity entity = new ParameterEntity();
+                    entity.setName(dto.getName());
+                    entity.setParameterKey(dto.getParameterKey());
+                    entity.setValue(dto.getValue());
+                    entity.setDescription(dto.getDescription());
+                    entity.setStatus(dto.getStatus());
+                    entity.setUserCode(dto.getUserCode());
+                    entity.setCreateDate(dto.getCreateDate());
+                    entity.setSourceName(dto.getSourceName());
+                    entity.setIsSingle(dto.getIsSingle());
+                    entities.add(entity);
+                }
+                parameterRepository.saveAll(entities);
+                System.out.println("Inserted " + entities.size() + " dummy records into Parameter table.");
+            }
+        };
+    }
 }
