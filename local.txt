@@ -11,10 +11,7 @@ import com.ykb.corebanking.safedepositbox.safedepositboxbe.repository.ParameterR
 import org.springframework.batch.core.Job;
 import org.springframework.batch.core.Step;
 import org.springframework.batch.core.configuration.annotation.StepScope;
-import org.springframework.batch.core.item.Chunk;
-import org.springframework.batch.core.item.ItemProcessor;
-import org.springframework.batch.core.item.ItemReader;
-import org.springframework.batch.core.item.ItemWriter;
+import org.springframework.batch.core.item.*;
 import org.springframework.batch.core.job.builder.FlowBuilder;
 import org.springframework.batch.core.job.flow.Flow;
 import org.springframework.batch.item.support.ListItemReader;
@@ -45,13 +42,13 @@ public class DummyParameterInsertJobConfiguration extends BaseJobConfiguration {
     private CommonStepExecutionListener commonStepExecutionListener;
 
     @Autowired
-    private ItemFailureLoggerListener<ParameterDTO,ParameterDTO> itemFailureLoggerListener;
+    private ItemFailureLoggerListener<ParameterDTO, ParameterDTO> itemFailureLoggerListener;
 
     @Bean(name = JOB_NAME)
     public Job dummyParameterInsertJob() {
         return getCommonJobBuilder(JOB_NAME)
                 .repository(jobRepository)
-                .listener(commonJobExecutionListener)
+                .listener(commonJobExecutionListener) // job-level listener
                 .start(dummyParameterInsertFlow())
                 .end()
                 .build();
@@ -66,14 +63,19 @@ public class DummyParameterInsertJobConfiguration extends BaseJobConfiguration {
 
     @Bean
     public Step dummyParameterInsertStep() {
+        // chunkSize application-local.yml'den @Value ile DummyParameterInsertConfig’e geliyor
         return getCommonStepBuilder(STEP_NAME)
                 .repository(jobRepository)
                 .<ParameterDTO, ParameterDTO>chunk(dummyConfig.getChunkSize(), transactionManager)
                 .reader(dummyParameterReader())
                 .processor(dummyParameterProcessor())
                 .writer(dummyParameterWriter())
+                // Step-level listeners
                 .listener(commonStepExecutionListener)
-                .listener(itemFailureLoggerListener)
+                // Üç ayrı satırda ekleyerek "ambiguous method call" sorununu çözüyoruz
+                .listener((org.springframework.batch.core.ItemReadListener<? super ParameterDTO>) itemFailureLoggerListener)
+                .listener((org.springframework.batch.core.ItemProcessListener<? super ParameterDTO, ? super ParameterDTO>) itemFailureLoggerListener)
+                .listener((org.springframework.batch.core.ItemWriteListener<? super ParameterDTO>) itemFailureLoggerListener)
                 .taskExecutor(defaultBatchTaskExecutor())
                 .build();
     }
@@ -82,7 +84,7 @@ public class DummyParameterInsertJobConfiguration extends BaseJobConfiguration {
     @StepScope
     public ItemReader<ParameterDTO> dummyParameterReader() {
         List<ParameterDTO> dummyList = new ArrayList<>();
-        for(int i=1; i<=5; i++){
+        for (int i = 1; i <= 5; i++) {
             ParameterDTO dto = new ParameterDTO();
             dto.setName("BATCH_DUMMY_" + i);
             dto.setParameterKey("KEY_" + i);
@@ -112,9 +114,9 @@ public class DummyParameterInsertJobConfiguration extends BaseJobConfiguration {
     public ItemWriter<ParameterDTO> dummyParameterWriter() {
         return new ItemWriter<>() {
             @Override
-            public void write(Chunk<? extends ParameterDTO> chunk) {
+            public void write(Chunk<? extends ParameterDTO> chunk) throws Exception {
                 List<ParameterEntity> entities = new ArrayList<>();
-                for(ParameterDTO dto : chunk) {
+                for (ParameterDTO dto : chunk) {
                     ParameterEntity e = new ParameterEntity();
                     e.setName(dto.getName());
                     e.setParameterKey(dto.getParameterKey());
