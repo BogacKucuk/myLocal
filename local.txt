@@ -1,7 +1,11 @@
 package com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.jobs.dummyparameterinsert;
 
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common.ItemFailureLoggerListener;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common.stats.CommonJobExecutionListener;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common.stats.CommonStepExecutionListener;
 import com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.config.BaseJobConfiguration;
-import com.ykb.corebanking.safedepositbox.safedepositboxbe.safedepositboxbe.dto.ParameterDTO;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.jobs.dummyparameterinsert.config.DummyParameterInsertConfig;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.dto.ParameterDTO;
 import com.ykb.corebanking.safedepositbox.safedepositboxbe.entity.ParameterEntity;
 import com.ykb.corebanking.safedepositbox.safedepositboxbe.repository.ParameterRepository;
 import org.springframework.batch.core.Job;
@@ -13,7 +17,6 @@ import org.springframework.batch.core.item.ItemReader;
 import org.springframework.batch.core.item.ItemWriter;
 import org.springframework.batch.core.job.builder.FlowBuilder;
 import org.springframework.batch.core.job.flow.Flow;
-import org.springframework.batch.core.repository.JobRepository;
 import org.springframework.batch.item.support.ListItemReader;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
@@ -26,29 +29,34 @@ import java.util.List;
 @Configuration
 public class DummyParameterInsertJobConfiguration extends BaseJobConfiguration {
 
+    public static final String JOB_NAME = "dummyParameterInsertJob";
+    public static final String STEP_NAME = "dummyParameterInsertStep";
+
+    @Autowired
+    private DummyParameterInsertConfig dummyConfig;
+
     @Autowired
     private ParameterRepository parameterRepository;
 
-    /**
-     * Job bean'inin adı "dummyparameterinsert" olsun.
-     * Main'de Program Arguments'ta "dummyparameterinsert" yazdığımızda 
-     * bu job tetiklenecek.
-     */
-    @Bean(name = "dummyparameterinsert")
-    public Job dummyParameterInsertJob(JobRepository jobRepository) {
-        // Tek adım veya Flow + Decider örneği yapabiliriz.
-        // Burada mini bir flow örneği gösterelim (tek step de olabilir).
-        return jobBuilder("dummyparameterinsert")
+    @Autowired
+    private CommonJobExecutionListener commonJobExecutionListener;
+
+    @Autowired
+    private CommonStepExecutionListener commonStepExecutionListener;
+
+    @Autowired
+    private ItemFailureLoggerListener<ParameterDTO,ParameterDTO> itemFailureLoggerListener;
+
+    @Bean(name = JOB_NAME)
+    public Job dummyParameterInsertJob() {
+        return getCommonJobBuilder(JOB_NAME)
                 .repository(jobRepository)
+                .listener(commonJobExecutionListener)
                 .start(dummyParameterInsertFlow())
                 .end()
                 .build();
     }
 
-    /**
-     * Flow tanımı: 
-     * Aslında tek step var ama FlowBuilder ile eklemiş oluyoruz.
-     */
     @Bean
     public Flow dummyParameterInsertFlow() {
         return new FlowBuilder<Flow>("dummyParameterInsertFlow")
@@ -58,30 +66,32 @@ public class DummyParameterInsertJobConfiguration extends BaseJobConfiguration {
 
     @Bean
     public Step dummyParameterInsertStep() {
-        return stepBuilder("dummyParameterInsertStep")
+        return getCommonStepBuilder(STEP_NAME)
                 .repository(jobRepository)
-                .<ParameterDTO, ParameterDTO>chunk(5, transactionManager)
-                .reader(dummyParameterItemReader())
-                .processor(dummyParameterItemProcessor())
-                .writer(dummyParameterItemWriter())
+                .<ParameterDTO, ParameterDTO>chunk(dummyConfig.getChunkSize(), transactionManager)
+                .reader(dummyParameterReader())
+                .processor(dummyParameterProcessor())
+                .writer(dummyParameterWriter())
+                .listener(commonStepExecutionListener)
+                .listener(itemFailureLoggerListener)
+                .taskExecutor(defaultBatchTaskExecutor())
                 .build();
     }
 
     @Bean
     @StepScope
-    public ItemReader<ParameterDTO> dummyParameterItemReader() {
-        // 5 adet sahte ParameterDTO oluşturup ListItemReader'a veriyoruz.
+    public ItemReader<ParameterDTO> dummyParameterReader() {
         List<ParameterDTO> dummyList = new ArrayList<>();
-        for (int i = 1; i <= 5; i++) {
+        for(int i=1; i<=5; i++){
             ParameterDTO dto = new ParameterDTO();
             dto.setName("BATCH_DUMMY_" + i);
             dto.setParameterKey("KEY_" + i);
-            dto.setValue("VALUE_" + i);
+            dto.setValue("VAL_" + i);
             dto.setDescription("Dummy record " + i);
             dto.setStatus("A");
-            dto.setUserCode("BATCHUSER");
+            dto.setUserCode("batchUser");
             dto.setCreateDate(new Date());
-            dto.setSourceName("BatchDummy");
+            dto.setSourceName("DummyBatch");
             dto.setIsSingle("Y");
             dummyList.add(dto);
         }
@@ -90,36 +100,34 @@ public class DummyParameterInsertJobConfiguration extends BaseJobConfiguration {
 
     @Bean
     @StepScope
-    public ItemProcessor<ParameterDTO, ParameterDTO> dummyParameterItemProcessor() {
-        // Sadece pass-through, isterseniz loglama vs. yapılabilir
+    public ItemProcessor<ParameterDTO, ParameterDTO> dummyParameterProcessor() {
         return item -> {
-            // Örnek: item.setDescription(item.getDescription() + " - processed");
+            // Örnek: item.setDescription(item.getDescription() + " processed");
             return item;
         };
     }
 
     @Bean
     @StepScope
-    public ItemWriter<ParameterDTO> dummyParameterItemWriter() {
-        return new ItemWriter<ParameterDTO>() {
+    public ItemWriter<ParameterDTO> dummyParameterWriter() {
+        return new ItemWriter<>() {
             @Override
-            public void write(Chunk<? extends ParameterDTO> chunk) throws Exception {
+            public void write(Chunk<? extends ParameterDTO> chunk) {
                 List<ParameterEntity> entities = new ArrayList<>();
-                for (ParameterDTO dto : chunk) {
-                    ParameterEntity entity = new ParameterEntity();
-                    entity.setName(dto.getName());
-                    entity.setParameterKey(dto.getParameterKey());
-                    entity.setValue(dto.getValue());
-                    entity.setDescription(dto.getDescription());
-                    entity.setStatus(dto.getStatus());
-                    entity.setUserCode(dto.getUserCode());
-                    entity.setCreateDate(dto.getCreateDate());
-                    entity.setSourceName(dto.getSourceName());
-                    entity.setIsSingle(dto.getIsSingle());
-                    entities.add(entity);
+                for(ParameterDTO dto : chunk) {
+                    ParameterEntity e = new ParameterEntity();
+                    e.setName(dto.getName());
+                    e.setParameterKey(dto.getParameterKey());
+                    e.setValue(dto.getValue());
+                    e.setDescription(dto.getDescription());
+                    e.setStatus(dto.getStatus());
+                    e.setUserCode(dto.getUserCode());
+                    e.setCreateDate(dto.getCreateDate());
+                    e.setSourceName(dto.getSourceName());
+                    e.setIsSingle(dto.getIsSingle());
+                    entities.add(e);
                 }
                 parameterRepository.saveAll(entities);
-                System.out.println("Inserted " + entities.size() + " dummy records into Parameter table.");
             }
         };
     }
