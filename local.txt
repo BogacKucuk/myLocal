@@ -1,98 +1,102 @@
 package com.ykb.corebanking.safedepositbox.safedepositboxbe;
 
-import com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common.CustomJobParameters;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.batch.core.ExitStatus;
-import org.springframework.batch.core.Job;
-import org.springframework.batch.core.JobExecution;
-import org.springframework.batch.core.JobParametersBuilder;
-import org.springframework.batch.core.launch.JobLauncher; // Spring Batch interface
-import org.springframework.boot.SpringApplication;
-import org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration;
-import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
-import org.springframework.boot.autoconfigure.SpringBootApplication;
-import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
-import org.springframework.cache.annotation.EnableCaching;
-import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
-import org.springframework.cloud.openfeign.EnableFeignClients;
-import org.springframework.context.ConfigurableApplicationContext;
-import org.springframework.context.annotation.ComponentScan;
-import org.springframework.context.annotation.Import;
-import com.ykb.architecture.micro.error.MicroErrorConfig;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-@Slf4j
-@SpringBootApplication
-@ComponentScan(basePackages = {"com.ykb.corebanking.safedepositbox.safedepositboxbe"})
-@EnableCaching
-@EnableFeignClients
-@EnableDiscoveryClient
-@EnableAutoConfiguration(exclude = {SecurityAutoConfiguration.class, ManagementWebSecurityAutoConfiguration.class})
-@Import(MicroErrorConfig.class)
-public class SafedepositboxBeApplication {
+/*
+// Şart değil ama eklemek isterseniz:
+@ExtendWith(SpringExtension.class)
+*/
 
-    public static void main(String[] args) {
-        // Eski koddaki environment ayarları
-        String name = System.getenv("SPRING_APPLICATION_NAME");
-        if (name != null) {
-            System.setProperty("spring.application.name", name);
+// Eğer bean'leri yüklemek istemiyorsanız @SpringBootTest zorunlu değil.
+// Tek coverage için genelde plain unit test yaklaşımı yeter.
+@SpringBootTest
+class SafedepositboxBeApplicationTest {
+
+    // Basit SecurityManager türevimiz. System.exit(exitCode) geldiğinde
+    // bir SecurityException fırlatır, testte yakalarız.
+    static class NoExitSecurityManager extends SecurityManager {
+        @Override
+        public void checkPermission(java.security.Permission perm) {
+            // Her şeye izin
         }
-
-        // Spring Boot Context
-        ConfigurableApplicationContext ctx =
-            SpringApplication.run(SafedepositboxBeApplication.class, args);
-
-        // =============================================
-        // 1) BURAYA YENİ KONTROL EKLENİYOR
-        //    (Eğer ilk argüman yok veya "spring" parametresi gibi
-        //    "--" ile başlıyorsa batch logic'e girmeden normal devam et.)
-        // =============================================
-        if (args == null || args.length == 0 || args[0].startsWith("--")) {
-            // Hiç argüman yok veya ilk argüman Spring parametresi ("--...").
-            // => Normal web projesi olarak çalış, batch tetikleme.
-            return;  // Erken çık; main metodunun sonuna kadar gidip program backend olarak ayakta kalır.
+        @Override
+        public void checkPermission(java.security.Permission perm, Object context) {
+            // Her şeye izin
         }
-
-        // BURADAN SONRASI -> Argüman var VE args[0] "--" ile BAŞLAMIYOR
-        // => batch ismi olarak kabul ediliyor.
-
-        // Batch job param var mı?
-        if (args.length > 0) {
-            String jobName = args[0]; // Örn: "dummyParameterInsertJob"
-            int exitCode = 0;
-            try {
-                // Parse key=value parametreler
-                CustomJobParameters<String, Object> customParams =
-                    ctx.getBean(CustomJobParameters.class);
-                for (int i = 1; i < args.length; i++) {
-                    String[] kv = args[i].split("=");
-                    if (kv.length == 2) {
-                        customParams.addParameter(kv[0], kv[1]);
-                    }
-                }
-
-                JobLauncher batchLauncher = ctx.getBean(JobLauncher.class); // TIP BAZLI
-                Job job = ctx.getBean(jobName, Job.class);
-
-                // Job tetikle
-                JobExecution execution = batchLauncher.run(
-                    job,
-                    new JobParametersBuilder()
-                        .addLong("startTime", System.currentTimeMillis())
-                        .toJobParameters()
-                );
-
-                if (!ExitStatus.COMPLETED.equals(execution.getExitStatus())) {
-                    exitCode = 1;
-                }
-            } catch (Exception e) {
-                log.error("Batch job failed with exception", e);
-                exitCode = 1;
-            } finally {
-                // Batch bitti, kapat
-                ctx.close();
-                System.exit(exitCode);
-            }
+        @Override
+        public void checkExit(int status) {
+            super.checkExit(status);
+            throw new SecurityException("System.exit called, status=" + status);
         }
     }
-}
 
+    @Test
+    void testMain_NoArgs() {
+        // ARRANGE
+        String[] args = new String[0];
+        SecurityManager originalSm = System.getSecurityManager();
+
+        try {
+            System.setSecurityManager(new NoExitSecurityManager());
+            // ACT
+            SafedepositboxBeApplication.main(args);
+            // ASSERT
+            // main metodu argüman olmadığı için batch logic'e girmez,
+            // System.exit() çağrılmaz, dolayısıyla SecurityException atılmaz
+            // Dolayısıyla normal "web projesi" akışı.
+        } catch (SecurityException se) {
+            // Test fails if System.exit is called
+            Assertions.fail("System.exit was called unexpectedly (no args). " + se.getMessage());
+        } finally {
+            System.setSecurityManager(originalSm);
+        }
+    }
+
+    @Test
+    void testMain_SpringArgumentOnly() {
+        // Örneğin, user "arg0" = "--spring.config=..." gibi
+        String[] args = {"--spring.profiles.active=local"};
+        SecurityManager originalSm = System.getSecurityManager();
+
+        try {
+            System.setSecurityManager(new NoExitSecurityManager());
+            SafedepositboxBeApplication.main(args);
+            // Beklenti: arg[0] startsWith("--") => batch logic'e girmez => no System.exit
+        } catch (SecurityException se) {
+            Assertions.fail("System.exit was called unexpectedly (spring arg). " + se.getMessage());
+        } finally {
+            System.setSecurityManager(originalSm);
+        }
+    }
+
+    @Test
+    void testMain_BatchArgument() {
+        // Arg[0] = "dummyParameterInsertJob" => batch logic devreye girebilir
+        String[] args = {"dummyParameterInsertJob"};
+        SecurityManager originalSm = System.getSecurityManager();
+        boolean exited = false;
+
+        try {
+            System.setSecurityManager(new NoExitSecurityManager());
+            SafedepositboxBeApplication.main(args);
+
+            // Eğer batch logic stepinde System.exit(0 or 1) çağrılırsa
+            // test SecurityException fırlatır => catch'e düşer
+            // Yakalanmazsa => fail, demek ki batch bitmeden normal akış oldu
+            // ya da batch bitince system.exit
+            Assertions.fail("We expected System.exit to be called for batch mode, but it wasn't.");
+        } catch (SecurityException se) {
+            exited = true;
+            // Burada normaldir, batch logic bitti => system.exit
+            // Kontrol edilebilir: status code vb.
+        } finally {
+            System.setSecurityManager(originalSm);
+        }
+
+        Assertions.assertTrue(exited, "System.exit was called (expected in batch mode).");
+    }
+}
