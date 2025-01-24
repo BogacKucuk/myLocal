@@ -1,136 +1,98 @@
-package com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.jobs.dummyparameterinsert;
+package com.ykb.corebanking.safedepositbox.safedepositboxbe;
 
-import com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common.ItemFailureLoggerListener;
-import com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common.stats.CommonJobExecutionListener;
-import com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common.stats.CommonStepExecutionListener;
-import com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.config.BaseJobConfiguration;
-import com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.jobs.dummyparameterinsert.config.DummyParameterInsertConfig;
-import com.ykb.corebanking.safedepositbox.safedepositboxbe.dto.ParameterDTO;
-import com.ykb.corebanking.safedepositbox.safedepositboxbe.entity.ParameterEntity;
-import com.ykb.corebanking.safedepositbox.safedepositboxbe.repository.ParameterRepository;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.batch.common.CustomJobParameters;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.batch.core.ExitStatus;
 import org.springframework.batch.core.Job;
-import org.springframework.batch.core.Step;
-import org.springframework.batch.core.configuration.annotation.StepScope;
-import org.springframework.batch.core.item.*;
-import org.springframework.batch.core.job.builder.FlowBuilder;
-import org.springframework.batch.core.job.flow.Flow;
-import org.springframework.batch.item.support.ListItemReader;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
+import org.springframework.batch.core.JobExecution;
+import org.springframework.batch.core.JobParametersBuilder;
+import org.springframework.batch.core.launch.JobLauncher; // Spring Batch interface
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.actuate.autoconfigure.security.servlet.ManagementWebSecurityAutoConfiguration;
+import org.springframework.boot.autoconfigure.EnableAutoConfiguration;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.boot.autoconfigure.security.servlet.SecurityAutoConfiguration;
+import org.springframework.cache.annotation.EnableCaching;
+import org.springframework.cloud.client.discovery.EnableDiscoveryClient;
+import org.springframework.cloud.openfeign.EnableFeignClients;
+import org.springframework.context.ConfigurableApplicationContext;
+import org.springframework.context.annotation.ComponentScan;
+import org.springframework.context.annotation.Import;
+import com.ykb.architecture.micro.error.MicroErrorConfig;
 
-import java.util.ArrayList;
-import java.util.Date;
-import java.util.List;
+@Slf4j
+@SpringBootApplication
+@ComponentScan(basePackages = {"com.ykb.corebanking.safedepositbox.safedepositboxbe"})
+@EnableCaching
+@EnableFeignClients
+@EnableDiscoveryClient
+@EnableAutoConfiguration(exclude = {SecurityAutoConfiguration.class, ManagementWebSecurityAutoConfiguration.class})
+@Import(MicroErrorConfig.class)
+public class SafedepositboxBeApplication {
 
-@Configuration
-public class DummyParameterInsertJobConfiguration extends BaseJobConfiguration {
-
-    public static final String JOB_NAME = "dummyParameterInsertJob";
-    public static final String STEP_NAME = "dummyParameterInsertStep";
-
-    @Autowired
-    private DummyParameterInsertConfig dummyConfig;
-
-    @Autowired
-    private ParameterRepository parameterRepository;
-
-    @Autowired
-    private CommonJobExecutionListener commonJobExecutionListener;
-
-    @Autowired
-    private CommonStepExecutionListener commonStepExecutionListener;
-
-    @Autowired
-    private ItemFailureLoggerListener<ParameterDTO, ParameterDTO> itemFailureLoggerListener;
-
-    @Bean(name = JOB_NAME)
-    public Job dummyParameterInsertJob() {
-        return getCommonJobBuilder(JOB_NAME)
-                .repository(jobRepository)
-                .listener(commonJobExecutionListener) // job-level listener
-                .start(dummyParameterInsertFlow())
-                .end()
-                .build();
-    }
-
-    @Bean
-    public Flow dummyParameterInsertFlow() {
-        return new FlowBuilder<Flow>("dummyParameterInsertFlow")
-                .start(dummyParameterInsertStep())
-                .end();
-    }
-
-    @Bean
-    public Step dummyParameterInsertStep() {
-        // chunkSize application-local.yml'den @Value ile DummyParameterInsertConfig’e geliyor
-        return getCommonStepBuilder(STEP_NAME)
-                .repository(jobRepository)
-                .<ParameterDTO, ParameterDTO>chunk(dummyConfig.getChunkSize(), transactionManager)
-                .reader(dummyParameterReader())
-                .processor(dummyParameterProcessor())
-                .writer(dummyParameterWriter())
-                // Step-level listeners
-                .listener(commonStepExecutionListener)
-                // Üç ayrı satırda ekleyerek "ambiguous method call" sorununu çözüyoruz
-                .listener((org.springframework.batch.core.ItemReadListener<? super ParameterDTO>) itemFailureLoggerListener)
-                .listener((org.springframework.batch.core.ItemProcessListener<? super ParameterDTO, ? super ParameterDTO>) itemFailureLoggerListener)
-                .listener((org.springframework.batch.core.ItemWriteListener<? super ParameterDTO>) itemFailureLoggerListener)
-                .taskExecutor(defaultBatchTaskExecutor())
-                .build();
-    }
-
-    @Bean
-    @StepScope
-    public ItemReader<ParameterDTO> dummyParameterReader() {
-        List<ParameterDTO> dummyList = new ArrayList<>();
-        for (int i = 1; i <= 5; i++) {
-            ParameterDTO dto = new ParameterDTO();
-            dto.setName("BATCH_DUMMY_" + i);
-            dto.setParameterKey("KEY_" + i);
-            dto.setValue("VAL_" + i);
-            dto.setDescription("Dummy record " + i);
-            dto.setStatus("A");
-            dto.setUserCode("batchUser");
-            dto.setCreateDate(new Date());
-            dto.setSourceName("DummyBatch");
-            dto.setIsSingle("Y");
-            dummyList.add(dto);
+    public static void main(String[] args) {
+        // Eski koddaki environment ayarları
+        String name = System.getenv("SPRING_APPLICATION_NAME");
+        if (name != null) {
+            System.setProperty("spring.application.name", name);
         }
-        return new ListItemReader<>(dummyList);
-    }
 
-    @Bean
-    @StepScope
-    public ItemProcessor<ParameterDTO, ParameterDTO> dummyParameterProcessor() {
-        return item -> {
-            // Örnek: item.setDescription(item.getDescription() + " processed");
-            return item;
-        };
-    }
+        // Spring Boot Context
+        ConfigurableApplicationContext ctx =
+            SpringApplication.run(SafedepositboxBeApplication.class, args);
 
-    @Bean
-    @StepScope
-    public ItemWriter<ParameterDTO> dummyParameterWriter() {
-        return new ItemWriter<>() {
-            @Override
-            public void write(Chunk<? extends ParameterDTO> chunk) throws Exception {
-                List<ParameterEntity> entities = new ArrayList<>();
-                for (ParameterDTO dto : chunk) {
-                    ParameterEntity e = new ParameterEntity();
-                    e.setName(dto.getName());
-                    e.setParameterKey(dto.getParameterKey());
-                    e.setValue(dto.getValue());
-                    e.setDescription(dto.getDescription());
-                    e.setStatus(dto.getStatus());
-                    e.setUserCode(dto.getUserCode());
-                    e.setCreateDate(dto.getCreateDate());
-                    e.setSourceName(dto.getSourceName());
-                    e.setIsSingle(dto.getIsSingle());
-                    entities.add(e);
+        // =============================================
+        // 1) BURAYA YENİ KONTROL EKLENİYOR
+        //    (Eğer ilk argüman yok veya "spring" parametresi gibi
+        //    "--" ile başlıyorsa batch logic'e girmeden normal devam et.)
+        // =============================================
+        if (args == null || args.length == 0 || args[0].startsWith("--")) {
+            // Hiç argüman yok veya ilk argüman Spring parametresi ("--...").
+            // => Normal web projesi olarak çalış, batch tetikleme.
+            return;  // Erken çık; main metodunun sonuna kadar gidip program backend olarak ayakta kalır.
+        }
+
+        // BURADAN SONRASI -> Argüman var VE args[0] "--" ile BAŞLAMIYOR
+        // => batch ismi olarak kabul ediliyor.
+
+        // Batch job param var mı?
+        if (args.length > 0) {
+            String jobName = args[0]; // Örn: "dummyParameterInsertJob"
+            int exitCode = 0;
+            try {
+                // Parse key=value parametreler
+                CustomJobParameters<String, Object> customParams =
+                    ctx.getBean(CustomJobParameters.class);
+                for (int i = 1; i < args.length; i++) {
+                    String[] kv = args[i].split("=");
+                    if (kv.length == 2) {
+                        customParams.addParameter(kv[0], kv[1]);
+                    }
                 }
-                parameterRepository.saveAll(entities);
+
+                JobLauncher batchLauncher = ctx.getBean(JobLauncher.class); // TIP BAZLI
+                Job job = ctx.getBean(jobName, Job.class);
+
+                // Job tetikle
+                JobExecution execution = batchLauncher.run(
+                    job,
+                    new JobParametersBuilder()
+                        .addLong("startTime", System.currentTimeMillis())
+                        .toJobParameters()
+                );
+
+                if (!ExitStatus.COMPLETED.equals(execution.getExitStatus())) {
+                    exitCode = 1;
+                }
+            } catch (Exception e) {
+                log.error("Batch job failed with exception", e);
+                exitCode = 1;
+            } finally {
+                // Batch bitti, kapat
+                ctx.close();
+                System.exit(exitCode);
             }
-        };
+        }
     }
 }
+
