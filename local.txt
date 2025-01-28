@@ -2,86 +2,84 @@ package com.ykb.corebanking.safedepositbox.safedepositboxbe.service.impl;
 
 import com.ykb.corebanking.safedepositbox.safedepositboxbe.enumerable.PaymentType;
 import com.ykb.corebanking.safedepositbox.safedepositboxbe.service.IPaymentTypeStrategy;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-import java.util.Collections;
 import java.util.HashSet;
 import java.util.Set;
 
-import static org.junit.jupiter.api.Assertions.*;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.mockito.Mockito.when;
 
-@ExtendWith(SpringExtension.class)
-class PaymentTypeStrategyFactoryTest {
+@ExtendWith(MockitoExtension.class)
+class PaymentTypeStrategyFactoryMockitoTest {
 
-    // Basit stub implementasyonları. (Dummy stratejiler)
-    // Gerekiyorsa bu stub sınıflarını ayrı dosyalarda da tutabilirsiniz.
-    // Fakat basit bir test için bu şekilde iç sınıflar veya anonim sınıflar yeterli.
+    @Mock
+    IPaymentTypeStrategy accountProvisionStrategy;
 
-    static class AccountProvisionStrategyStub implements IPaymentTypeStrategy {
-        @Override
-        public PaymentType getStrategy() {
-            return PaymentType.ACCOUNT_PROVISION;
-        }
+    @Mock
+    IPaymentTypeStrategy cashProvisionStrategy;
 
-        @Override
-        public com.ykb.corebanking.safedepositbox.safedepositboxbe.response.ResponseAccountProvision performDebtPayment(
-            com.ykb.corebanking.safedepositbox.safedepositboxbe.request.RequestDebtPayment requestDebtPayment) {
-            return null; // Test için stub
-        }
-    }
+    // Bu Factory, testte @InjectMocks ile oluşturulabilir; ancak bir parametreli constructor'a ihtiyacımız var.
+    // Fakat PaymentTypeStrategyFactory, constructor parametresini 'Set<IPaymentTypeStrategy>' olarak alıyor.
+    // Dolayısıyla test içerisinde manual olarak Set oluşturacağız.
 
-    static class CashProvisionStrategyStub implements IPaymentTypeStrategy {
-        @Override
-        public PaymentType getStrategy() {
-            return PaymentType.CASH_PROVISION;
-        }
+    @BeforeEach
+    void setUp() {
+        // Mockito'nun anotasyon tabanlı Mock nesnelerini aktif hâle getirir
+        MockitoAnnotations.openMocks(this);
 
-        @Override
-        public com.ykb.corebanking.safedepositbox.safedepositboxbe.response.ResponseAccountProvision performDebtPayment(
-            com.ykb.corebanking.safedepositbox.safedepositboxbe.request.RequestDebtPayment requestDebtPayment) {
-            return null; // Test için stub
-        }
+        // accountProvisionStrategy stub
+        when(accountProvisionStrategy.getStrategy()).thenReturn(PaymentType.ACCOUNT_PROVISION);
+        // cashProvisionStrategy stub
+        when(cashProvisionStrategy.getStrategy()).thenReturn(PaymentType.CASH_PROVISION);
     }
 
     @Test
     void testFindStrategyReturnsCorrectStrategyWhenBothArePresent() {
-        // İki farklı strateji ekliyoruz
+        // İki farklı mock strateji ekliyoruz
         Set<IPaymentTypeStrategy> strategySet = new HashSet<>();
-        strategySet.add(new AccountProvisionStrategyStub());
-        strategySet.add(new CashProvisionStrategyStub());
+        strategySet.add(accountProvisionStrategy);
+        strategySet.add(cashProvisionStrategy);
 
+        // Factory'yi set ile oluşturuyoruz
         PaymentTypeStrategyFactory factory = new PaymentTypeStrategyFactory(strategySet);
 
-        // ACCOUNT_PROVISION stratejisini istediğimizde stub dönecek
-        IPaymentTypeStrategy accountStrategy = factory.findStrategy(PaymentType.ACCOUNT_PROVISION);
-        assertNotNull(accountStrategy);
-        assertEquals(PaymentType.ACCOUNT_PROVISION, accountStrategy.getStrategy());
+        // ACCOUNT_PROVISION stratejisini çağırınca accountProvisionStrategy mock döner
+        IPaymentTypeStrategy foundAccountStrategy = factory.findStrategy(PaymentType.ACCOUNT_PROVISION);
+        assertNotNull(foundAccountStrategy);
+        assertEquals(PaymentType.ACCOUNT_PROVISION, foundAccountStrategy.getStrategy());
 
-        // CASH_PROVISION stratejisini istediğimizde stub dönecek
-        IPaymentTypeStrategy cashStrategy = factory.findStrategy(PaymentType.CASH_PROVISION);
-        assertNotNull(cashStrategy);
-        assertEquals(PaymentType.CASH_PROVISION, cashStrategy.getStrategy());
+        // CASH_PROVISION stratejisini çağırınca cashProvisionStrategy mock döner
+        IPaymentTypeStrategy foundCashStrategy = factory.findStrategy(PaymentType.CASH_PROVISION);
+        assertNotNull(foundCashStrategy);
+        assertEquals(PaymentType.CASH_PROVISION, foundCashStrategy.getStrategy());
     }
 
     @Test
-    void testFindStrategyReturnsNullWhenStrategyNotInSet() {
-        // Sadece ACCOUNT_PROVISION stratejisini ekliyoruz
+    void testFindStrategyReturnsNullWhenStrategyNotPresent() {
+        // Yalnızca accountProvisionStrategy mock'unu ekliyoruz
         Set<IPaymentTypeStrategy> strategySet = new HashSet<>();
-        strategySet.add(new AccountProvisionStrategyStub());
+        strategySet.add(accountProvisionStrategy);
 
         PaymentTypeStrategyFactory factory = new PaymentTypeStrategyFactory(strategySet);
 
-        // CASH_PROVISION stratejisi olmadığı için null bekliyoruz
-        IPaymentTypeStrategy cashStrategy = factory.findStrategy(PaymentType.CASH_PROVISION);
-        assertNull(cashStrategy);
+        // CASH_PROVISION stratejisi yok, null dönecek
+        IPaymentTypeStrategy notFoundCash = factory.findStrategy(PaymentType.CASH_PROVISION);
+        assertNull(notFoundCash);
     }
 
     @Test
     void testFindStrategyWithEmptySet() {
-        // Hiç strateji eklenmemiş bir set
-        Set<IPaymentTypeStrategy> emptySet = Collections.emptySet();
+        // Hiç strateji eklemiyoruz
+        Set<IPaymentTypeStrategy> emptySet = new HashSet<>();
         PaymentTypeStrategyFactory factory = new PaymentTypeStrategyFactory(emptySet);
 
         // Herhangi bir PaymentType aradığımızda null döner
