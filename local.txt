@@ -1,69 +1,113 @@
-package com.ykb.corebanking.safedepositbox.safedepositboxbe.controller;
+    @Test
+    void testGetAmountOfRefundDeposit_WhenNoRentalSafeBoxFound_ThenThrowException() {
+        // rentalSafeBox model yok
+        when(service.getOpenedRentalSafebox(anyLong())).thenReturn(null);
 
-import com.ykb.corebanking.safedepositbox.safedepositboxbe.exception.AccountProvisionAccountToGLException;
-import com.ykb.corebanking.safedepositbox.safedepositboxbe.request.RequestDebtPayment;
-import com.ykb.corebanking.safedepositbox.safedepositboxbe.response.ResponseDebtPaymentProvision;
-import com.ykb.corebanking.safedepositbox.safedepositboxbe.service.ISafeDepositBoxDebtPaymentService;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mockito;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-
-@ExtendWith(SpringExtension.class)
-class SafeDepositBoxDebtPaymentControllerTest {
-
-    private SafeDepositBoxDebtPaymentController controller;
-    private ISafeDepositBoxDebtPaymentService mockPaymentService;
-
-    @BeforeEach
-    void setUp() {
-        // Service'i Mockito ile mockluyoruz
-        mockPaymentService = Mockito.mock(ISafeDepositBoxDebtPaymentService.class);
-        // Controller'ı gerçek nesne olarak oluşturup, mock service'i constructor'dan veriyoruz.
-        controller = new SafeDepositBoxDebtPaymentController(mockPaymentService);
+        // Çağrı esnasında SafeDepositBoxRefundException bekliyoruz
+        Assertions.assertThatThrownBy(() ->
+                safeDepositBoxRefundService.getAmountOfRefundDeposit(999L)
+        ).isInstanceOf(SafeDepositBoxRefundException.class)
+         .hasMessageContaining("Kiralık kasa bilgisi bulunamadı");
     }
 
     @Test
-    void testPerformDebtPaymentSuccess() throws AccountProvisionAccountToGLException {
-        // Arrange
-        var request = new RequestDebtPayment();
-        request.setTransactionId("TX123");
+    void testGetAmountOfRefundDeposit_WhenDepositAccountNoIsEmpty() throws SafeDepositBoxRefundException {
+        // rentalSafeBox model döndü, depositAccountNo boş
+        RentalSafeBoxDTO rentalSafeBoxDTO = new RentalSafeBoxDTO();
+        rentalSafeBoxDTO.setId(123L);
+        rentalSafeBoxDTO.setDepositAccountNo(""); // Boş
+        when(service.getOpenedRentalSafebox(anyLong())).thenReturn(rentalSafeBoxDTO);
 
-        var expectedProvision = new ResponseDebtPaymentProvision();
-        expectedProvision.setIsSuccess(true);
-
-        // Servis metodu çağrıldığında mock'tan bu yanıt dönsün
-        Mockito.when(mockPaymentService.performDebtPayment(any(RequestDebtPayment.class)))
-               .thenReturn(expectedProvision);
+        // getPaymentAndDebtList -> muhtemelen paymentRepository + debtService
+        when(paymentRepository.findByDebtIds(anyList())).thenReturn(new ArrayList<>());
+        when(debtService.findByRentalSafeBoxId(anyLong())).thenReturn(new ArrayList<>());
 
         // Act
-        ResponseEntity<ResponseDebtPaymentProvision> responseEntity =
-            controller.performDebtPayment(request);
+        SafeDepositBoxRefundDepositDTO result = 
+                safeDepositBoxRefundService.getAmountOfRefundDeposit(123L);
 
         // Assert
-        assertNotNull(responseEntity);
-        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
-        assertNotNull(responseEntity.getBody());
-        assertTrue(responseEntity.getBody().getIsSuccess());
+        assertThat(result).isNotNull();
+        // depositAccountNo boş olduğu için hesap bakiyesine gitmez => 0
+        assertThat(result.getRefundDepositAmount()).isEqualByComparingTo(BigDecimal.ZERO);
     }
 
     @Test
-    void testPerformDebtPaymentThrowsException() throws AccountProvisionAccountToGLException {
-        // Arrange
-        var request = new RequestDebtPayment();
-        Mockito.when(mockPaymentService.performDebtPayment(any(RequestDebtPayment.class)))
-               .thenThrow(new AccountProvisionAccountToGLException("Provision error"));
+    void testGetAmountOfRefundDeposit_WhenDepositAccountNoIsNotEmpty() throws SafeDepositBoxRefundException {
+        // rentalSafeBox model döndü, depositAccountNo dolu
+        RentalSafeBoxDTO rentalSafeBoxDTO = new RentalSafeBoxDTO();
+        rentalSafeBoxDTO.setId(123L);
+        rentalSafeBoxDTO.setDepositAccountNo("TR123..."); 
+        rentalSafeBoxDTO.setAccountNo("TR123...");
+        when(service.getOpenedRentalSafebox(anyLong())).thenReturn(rentalSafeBoxDTO);
 
-        // Controller metodu, signature'da 'throws AccountProvisionAccountToGLException' bildirdiği için
-        // servisten gelen istisnayı olduğu gibi re-throw yapar.
-        assertThrows(AccountProvisionAccountToGLException.class, () -> {
-            controller.performDebtPayment(request);
-        });
+        // getPaymentAndDebtList -> muhtemelen paymentRepository + debtService
+        when(paymentRepository.findByDebtIds(anyList())).thenReturn(new ArrayList<>());
+        when(debtService.findByRentalSafeBoxId(anyLong())).thenReturn(new ArrayList<>());
+
+        // accountClient.getBalanceInfo -> mock yanıt
+        BalanceDTO balanceDTO = new BalanceDTO();
+        balanceDTO.setBalance(new BigDecimal("2500"));
+
+        ResponseBalanceInfo responseBalanceInfo = new ResponseBalanceInfo();
+        responseBalanceInfo.setBalanceDTO(balanceDTO);
+
+        when(accountClient.getBalanceInfo(anyString(), anyBoolean()))
+                .thenReturn(ResponseEntity.of(Optional.of(responseBalanceInfo)));
+
+        // Act
+        SafeDepositBoxRefundDepositDTO result = 
+                safeDepositBoxRefundService.getAmountOfRefundDeposit(123L);
+
+        // Assert
+        assertThat(result).isNotNull();
+        assertThat(result.getRefundDepositAmount()).isEqualByComparingTo("2500");
+        assertThat(result.getRefundDepositAccountInRental()).isEqualTo("TR123...");
     }
-}
+
+    @Test
+    void testGetAmountOfRefundDeposit_WhenBalanceIsNull_ThenThrowException() {
+        // depositAccountNo dolu
+        RentalSafeBoxDTO rentalSafeBoxDTO = new RentalSafeBoxDTO();
+        rentalSafeBoxDTO.setId(123L);
+        rentalSafeBoxDTO.setDepositAccountNo("TR123...");
+        rentalSafeBoxDTO.setAccountNo("TR123...");
+        when(service.getOpenedRentalSafebox(anyLong())).thenReturn(rentalSafeBoxDTO);
+
+        // Borç ve ödeme listeleri boş
+        when(paymentRepository.findByDebtIds(anyList())).thenReturn(new ArrayList<>());
+        when(debtService.findByRentalSafeBoxId(anyLong())).thenReturn(new ArrayList<>());
+
+        // accountClient -> null ya da balanceDTO içermiyor
+        when(accountClient.getBalanceInfo(anyString(), anyBoolean()))
+                .thenReturn(ResponseEntity.of(Optional.empty()));
+
+        // Çağrı esnasında SafeDepositBoxRefundException bekliyoruz
+        Assertions.assertThatThrownBy(() ->
+                safeDepositBoxRefundService.getAmountOfRefundDeposit(123L)
+        ).isInstanceOf(SafeDepositBoxRefundException.class)
+         .hasMessageContaining("Hesap bakiyesi bulunamadı");
+    }
+
+    @Test
+    void testGetAmountOfRefundDeposit_WhenAccountClientThrowsException() {
+        // depositAccountNo dolu
+        RentalSafeBoxDTO rentalSafeBoxDTO = new RentalSafeBoxDTO();
+        rentalSafeBoxDTO.setId(123L);
+        rentalSafeBoxDTO.setDepositAccountNo("TR123...");
+        rentalSafeBoxDTO.setAccountNo("TR123...");
+        when(service.getOpenedRentalSafebox(anyLong())).thenReturn(rentalSafeBoxDTO);
+
+        when(paymentRepository.findByDebtIds(anyList())).thenReturn(new ArrayList<>());
+        when(debtService.findByRentalSafeBoxId(anyLong())).thenReturn(new ArrayList<>());
+
+        // accountClient'in arızalı hâli
+        when(accountClient.getBalanceInfo(anyString(), anyBoolean()))
+                .thenThrow(new RuntimeException("Network error"));
+
+        // Çağrı esnasında SafeDepositBoxRefundException beklenir
+        Assertions.assertThatThrownBy(() ->
+                safeDepositBoxRefundService.getAmountOfRefundDeposit(123L)
+        ).isInstanceOf(SafeDepositBoxRefundException.class)
+         .hasMessageContaining("Hesap bakiyesi servisinde hata alındı.");
+    }
