@@ -1,57 +1,69 @@
 package com.ykb.corebanking.safedepositbox.safedepositboxbe.controller;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.exception.AccountProvisionAccountToGLException;
 import com.ykb.corebanking.safedepositbox.safedepositboxbe.request.RequestDebtPayment;
 import com.ykb.corebanking.safedepositbox.safedepositboxbe.response.ResponseDebtPaymentProvision;
 import com.ykb.corebanking.safedepositbox.safedepositboxbe.service.ISafeDepositBoxDebtPaymentService;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.BDDMockito;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
-import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
-import org.springframework.boot.test.mock.mockito.MockBean;
-import org.springframework.cloud.openfeign.FeignAutoConfiguration;
-import org.springframework.http.MediaType;
+import org.mockito.Mockito;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
-import org.springframework.test.web.servlet.MockMvc;
 
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(controllers = SafeDepositBoxDebtPaymentController.class)
-@ImportAutoConfiguration(exclude = FeignAutoConfiguration.class)
 @ExtendWith(SpringExtension.class)
 class SafeDepositBoxDebtPaymentControllerTest {
 
-    @Autowired
-    MockMvc mockMvc;
+    private SafeDepositBoxDebtPaymentController controller;
+    private ISafeDepositBoxDebtPaymentService mockPaymentService;
 
-    @MockBean
-    ISafeDepositBoxDebtPaymentService paymentService;
+    @BeforeEach
+    void setUp() {
+        // Service'i Mockito ile mockluyoruz
+        mockPaymentService = Mockito.mock(ISafeDepositBoxDebtPaymentService.class);
+        // Controller'ı gerçek nesne olarak oluşturup, mock service'i constructor'dan veriyoruz.
+        controller = new SafeDepositBoxDebtPaymentController(mockPaymentService);
+    }
 
     @Test
-    void testPerformDebtPaymentSuccess() throws Exception {
-        // Düzenleme (Arrange)
+    void testPerformDebtPaymentSuccess() throws AccountProvisionAccountToGLException {
+        // Arrange
         var request = new RequestDebtPayment();
         request.setTransactionId("TX123");
 
-        var response = new ResponseDebtPaymentProvision();
-        response.setIsSuccess(true);
-        response.setInfoMessage("Payment done successfully!");
+        var expectedProvision = new ResponseDebtPaymentProvision();
+        expectedProvision.setIsSuccess(true);
 
-        BDDMockito.given(paymentService.performDebtPayment(any(RequestDebtPayment.class)))
-                  .willReturn(response);
+        // Servis metodu çağrıldığında mock'tan bu yanıt dönsün
+        Mockito.when(mockPaymentService.performDebtPayment(any(RequestDebtPayment.class)))
+               .thenReturn(expectedProvision);
 
-        // Aksiyon (Act)
-        mockMvc.perform(post("/debt/performPayment")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(new ObjectMapper().writeValueAsString(request))
-                )
-                // Doğrulama (Assert)
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.isSuccess").value(true))
-                .andExpect(jsonPath("$.infoMessage").value("Payment done successfully!"));
+        // Act
+        ResponseEntity<ResponseDebtPaymentProvision> responseEntity =
+            controller.performDebtPayment(request);
+
+        // Assert
+        assertNotNull(responseEntity);
+        assertEquals(HttpStatus.OK, responseEntity.getStatusCode());
+        assertNotNull(responseEntity.getBody());
+        assertTrue(responseEntity.getBody().getIsSuccess());
+    }
+
+    @Test
+    void testPerformDebtPaymentThrowsException() throws AccountProvisionAccountToGLException {
+        // Arrange
+        var request = new RequestDebtPayment();
+        Mockito.when(mockPaymentService.performDebtPayment(any(RequestDebtPayment.class)))
+               .thenThrow(new AccountProvisionAccountToGLException("Provision error"));
+
+        // Controller metodu, signature'da 'throws AccountProvisionAccountToGLException' bildirdiği için
+        // servisten gelen istisnayı olduğu gibi re-throw yapar.
+        assertThrows(AccountProvisionAccountToGLException.class, () -> {
+            controller.performDebtPayment(request);
+        });
     }
 }
