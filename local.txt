@@ -1,89 +1,19 @@
-package com.ykb.corebanking.safedepositbox.safedepositboxbe.service.impl;
+private BigDecimal getAccountBalance(RentalSafeBoxDTO rentalSafeBoxModel) throws SafeDepositBoxRefundException {
+    try {
+        ResponseEntity<ResponseBalanceInfo> responseBalanceInfo = accountClient.getBalanceInfo(rentalSafeBoxModel.getAccountNo(), false);
 
-import com.ykb.corebanking.safedepositbox.safedepositboxbe.enumerable.PaymentType;
-import com.ykb.corebanking.safedepositbox.safedepositboxbe.service.IPaymentTypeStrategy;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.HashSet;
-import java.util.Set;
-
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNull;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.mockito.Mockito.when;
-
-@ExtendWith(MockitoExtension.class)
-class PaymentTypeStrategyFactoryMockitoTest {
-
-    @Mock
-    IPaymentTypeStrategy accountProvisionStrategy;
-
-    @Mock
-    IPaymentTypeStrategy cashProvisionStrategy;
-
-    // Bu Factory, testte @InjectMocks ile oluşturulabilir; ancak bir parametreli constructor'a ihtiyacımız var.
-    // Fakat PaymentTypeStrategyFactory, constructor parametresini 'Set<IPaymentTypeStrategy>' olarak alıyor.
-    // Dolayısıyla test içerisinde manual olarak Set oluşturacağız.
-
-    @BeforeEach
-    void setUp() {
-        // Mockito'nun anotasyon tabanlı Mock nesnelerini aktif hâle getirir
-        MockitoAnnotations.openMocks(this);
-
-        // accountProvisionStrategy stub
-        when(accountProvisionStrategy.getStrategy()).thenReturn(PaymentType.ACCOUNT_PROVISION);
-        // cashProvisionStrategy stub
-        when(cashProvisionStrategy.getStrategy()).thenReturn(PaymentType.CASH_PROVISION);
-    }
-
-    @Test
-    void testFindStrategyReturnsCorrectStrategyWhenBothArePresent() {
-        // İki farklı mock strateji ekliyoruz
-        Set<IPaymentTypeStrategy> strategySet = new HashSet<>();
-        strategySet.add(accountProvisionStrategy);
-        strategySet.add(cashProvisionStrategy);
-
-        // Factory'yi set ile oluşturuyoruz
-        PaymentTypeStrategyFactory factory = new PaymentTypeStrategyFactory(strategySet);
-
-        // ACCOUNT_PROVISION stratejisini çağırınca accountProvisionStrategy mock döner
-        IPaymentTypeStrategy foundAccountStrategy = factory.findStrategy(PaymentType.ACCOUNT_PROVISION);
-        assertNotNull(foundAccountStrategy);
-        assertEquals(PaymentType.ACCOUNT_PROVISION, foundAccountStrategy.getStrategy());
-
-        // CASH_PROVISION stratejisini çağırınca cashProvisionStrategy mock döner
-        IPaymentTypeStrategy foundCashStrategy = factory.findStrategy(PaymentType.CASH_PROVISION);
-        assertNotNull(foundCashStrategy);
-        assertEquals(PaymentType.CASH_PROVISION, foundCashStrategy.getStrategy());
-    }
-
-    @Test
-    void testFindStrategyReturnsNullWhenStrategyNotPresent() {
-        // Yalnızca accountProvisionStrategy mock'unu ekliyoruz
-        Set<IPaymentTypeStrategy> strategySet = new HashSet<>();
-        strategySet.add(accountProvisionStrategy);
-
-        PaymentTypeStrategyFactory factory = new PaymentTypeStrategyFactory(strategySet);
-
-        // CASH_PROVISION stratejisi yok, null dönecek
-        IPaymentTypeStrategy notFoundCash = factory.findStrategy(PaymentType.CASH_PROVISION);
-        assertNull(notFoundCash);
-    }
-
-    @Test
-    void testFindStrategyWithEmptySet() {
-        // Hiç strateji eklemiyoruz
-        Set<IPaymentTypeStrategy> emptySet = new HashSet<>();
-        PaymentTypeStrategyFactory factory = new PaymentTypeStrategyFactory(emptySet);
-
-        // Herhangi bir PaymentType aradığımızda null döner
-        assertNull(factory.findStrategy(PaymentType.ACCOUNT_PROVISION));
-        assertNull(factory.findStrategy(PaymentType.CASH_PROVISION));
+        // İlk null kontrolü
+        if (responseBalanceInfo != null && responseBalanceInfo.getBody() != null) {
+            ResponseBalanceInfo body = responseBalanceInfo.getBody();
+            
+            // İkinci null kontrolü
+            if (body.getBalanceDTO() != null && body.getBalanceDTO().getBalance() != null) {
+                return body.getBalanceDTO().getBalance();
+            }
+        }
+        // Eğer yukarıdaki şartlar karşılanmazsa hata fırlat
+        throw new SafeDepositBoxRefundException("Hesap balance bulunamadı.");
+    } catch (Exception e) {
+        throw new SafeDepositBoxRefundException("Hesap balance servisinde hata alındı.", e);
     }
 }
