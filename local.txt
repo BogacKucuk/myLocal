@@ -1,66 +1,91 @@
-function updateParentIfAnyChildUnchecked(docsMap, checksArr, childKey) {
-  const parentKey = docsMap[childKey]?.parent;
-  if (!parentKey) return; // Yukarıda parent yoksa dur.
+package com.ykb.corebanking.safedepositbox.safedepositboxbe.service.impl;
 
-  // Parent'ın tüm child'ları
-  const siblings = docsMap[parentKey]?.children || [];
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.enumerable.PaymentType;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.service.IPaymentTypeStrategy;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-  // Hepsi checked mi?
-  const allSiblingsChecked = siblings.every((sKey) => {
-    const found = checksArr.find((c) => c.id === sKey);
-    return found?.checked === true;
-  });
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.Set;
 
-  // Hepsi checked DEĞİLSE => parent’ı false yap
-  if (!allSiblingsChecked) {
-    const parentIndex = checksArr.findIndex((c) => c.id === parentKey);
-    if (parentIndex > -1) {
-      checksArr[parentIndex] = {
-        ...checksArr[parentIndex],
-        checked: false,
-      };
-      // Daha üst parent da etkilenebilir, onu da güncellemek istersen:
-      updateParentIfAnyChildUnchecked(docsMap, checksArr, parentKey);
+import static org.junit.jupiter.api.Assertions.*;
+
+@ExtendWith(SpringExtension.class)
+class PaymentTypeStrategyFactoryTest {
+
+    // Basit stub implementasyonları. (Dummy stratejiler)
+    // Gerekiyorsa bu stub sınıflarını ayrı dosyalarda da tutabilirsiniz.
+    // Fakat basit bir test için bu şekilde iç sınıflar veya anonim sınıflar yeterli.
+
+    static class AccountProvisionStrategyStub implements IPaymentTypeStrategy {
+        @Override
+        public PaymentType getStrategy() {
+            return PaymentType.ACCOUNT_PROVISION;
+        }
+
+        @Override
+        public com.ykb.corebanking.safedepositbox.safedepositboxbe.response.ResponseAccountProvision performDebtPayment(
+            com.ykb.corebanking.safedepositbox.safedepositboxbe.request.RequestDebtPayment requestDebtPayment) {
+            return null; // Test için stub
+        }
     }
-  }
+
+    static class CashProvisionStrategyStub implements IPaymentTypeStrategy {
+        @Override
+        public PaymentType getStrategy() {
+            return PaymentType.CASH_PROVISION;
+        }
+
+        @Override
+        public com.ykb.corebanking.safedepositbox.safedepositboxbe.response.ResponseAccountProvision performDebtPayment(
+            com.ykb.corebanking.safedepositbox.safedepositboxbe.request.RequestDebtPayment requestDebtPayment) {
+            return null; // Test için stub
+        }
+    }
+
+    @Test
+    void testFindStrategyReturnsCorrectStrategyWhenBothArePresent() {
+        // İki farklı strateji ekliyoruz
+        Set<IPaymentTypeStrategy> strategySet = new HashSet<>();
+        strategySet.add(new AccountProvisionStrategyStub());
+        strategySet.add(new CashProvisionStrategyStub());
+
+        PaymentTypeStrategyFactory factory = new PaymentTypeStrategyFactory(strategySet);
+
+        // ACCOUNT_PROVISION stratejisini istediğimizde stub dönecek
+        IPaymentTypeStrategy accountStrategy = factory.findStrategy(PaymentType.ACCOUNT_PROVISION);
+        assertNotNull(accountStrategy);
+        assertEquals(PaymentType.ACCOUNT_PROVISION, accountStrategy.getStrategy());
+
+        // CASH_PROVISION stratejisini istediğimizde stub dönecek
+        IPaymentTypeStrategy cashStrategy = factory.findStrategy(PaymentType.CASH_PROVISION);
+        assertNotNull(cashStrategy);
+        assertEquals(PaymentType.CASH_PROVISION, cashStrategy.getStrategy());
+    }
+
+    @Test
+    void testFindStrategyReturnsNullWhenStrategyNotInSet() {
+        // Sadece ACCOUNT_PROVISION stratejisini ekliyoruz
+        Set<IPaymentTypeStrategy> strategySet = new HashSet<>();
+        strategySet.add(new AccountProvisionStrategyStub());
+
+        PaymentTypeStrategyFactory factory = new PaymentTypeStrategyFactory(strategySet);
+
+        // CASH_PROVISION stratejisi olmadığı için null bekliyoruz
+        IPaymentTypeStrategy cashStrategy = factory.findStrategy(PaymentType.CASH_PROVISION);
+        assertNull(cashStrategy);
+    }
+
+    @Test
+    void testFindStrategyWithEmptySet() {
+        // Hiç strateji eklenmemiş bir set
+        Set<IPaymentTypeStrategy> emptySet = Collections.emptySet();
+        PaymentTypeStrategyFactory factory = new PaymentTypeStrategyFactory(emptySet);
+
+        // Herhangi bir PaymentType aradığımızda null döner
+        assertNull(factory.findStrategy(PaymentType.ACCOUNT_PROVISION));
+        assertNull(factory.findStrategy(PaymentType.CASH_PROVISION));
+    }
 }
-
-
-
-
-
-
-const toggleChecked = (e) => {
-  const clickedId = e.target.id;
-  // Dizi + içindeki objelerin kopyası
-  const updatedChecks = bbtDocsChecks.map((item) => ({ ...item }));
-
-  const foundIndex = updatedChecks.findIndex((item) => item.id === clickedId);
-  if (foundIndex < 0) return;
-
-  const oldValue = updatedChecks[foundIndex].checked;
-  const newValue = !oldValue;
-
-  // Seçilen öğeyi de kopyalayarak güncelliyoruz
-  updatedChecks[foundIndex] = {
-    ...updatedChecks[foundIndex],
-    checked: newValue,
-  };
-
-  // Parent ise alt child'ları da güncelle
-  if (docsMap[clickedId]?.children?.length > 0) {
-    checkAllChildren(docsMap, updatedChecks, clickedId, newValue);
-  }
-
-  // Child true olduysa parent’ı kontrol et (hepsi true ise parent true olsun).
-  if (newValue === true) {
-    updateParentIfAllChildrenChecked(docsMap, updatedChecks, clickedId);
-  } 
-  // Child false olduysa parent’ı da false yap (en az bir child false ise parent da false olmalı).
-  else {
-    updateParentIfAnyChildUnchecked(docsMap, updatedChecks, clickedId);
-  }
-
-  setBbtDocsChecks(updatedChecks);
-  dispatch(moneyDepositActions.setBbtDocsChecks(updatedChecks));
-};
