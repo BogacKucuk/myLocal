@@ -1,137 +1,88 @@
-package com.ykb.corebanking.safedepositbox.safedepositboxbe.service.impl;
+package com.ykb.corebanking.safedepositbox.safedepositboxbe.controller;
 
-import com.ykb.corebanking.safedepositbox.safedepositboxbe.dto.AccountProvisionInnerDTO;
-import com.ykb.corebanking.safedepositbox.safedepositboxbe.enumerable.PaymentType;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.ykb.corebanking.safedepositbox.safedepositboxbe.exception.AccountProvisionAccountToGLException;
-import com.ykb.corebanking.safedepositbox.safedepositboxbe.mapper.DebtPaymentRequestMapper;
-import com.ykb.corebanking.safedepositbox.safedepositboxbe.request.RequestAccountProvision;
 import com.ykb.corebanking.safedepositbox.safedepositboxbe.request.RequestDebtPayment;
 import com.ykb.corebanking.safedepositbox.safedepositboxbe.response.ResponseDebtPaymentProvision;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.service.ISafeDepositBoxDebtPaymentService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.MockitoAnnotations;
+import org.mockito.Mockito;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.http.MediaType;
+import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.web.servlet.MockMvc;
 
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.UUID;
-
-import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.when;
+import static org.mockito.BDDMockito.given;
+import static org.mockito.Mockito.doThrow;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+@WebMvcTest(SafeDepositBoxDebtPaymentController.class)
 @ExtendWith(MockitoExtension.class)
-class SafeDepositBoxAccountProvisionServiceTest {
+@ActiveProfiles("test")
+class SafeDepositBoxDebtPaymentControllerTest {
 
-    @Mock
-    DebtPaymentAccountProvisionService debtPaymentAccountProvisionService;
+    @Autowired
+    MockMvc mockMvc;
 
-    // Bu sınıf, toRequestAccountProvision metodunu barındırır. Gerçek mapper'ı kullanabiliriz.
-    // Fakat test bağımlılıkları minimal tutmak için mock'layabiliriz.
-    // Yine de statik INSTANCE kullandığı için bu mapper'ı doğrudan mocklamak zordur.
-    // Bu nedenle mapper'ın gerçek halini çağırmak ya da sadece method call'a odaklanmak yeterli olacaktır.
+    @MockBean
+    ISafeDepositBoxDebtPaymentService paymentService;
 
-    @InjectMocks
-    SafeDepositBoxAccountProvisionService safeDepositBoxAccountProvisionService;
+    private ObjectMapper objectMapper;
 
     @BeforeEach
     void setUp() {
-        MockitoAnnotations.openMocks(this);
+        objectMapper = new ObjectMapper();
     }
 
     @Test
-    void testGetStrategy() {
-        assertEquals(PaymentType.ACCOUNT_PROVISION, safeDepositBoxAccountProvisionService.getStrategy());
-    }
-
-    @Test
-    void testPerformDebtPayment_Success_WithNonZeroAmount() throws AccountProvisionAccountToGLException {
+    void testPerformDebtPayment_Success() throws Exception {
         // Arrange
         var request = new RequestDebtPayment();
-        request.setMakeProvisionInnerList(new ArrayList<>());
+        request.setTransactionId("TX123");
 
-        // Bir item amount = 100.00
-        var innerDTO = new AccountProvisionInnerDTO();
-        innerDTO.setAmount(BigDecimal.valueOf(100));
-        request.getMakeProvisionInnerList().add(innerDTO);
+        var response = new ResponseDebtPaymentProvision();
+        response.setIsSuccess(true);
+        response.setErrorMessage(null);
+        response.setInfoMessage("Payment done.");
 
-        // Beklenen Response
-        var mockedResponse = new ResponseDebtPaymentProvision();
-        mockedResponse.setIsSuccess(true);
-        mockedResponse.setErrorMessage(null);
-
-        // debtPaymentAccountProvisionService çağırıldığında bu yanıt dönsün
-        when(debtPaymentAccountProvisionService.makeAccountGLProvision(any(RequestAccountProvision.class)))
-                .thenReturn(mockedResponse);
-
-        // Act
-        var actualResponse = safeDepositBoxAccountProvisionService.performDebtPayment(request);
-
-        // Assert
-        assertNotNull(actualResponse);
-        assertTrue(actualResponse.getIsSuccess());
-        // channelCode 601'e setleniyor mu?
-        assertEquals("601", request.getChannelCode());
-        // random transactionId setleniyor mu?
-        assertNotNull(request.getTransactionId());
-        // provisionCode "" atanıyor mu?
-        assertEquals("", request.getProvisionCode());
-
-        // InnerDTO set ediliyor mu?
-        var updatedInner = request.getMakeProvisionInnerList().get(0);
-        assertEquals(BigDecimal.valueOf(100), updatedInner.getAmount());
-        assertEquals("", updatedInner.getProvisionCode());
-        assertEquals(1L, updatedInner.getAccountingGroupNo());
-        // isZeroBalanceSkipped = false, çünkü amount != 0
-        assertFalse(updatedInner.getIsZeroBalanceSkipped());
-    }
-
-    @Test
-    void testPerformDebtPayment_Success_WithZeroAmount() throws AccountProvisionAccountToGLException {
-        // Arrange
-        var request = new RequestDebtPayment();
-        request.setMakeProvisionInnerList(new ArrayList<>());
-
-        // Bir item amount = 0
-        var innerDTO = new AccountProvisionInnerDTO();
-        innerDTO.setAmount(BigDecimal.ZERO);
-        request.getMakeProvisionInnerList().add(innerDTO);
-
-        // Beklenen Response
-        var mockedResponse = new ResponseDebtPaymentProvision();
-        mockedResponse.setIsSuccess(true);
-
-        when(debtPaymentAccountProvisionService.makeAccountGLProvision(any(RequestAccountProvision.class)))
-                .thenReturn(mockedResponse);
-
-        // Act
-        var actualResponse = safeDepositBoxAccountProvisionService.performDebtPayment(request);
-
-        // Assert
-        assertNotNull(actualResponse);
-        assertTrue(actualResponse.getIsSuccess());
-        // isZeroBalanceSkipped = true, çünkü amount == 0
-        assertTrue(request.getMakeProvisionInnerList().get(0).getIsZeroBalanceSkipped());
-    }
-
-    @Test
-    void testPerformDebtPayment_ThrowsException() throws AccountProvisionAccountToGLException {
-        // Arrange
-        var request = new RequestDebtPayment();
-        request.setMakeProvisionInnerList(new ArrayList<>());
-
-        when(debtPaymentAccountProvisionService.makeAccountGLProvision(any(RequestAccountProvision.class)))
-                .thenThrow(new AccountProvisionAccountToGLException("Provision error"));
+        given(paymentService.performDebtPayment(any(RequestDebtPayment.class)))
+                .willReturn(response);
 
         // Act & Assert
-        AccountProvisionAccountToGLException thrown = assertThrows(AccountProvisionAccountToGLException.class,
-                () -> safeDepositBoxAccountProvisionService.performDebtPayment(request)
-        );
+        mockMvc.perform(
+                post("/debt/performPayment")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+        )
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.isSuccess").value(true))
+        .andExpect(jsonPath("$.infoMessage").value("Payment done."));
+    }
 
-        assertEquals("Provision error", thrown.getMessage());
+    @Test
+    void testPerformDebtPayment_ThrowsException() throws Exception {
+        // Arrange
+        var request = new RequestDebtPayment();
+        request.setTransactionId("TX999");
+
+        doThrow(new AccountProvisionAccountToGLException("Provision error"))
+                .when(paymentService).performDebtPayment(any(RequestDebtPayment.class));
+
+        // Act & Assert
+        mockMvc.perform(
+                post("/debt/performPayment")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request))
+        )
+        // default Spring davranışı, global bir exception handler yoksa 500 dönecektir.
+        .andExpect(status().isInternalServerError());
     }
 }
