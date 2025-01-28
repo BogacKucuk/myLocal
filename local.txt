@@ -2,17 +2,11 @@ private BigDecimal getAccountBalance(RentalSafeBoxDTO rentalSafeBoxModel) throws
     try {
         ResponseEntity<ResponseBalanceInfo> responseBalanceInfo = accountClient.getBalanceInfo(rentalSafeBoxModel.getAccountNo(), false);
 
-        // İlk null kontrolü
-        if (responseBalanceInfo != null && responseBalanceInfo.getBody() != null) {
-            ResponseBalanceInfo body = responseBalanceInfo.getBody();
-            
-            // İkinci null kontrolü
-            if (body.getBalanceDTO() != null && body.getBalanceDTO().getBalance() != null) {
-                return body.getBalanceDTO().getBalance();
-            }
-        }
-        // Eğer yukarıdaki şartlar karşılanmazsa hata fırlat
-        throw new SafeDepositBoxRefundException("Hesap balance bulunamadı.");
+        return Optional.ofNullable(responseBalanceInfo)
+                .map(ResponseEntity::getBody)
+                .map(ResponseBalanceInfo::getBalanceDTO)
+                .map(BalanceDTO::getBalance)
+                .orElseThrow(() -> new SafeDepositBoxRefundException("Hesap balance bulunamadı."));
     } catch (Exception e) {
         throw new SafeDepositBoxRefundException("Hesap balance servisinde hata alındı.", e);
     }
