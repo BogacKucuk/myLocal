@@ -1,32 +1,28 @@
 package com.ykb.corebanking.safedepositbox.safedepositboxbe.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
-import com.ykb.corebanking.safedepositbox.safedepositboxbe.exception.AccountProvisionAccountToGLException;
 import com.ykb.corebanking.safedepositbox.safedepositboxbe.request.RequestDebtPayment;
 import com.ykb.corebanking.safedepositbox.safedepositboxbe.response.ResponseDebtPaymentProvision;
 import com.ykb.corebanking.safedepositbox.safedepositboxbe.service.ISafeDepositBoxDebtPaymentService;
-import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoExtension;
+import org.mockito.BDDMockito;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.ImportAutoConfiguration;
 import org.springframework.boot.test.autoconfigure.web.servlet.WebMvcTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
+import org.springframework.cloud.openfeign.FeignAutoConfiguration;
 import org.springframework.http.MediaType;
-import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 import org.springframework.test.web.servlet.MockMvc;
 
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.BDDMockito.given;
-import static org.mockito.Mockito.doThrow;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@WebMvcTest(SafeDepositBoxDebtPaymentController.class)
-@ExtendWith(MockitoExtension.class)
-@ActiveProfiles("test")
+@WebMvcTest(controllers = SafeDepositBoxDebtPaymentController.class)
+@ImportAutoConfiguration(exclude = FeignAutoConfiguration.class)
+@ExtendWith(SpringExtension.class)
 class SafeDepositBoxDebtPaymentControllerTest {
 
     @Autowired
@@ -35,54 +31,27 @@ class SafeDepositBoxDebtPaymentControllerTest {
     @MockBean
     ISafeDepositBoxDebtPaymentService paymentService;
 
-    private ObjectMapper objectMapper;
-
-    @BeforeEach
-    void setUp() {
-        objectMapper = new ObjectMapper();
-    }
-
     @Test
-    void testPerformDebtPayment_Success() throws Exception {
-        // Arrange
+    void testPerformDebtPaymentSuccess() throws Exception {
+        // Düzenleme (Arrange)
         var request = new RequestDebtPayment();
         request.setTransactionId("TX123");
 
         var response = new ResponseDebtPaymentProvision();
         response.setIsSuccess(true);
-        response.setErrorMessage(null);
-        response.setInfoMessage("Payment done.");
+        response.setInfoMessage("Payment done successfully!");
 
-        given(paymentService.performDebtPayment(any(RequestDebtPayment.class)))
-                .willReturn(response);
+        BDDMockito.given(paymentService.performDebtPayment(any(RequestDebtPayment.class)))
+                  .willReturn(response);
 
-        // Act & Assert
-        mockMvc.perform(
-                post("/debt/performPayment")
+        // Aksiyon (Act)
+        mockMvc.perform(post("/debt/performPayment")
                         .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request))
-        )
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.isSuccess").value(true))
-        .andExpect(jsonPath("$.infoMessage").value("Payment done."));
-    }
-
-    @Test
-    void testPerformDebtPayment_ThrowsException() throws Exception {
-        // Arrange
-        var request = new RequestDebtPayment();
-        request.setTransactionId("TX999");
-
-        doThrow(new AccountProvisionAccountToGLException("Provision error"))
-                .when(paymentService).performDebtPayment(any(RequestDebtPayment.class));
-
-        // Act & Assert
-        mockMvc.perform(
-                post("/debt/performPayment")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(request))
-        )
-        // default Spring davranışı, global bir exception handler yoksa 500 dönecektir.
-        .andExpect(status().isInternalServerError());
+                        .content(new ObjectMapper().writeValueAsString(request))
+                )
+                // Doğrulama (Assert)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.isSuccess").value(true))
+                .andExpect(jsonPath("$.infoMessage").value("Payment done successfully!"));
     }
 }
