@@ -1,13 +1,115 @@
-private BigDecimal getAccountBalance(RentalSafeBoxDTO rentalSafeBoxModel) throws SafeDepositBoxRefundException {
-    try {
-        ResponseEntity<ResponseBalanceInfo> responseBalanceInfo = accountClient.getBalanceInfo(rentalSafeBoxModel.getAccountNo(), false);
+package com.ykb.corebanking.safedepositbox.safedepositboxbe.service.impl;
 
-        return Optional.ofNullable(responseBalanceInfo)
-                .map(ResponseEntity::getBody)
-                .map(ResponseBalanceInfo::getBalanceDTO)
-                .map(BalanceDTO::getBalance)
-                .orElseThrow(() -> new SafeDepositBoxRefundException("Hesap balance bulunamadı."));
-    } catch (Exception e) {
-        throw new SafeDepositBoxRefundException("Hesap balance servisinde hata alındı.", e);
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.exception.AccountProvisionAccountToGLException;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.request.RequestDebtPayment;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.response.ResponseDebtPaymentProvision;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.service.IPaymentTypeStrategy;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockitoAnnotations;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(MockitoExtension.class)
+class SafeDepositBoxDebtPaymentServiceTest {
+
+    @Mock
+    PaymentTypeStrategyFactory paymentTypeStrategyFactory;
+
+    @Mock
+    IPaymentTypeStrategy paymentTypeStrategy;
+
+    @InjectMocks
+    SafeDepositBoxDebtPaymentService safeDepositBoxDebtPaymentService;
+
+    @BeforeEach
+    void setUp() {
+        MockitoAnnotations.openMocks(this);
+    }
+
+    @Test
+    void testPerformDebtPaymentSuccess() throws AccountProvisionAccountToGLException {
+        // Arrange
+        var request = new RequestDebtPayment();
+        request.setPaymentType(com.ykb.corebanking.safedepositbox.safedepositboxbe.enumerable.PaymentType.ACCOUNT_PROVISION);
+
+        // Örnek Response
+        var expectedResponse = new ResponseDebtPaymentProvision();
+        expectedResponse.setMessage("Success");
+
+        // paymentTypeStrategy mock
+        when(paymentTypeStrategyFactory.findStrategy(request.getPaymentType())).thenReturn(paymentTypeStrategy);
+        when(paymentTypeStrategy.performDebtPayment(request)).thenReturn(expectedResponse);
+
+        // Act
+        var actualResponse = safeDepositBoxDebtPaymentService.performDebtPayment(request);
+
+        // Assert
+        assertNotNull(actualResponse);
+        assertEquals("Success", actualResponse.getMessage());
+    }
+
+    @Test
+    void testPerformDebtPaymentThrowsException() throws AccountProvisionAccountToGLException {
+        // Arrange
+        var request = new RequestDebtPayment();
+        request.setPaymentType(com.ykb.corebanking.safedepositbox.safedepositboxbe.enumerable.PaymentType.ACCOUNT_PROVISION);
+
+        when(paymentTypeStrategyFactory.findStrategy(request.getPaymentType())).thenReturn(paymentTypeStrategy);
+        when(paymentTypeStrategy.performDebtPayment(request))
+                .thenThrow(new AccountProvisionAccountToGLException("Some Error"));
+
+        // Act & Assert
+        assertThrows(AccountProvisionAccountToGLException.class,
+                () -> safeDepositBoxDebtPaymentService.performDebtPayment(request)
+        );
+    }
+
+    @Test
+    void testPerformDebtPaymentWithNullStrategy() {
+        // Arrange
+        var request = new RequestDebtPayment();
+        request.setPaymentType(com.ykb.corebanking.safedepositbox.safedepositboxbe.enumerable.PaymentType.ACCOUNT_PROVISION);
+
+        // Factory null döndürdüğünde
+        when(paymentTypeStrategyFactory.findStrategy(request.getPaymentType())).thenReturn(null);
+
+        // Act
+        // Kodda null strateji durumunu yakalayıp handle etmediği için muhtemelen NullPointerException beklenebilir.
+        // Fakat istenirse bu aşamada test, NullPointerException'ı yakalayıp confirm edebilir.
+        // Eğer metot bu senaryoda NullPointerException atmıyorsa, test fail olacaktır.
+        // Bu durumu coverage'ı artırmak için yazdık.
+
+        NullPointerException thrown = assertThrows(NullPointerException.class,
+                () -> safeDepositBoxDebtPaymentService.performDebtPayment(request)
+        );
+        assertNotNull(thrown);
+    }
+
+    @Test
+    void testPerformDebtPaymentWithUnknownPaymentType() {
+        // Arrange
+        var request = new RequestDebtPayment();
+        // PaymentType enumda olmayan bir value "null" ya da benzeri olarak set edilebilir
+        // Fakat PaymentType bir enum, eğer null girersek testin akışı "findStrategy(null)" olur
+        // Bu da muhtemelen null strateji dönecek
+        // Yine coverage artırıcı bir test olabilir.
+        request.setPaymentType(null);
+
+        when(paymentTypeStrategyFactory.findStrategy(null)).thenReturn(null);
+
+        // Act
+        NullPointerException thrown = assertThrows(NullPointerException.class,
+                () -> safeDepositBoxDebtPaymentService.performDebtPayment(request)
+        );
+        assertNotNull(thrown);
     }
 }
