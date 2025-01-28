@@ -1,9 +1,12 @@
 package com.ykb.corebanking.safedepositbox.safedepositboxbe.service.impl;
 
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.enumerable.PaymentType;
 import com.ykb.corebanking.safedepositbox.safedepositboxbe.exception.AccountProvisionAccountToGLException;
 import com.ykb.corebanking.safedepositbox.safedepositboxbe.request.RequestDebtPayment;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.request.RequestVaultCashOperation;
 import com.ykb.corebanking.safedepositbox.safedepositboxbe.response.ResponseDebtPaymentProvision;
-import com.ykb.corebanking.safedepositbox.safedepositboxbe.service.IPaymentTypeStrategy;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.response.ResponseVaultCashOperation;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.service.IVaultDomainService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -12,23 +15,19 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
-import static org.junit.jupiter.api.Assertions.assertNull;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class SafeDepositBoxDebtPaymentServiceTest {
+class SafeDepositBoxCashProvisionServiceTest {
 
     @Mock
-    PaymentTypeStrategyFactory paymentTypeStrategyFactory;
-
-    @Mock
-    IPaymentTypeStrategy paymentTypeStrategy;
+    IVaultDomainService vaultDomainService;
 
     @InjectMocks
-    SafeDepositBoxDebtPaymentService safeDepositBoxDebtPaymentService;
+    SafeDepositBoxCashProvisionService safeDepositBoxCashProvisionService;
 
     @BeforeEach
     void setUp() {
@@ -36,79 +35,70 @@ class SafeDepositBoxDebtPaymentServiceTest {
     }
 
     @Test
+    void testGetStrategy() {
+        assertEquals(PaymentType.CASH_PROVISION, safeDepositBoxCashProvisionService.getStrategy());
+    }
+
+    @Test
     void testPerformDebtPaymentSuccess() throws AccountProvisionAccountToGLException {
         // Arrange
         var request = new RequestDebtPayment();
-        request.setPaymentType(com.ykb.corebanking.safedepositbox.safedepositboxbe.enumerable.PaymentType.ACCOUNT_PROVISION);
+        request.setPaymentType(PaymentType.CASH_PROVISION);
+        request.setProvisionIdList(List.of(1001L, 1002L));
 
-        // Örnek Response
-        var expectedResponse = new ResponseDebtPaymentProvision();
-        expectedResponse.setMessage("Success");
+        // Mock domain service response
+        var vaultResponse = new ResponseVaultCashOperation();
+        vaultResponse.setIsSuccess(true);
+        vaultResponse.setExceptionMessage("No exception");
 
-        // paymentTypeStrategy mock
-        when(paymentTypeStrategyFactory.findStrategy(request.getPaymentType())).thenReturn(paymentTypeStrategy);
-        when(paymentTypeStrategy.performDebtPayment(request)).thenReturn(expectedResponse);
+        when(vaultDomainService.performCashOperation(
+                org.mockito.ArgumentMatchers.any(RequestVaultCashOperation.class)))
+                .thenReturn(vaultResponse);
 
         // Act
-        var actualResponse = safeDepositBoxDebtPaymentService.performDebtPayment(request);
+        var result = safeDepositBoxCashProvisionService.performDebtPayment(request);
 
         // Assert
-        assertNotNull(actualResponse);
-        assertEquals("Success", actualResponse.getMessage());
+        assertNotNull(result);
+        assertTrue(result.getIsSuccess());
+        assertEquals("No exception", result.getExceptionMessage());
     }
 
     @Test
-    void testPerformDebtPaymentThrowsException() throws AccountProvisionAccountToGLException {
+    void testPerformDebtPaymentWithNullVaultResponse() {
         // Arrange
         var request = new RequestDebtPayment();
-        request.setPaymentType(com.ykb.corebanking.safedepositbox.safedepositboxbe.enumerable.PaymentType.ACCOUNT_PROVISION);
+        request.setPaymentType(PaymentType.CASH_PROVISION);
+        request.setProvisionIdList(List.of(1001L, 1002L));
 
-        when(paymentTypeStrategyFactory.findStrategy(request.getPaymentType())).thenReturn(paymentTypeStrategy);
-        when(paymentTypeStrategy.performDebtPayment(request))
-                .thenThrow(new AccountProvisionAccountToGLException("Some Error"));
+        // Vault service null döndü
+        when(vaultDomainService.performCashOperation(
+                org.mockito.ArgumentMatchers.any(RequestVaultCashOperation.class)))
+                .thenReturn(null);
 
-        // Act & Assert
-        assertThrows(AccountProvisionAccountToGLException.class,
-                () -> safeDepositBoxDebtPaymentService.performDebtPayment(request)
-        );
-    }
-
-    @Test
-    void testPerformDebtPaymentWithNullStrategy() {
-        // Arrange
-        var request = new RequestDebtPayment();
-        request.setPaymentType(com.ykb.corebanking.safedepositbox.safedepositboxbe.enumerable.PaymentType.ACCOUNT_PROVISION);
-
-        // Factory null döndürdüğünde
-        when(paymentTypeStrategyFactory.findStrategy(request.getPaymentType())).thenReturn(null);
-
-        // Act
-        // Kodda null strateji durumunu yakalayıp handle etmediği için muhtemelen NullPointerException beklenebilir.
-        // Fakat istenirse bu aşamada test, NullPointerException'ı yakalayıp confirm edebilir.
-        // Eğer metot bu senaryoda NullPointerException atmıyorsa, test fail olacaktır.
-        // Bu durumu coverage'ı artırmak için yazdık.
-
+        // Act & Assert => performDebtPayment çağırdığımızda NPE fırlaması muhtemel.
         NullPointerException thrown = assertThrows(NullPointerException.class,
-                () -> safeDepositBoxDebtPaymentService.performDebtPayment(request)
+                () -> safeDepositBoxCashProvisionService.performDebtPayment(request)
         );
         assertNotNull(thrown);
     }
 
     @Test
-    void testPerformDebtPaymentWithUnknownPaymentType() {
+    void testPerformDebtPaymentEmptyProvisionIdList() {
         // Arrange
         var request = new RequestDebtPayment();
-        // PaymentType enumda olmayan bir value "null" ya da benzeri olarak set edilebilir
-        // Fakat PaymentType bir enum, eğer null girersek testin akışı "findStrategy(null)" olur
-        // Bu da muhtemelen null strateji dönecek
-        // Yine coverage artırıcı bir test olabilir.
-        request.setPaymentType(null);
+        request.setPaymentType(PaymentType.CASH_PROVISION);
+        // Boş liste verildi
+        request.setProvisionIdList(List.of());
 
-        when(paymentTypeStrategyFactory.findStrategy(null)).thenReturn(null);
+        // Domain servisi yine null veya fake bir yanıt dönebilir
+        when(vaultDomainService.performCashOperation(
+                org.mockito.ArgumentMatchers.any(RequestVaultCashOperation.class)))
+                .thenReturn(null);
 
-        // Act
+        // Beklenen yine muhtemelen NPE
         NullPointerException thrown = assertThrows(NullPointerException.class,
-                () -> safeDepositBoxDebtPaymentService.performDebtPayment(request)
+                () -> safeDepositBoxCashProvisionService.performDebtPayment(request)
         );
         assertNotNull(thrown);
     }
