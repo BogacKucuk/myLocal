@@ -1,12 +1,12 @@
 package com.ykb.corebanking.safedepositbox.safedepositboxbe.service.impl;
 
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.dto.AccountProvisionInnerDTO;
 import com.ykb.corebanking.safedepositbox.safedepositboxbe.enumerable.PaymentType;
 import com.ykb.corebanking.safedepositbox.safedepositboxbe.exception.AccountProvisionAccountToGLException;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.mapper.DebtPaymentRequestMapper;
+import com.ykb.corebanking.safedepositbox.safedepositboxbe.request.RequestAccountProvision;
 import com.ykb.corebanking.safedepositbox.safedepositboxbe.request.RequestDebtPayment;
-import com.ykb.corebanking.safedepositbox.safedepositboxbe.request.RequestVaultCashOperation;
 import com.ykb.corebanking.safedepositbox.safedepositboxbe.response.ResponseDebtPaymentProvision;
-import com.ykb.corebanking.safedepositbox.safedepositboxbe.response.ResponseVaultCashOperation;
-import com.ykb.corebanking.safedepositbox.safedepositboxbe.service.IVaultDomainService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -15,19 +15,28 @@ import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
-class SafeDepositBoxCashProvisionServiceTest {
+class SafeDepositBoxAccountProvisionServiceTest {
 
     @Mock
-    IVaultDomainService vaultDomainService;
+    DebtPaymentAccountProvisionService debtPaymentAccountProvisionService;
+
+    // Bu sınıf, toRequestAccountProvision metodunu barındırır. Gerçek mapper'ı kullanabiliriz.
+    // Fakat test bağımlılıkları minimal tutmak için mock'layabiliriz.
+    // Yine de statik INSTANCE kullandığı için bu mapper'ı doğrudan mocklamak zordur.
+    // Bu nedenle mapper'ın gerçek halini çağırmak ya da sadece method call'a odaklanmak yeterli olacaktır.
 
     @InjectMocks
-    SafeDepositBoxCashProvisionService safeDepositBoxCashProvisionService;
+    SafeDepositBoxAccountProvisionService safeDepositBoxAccountProvisionService;
 
     @BeforeEach
     void setUp() {
@@ -36,70 +45,93 @@ class SafeDepositBoxCashProvisionServiceTest {
 
     @Test
     void testGetStrategy() {
-        assertEquals(PaymentType.CASH_PROVISION, safeDepositBoxCashProvisionService.getStrategy());
+        assertEquals(PaymentType.ACCOUNT_PROVISION, safeDepositBoxAccountProvisionService.getStrategy());
     }
 
     @Test
-    void testPerformDebtPaymentSuccess() throws AccountProvisionAccountToGLException {
+    void testPerformDebtPayment_Success_WithNonZeroAmount() throws AccountProvisionAccountToGLException {
         // Arrange
         var request = new RequestDebtPayment();
-        request.setPaymentType(PaymentType.CASH_PROVISION);
-        request.setProvisionIdList(List.of(1001L, 1002L));
+        request.setMakeProvisionInnerList(new ArrayList<>());
 
-        // Mock domain service response
-        var vaultResponse = new ResponseVaultCashOperation();
-        vaultResponse.setIsSuccess(true);
-        vaultResponse.setExceptionMessage("No exception");
+        // Bir item amount = 100.00
+        var innerDTO = new AccountProvisionInnerDTO();
+        innerDTO.setAmount(BigDecimal.valueOf(100));
+        request.getMakeProvisionInnerList().add(innerDTO);
 
-        when(vaultDomainService.performCashOperation(
-                org.mockito.ArgumentMatchers.any(RequestVaultCashOperation.class)))
-                .thenReturn(vaultResponse);
+        // Beklenen Response
+        var mockedResponse = new ResponseDebtPaymentProvision();
+        mockedResponse.setIsSuccess(true);
+        mockedResponse.setErrorMessage(null);
+
+        // debtPaymentAccountProvisionService çağırıldığında bu yanıt dönsün
+        when(debtPaymentAccountProvisionService.makeAccountGLProvision(any(RequestAccountProvision.class)))
+                .thenReturn(mockedResponse);
 
         // Act
-        var result = safeDepositBoxCashProvisionService.performDebtPayment(request);
+        var actualResponse = safeDepositBoxAccountProvisionService.performDebtPayment(request);
 
         // Assert
-        assertNotNull(result);
-        assertTrue(result.getIsSuccess());
-        assertEquals("No exception", result.getExceptionMessage());
+        assertNotNull(actualResponse);
+        assertTrue(actualResponse.getIsSuccess());
+        // channelCode 601'e setleniyor mu?
+        assertEquals("601", request.getChannelCode());
+        // random transactionId setleniyor mu?
+        assertNotNull(request.getTransactionId());
+        // provisionCode "" atanıyor mu?
+        assertEquals("", request.getProvisionCode());
+
+        // InnerDTO set ediliyor mu?
+        var updatedInner = request.getMakeProvisionInnerList().get(0);
+        assertEquals(BigDecimal.valueOf(100), updatedInner.getAmount());
+        assertEquals("", updatedInner.getProvisionCode());
+        assertEquals(1L, updatedInner.getAccountingGroupNo());
+        // isZeroBalanceSkipped = false, çünkü amount != 0
+        assertFalse(updatedInner.getIsZeroBalanceSkipped());
     }
 
     @Test
-    void testPerformDebtPaymentWithNullVaultResponse() {
+    void testPerformDebtPayment_Success_WithZeroAmount() throws AccountProvisionAccountToGLException {
         // Arrange
         var request = new RequestDebtPayment();
-        request.setPaymentType(PaymentType.CASH_PROVISION);
-        request.setProvisionIdList(List.of(1001L, 1002L));
+        request.setMakeProvisionInnerList(new ArrayList<>());
 
-        // Vault service null döndü
-        when(vaultDomainService.performCashOperation(
-                org.mockito.ArgumentMatchers.any(RequestVaultCashOperation.class)))
-                .thenReturn(null);
+        // Bir item amount = 0
+        var innerDTO = new AccountProvisionInnerDTO();
+        innerDTO.setAmount(BigDecimal.ZERO);
+        request.getMakeProvisionInnerList().add(innerDTO);
 
-        // Act & Assert => performDebtPayment çağırdığımızda NPE fırlaması muhtemel.
-        NullPointerException thrown = assertThrows(NullPointerException.class,
-                () -> safeDepositBoxCashProvisionService.performDebtPayment(request)
-        );
-        assertNotNull(thrown);
+        // Beklenen Response
+        var mockedResponse = new ResponseDebtPaymentProvision();
+        mockedResponse.setIsSuccess(true);
+
+        when(debtPaymentAccountProvisionService.makeAccountGLProvision(any(RequestAccountProvision.class)))
+                .thenReturn(mockedResponse);
+
+        // Act
+        var actualResponse = safeDepositBoxAccountProvisionService.performDebtPayment(request);
+
+        // Assert
+        assertNotNull(actualResponse);
+        assertTrue(actualResponse.getIsSuccess());
+        // isZeroBalanceSkipped = true, çünkü amount == 0
+        assertTrue(request.getMakeProvisionInnerList().get(0).getIsZeroBalanceSkipped());
     }
 
     @Test
-    void testPerformDebtPaymentEmptyProvisionIdList() {
+    void testPerformDebtPayment_ThrowsException() throws AccountProvisionAccountToGLException {
         // Arrange
         var request = new RequestDebtPayment();
-        request.setPaymentType(PaymentType.CASH_PROVISION);
-        // Boş liste verildi
-        request.setProvisionIdList(List.of());
+        request.setMakeProvisionInnerList(new ArrayList<>());
 
-        // Domain servisi yine null veya fake bir yanıt dönebilir
-        when(vaultDomainService.performCashOperation(
-                org.mockito.ArgumentMatchers.any(RequestVaultCashOperation.class)))
-                .thenReturn(null);
+        when(debtPaymentAccountProvisionService.makeAccountGLProvision(any(RequestAccountProvision.class)))
+                .thenThrow(new AccountProvisionAccountToGLException("Provision error"));
 
-        // Beklenen yine muhtemelen NPE
-        NullPointerException thrown = assertThrows(NullPointerException.class,
-                () -> safeDepositBoxCashProvisionService.performDebtPayment(request)
+        // Act & Assert
+        AccountProvisionAccountToGLException thrown = assertThrows(AccountProvisionAccountToGLException.class,
+                () -> safeDepositBoxAccountProvisionService.performDebtPayment(request)
         );
-        assertNotNull(thrown);
+
+        assertEquals("Provision error", thrown.getMessage());
     }
 }
