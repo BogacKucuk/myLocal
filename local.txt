@@ -30,94 +30,132 @@ public class ReceiptExpenseJobParameterService_UpdatedTest {
     private static final String PARAMETER_OFF = "OFF";
     private static final String PARAMETER_ES = "ES";
 
-    // =============================
-    // Tests for getCurrentPeriod
-    // =============================
-
+    // ================================
+    // Tests for getCurrentPeriod method
+    // ================================
+    
     @Test
-    void testGetCurrentPeriod_whenDtoIsNull() {
-        // Eğer dto null ise if şartı sağlanacak ve önceki ayın tarihi döndürülecek.
-        when(parameterDefinitionService.getApplicationParameterByName(eq(PERIOD_PARAMETER))).thenReturn(null);
+    public void testGetCurrentPeriod_whenDtoIsNull() {
+        // Eğer dto null ise if şartı sağlanmaz, önceki ayın tarihi döndürülür.
+        when(parameterDefinitionService.getApplicationParameterByName(eq(PERIOD_PARAMETER)))
+                .thenReturn(null);
         String result = service.getCurrentPeriod();
         String expected = LocalDate.now().minusMonths(1)
                 .format(DateTimeFormatter.ofPattern("yyyyMM"));
         Assertions.assertEquals(expected, result);
     }
-
+    
     @Test
-    void testGetCurrentPeriod_whenDtoHasOffValue() {
-        // Eğer dto'nun değeri "OFF" ise if'e girip önceki ayın tarihi döndürülmeli.
+    public void testGetCurrentPeriod_whenDtoValueIsNull() {
+        // dto mevcut ancak değeri null ise if koşulunda "hasText" false döneceğinden,
+        // önceki ayın tarihi döndürülür.
+        ReceiptParameterDefinitionDTO dto = new ReceiptParameterDefinitionDTO();
+        dto.setValue(null);
+        when(parameterDefinitionService.getApplicationParameterByName(eq(PERIOD_PARAMETER)))
+                .thenReturn(dto);
+        String result = service.getCurrentPeriod();
+        String expected = LocalDate.now().minusMonths(1)
+                .format(DateTimeFormatter.ofPattern("yyyyMM"));
+        Assertions.assertEquals(expected, result);
+    }
+    
+    @Test
+    public void testGetCurrentPeriod_whenDtoValueIsEmpty() {
+        // dto mevcut, değeri boş string ("") ise, önceki ayın tarihi döndürülür.
+        ReceiptParameterDefinitionDTO dto = new ReceiptParameterDefinitionDTO();
+        dto.setValue("");
+        when(parameterDefinitionService.getApplicationParameterByName(eq(PERIOD_PARAMETER)))
+                .thenReturn(dto);
+        String result = service.getCurrentPeriod();
+        String expected = LocalDate.now().minusMonths(1)
+                .format(DateTimeFormatter.ofPattern("yyyyMM"));
+        Assertions.assertEquals(expected, result);
+    }
+    
+    @Test
+    public void testGetCurrentPeriod_whenDtoValueIsOff() {
+        // dto mevcut, değeri "OFF" ise if koşulu sağlanmaz (negasyon ile kontrol ediliyor),
+        // dolayısıyla önceki ayın tarihi döndürülür.
         ReceiptParameterDefinitionDTO dto = new ReceiptParameterDefinitionDTO();
         dto.setValue(PARAMETER_OFF);
-        when(parameterDefinitionService.getApplicationParameterByName(eq(PERIOD_PARAMETER))).thenReturn(dto);
+        when(parameterDefinitionService.getApplicationParameterByName(eq(PERIOD_PARAMETER)))
+                .thenReturn(dto);
         String result = service.getCurrentPeriod();
         String expected = LocalDate.now().minusMonths(1)
                 .format(DateTimeFormatter.ofPattern("yyyyMM"));
         Assertions.assertEquals(expected, result);
     }
-
+    
     @Test
-    void testGetCurrentPeriod_whenDtoHasNonOffValue() {
-        // Eğer dto'nun değeri "OFF" dışında bir değer ise direkt o değer döndürülmeli.
+    public void testGetCurrentPeriod_whenDtoHasValidValue() {
+        // dto mevcut, değeri "OFF" dışında (örneğin "ABC") ise, direkt o değer döndürülür.
         ReceiptParameterDefinitionDTO dto = new ReceiptParameterDefinitionDTO();
         dto.setValue("ABC");
-        when(parameterDefinitionService.getApplicationParameterByName(eq(PERIOD_PARAMETER))).thenReturn(dto);
+        when(parameterDefinitionService.getApplicationParameterByName(eq(PERIOD_PARAMETER)))
+                .thenReturn(dto);
         String result = service.getCurrentPeriod();
         Assertions.assertEquals("ABC", result);
     }
-
+    
+    // ==================================
+    // Tests for getCurrentStatusList method
+    // ==================================
+    
     @Test
-    void testGetCurrentPeriod_whenDtoHasEmptyValue() {
-        // Eğer dto'nun değeri boş ise (hasText false döner) if'e girilmez, direkt boş string döndürülür.
-        ReceiptParameterDefinitionDTO dto = new ReceiptParameterDefinitionDTO();
-        dto.setValue("");
-        when(parameterDefinitionService.getApplicationParameterByName(eq(PERIOD_PARAMETER))).thenReturn(dto);
-        String result = service.getCurrentPeriod();
-        Assertions.assertEquals("", result);
-    }
-
-    // =============================
-    // Tests for getCurrentStatusList
-    // =============================
-
-    @Test
-    void testGetCurrentStatusList_whenDtoIsNull() {
-        // Eğer dto null ise if şartı devreye girip,
-        // yeni dto oluşturulup değeri "ES" set edildikten sonra, ["ES"] listesi döndürülmeli.
-        when(parameterDefinitionService.getApplicationParameterByName(eq(STATUS_LIST_PARAMETER))).thenReturn(null);
+    public void testGetCurrentStatusList_whenDtoIsNull() {
+        // dto null ise, if koşuluna girilip yeni dto oluşturulur ve değeri "ES" set edilir.
+        // Sonuçta "ES" değeri split edilerek ["ES"] listesi döndürülür.
+        when(parameterDefinitionService.getApplicationParameterByName(eq(STATUS_LIST_PARAMETER)))
+                .thenReturn(null);
         List<String> result = service.getCurrentStatusList();
         Assertions.assertEquals(Arrays.asList(PARAMETER_ES), result);
     }
-
+    
     @Test
-    void testGetCurrentStatusList_whenDtoHasOffValue() {
-        // Eğer dto'nun değeri "OFF" ise if'e girip değeri "ES" olarak set edilmeli.
+    public void testGetCurrentStatusList_whenDtoValueIsOff() {
+        // dto mevcut, değeri "OFF" ise if koşuluna girer ve değeri "ES" set edilir.
         ReceiptParameterDefinitionDTO dto = new ReceiptParameterDefinitionDTO();
         dto.setValue(PARAMETER_OFF);
-        when(parameterDefinitionService.getApplicationParameterByName(eq(STATUS_LIST_PARAMETER))).thenReturn(dto);
+        when(parameterDefinitionService.getApplicationParameterByName(eq(STATUS_LIST_PARAMETER)))
+                .thenReturn(dto);
         List<String> result = service.getCurrentStatusList();
         Assertions.assertEquals(Arrays.asList(PARAMETER_ES), result);
     }
-
+    
     @Test
-    void testGetCurrentStatusList_whenDtoHasNonOffValue() {
-        // Eğer dto'nun değeri "OFF" dışında (örneğin "APPROVED;PENDING") ise if'e girilmez
-        // ve split sonucu ["APPROVED", "PENDING"] listesi döndürülmeli.
+    public void testGetCurrentStatusList_whenDtoHasValidValue() {
+        // dto mevcut, değeri "OFF" dışında (örneğin "APPROVED;PENDING") ise if'e girilmez,
+        // ve split işlemi sonucunda ["APPROVED", "PENDING"] listesi döndürülür.
         ReceiptParameterDefinitionDTO dto = new ReceiptParameterDefinitionDTO();
         dto.setValue("APPROVED;PENDING");
-        when(parameterDefinitionService.getApplicationParameterByName(eq(STATUS_LIST_PARAMETER))).thenReturn(dto);
+        when(parameterDefinitionService.getApplicationParameterByName(eq(STATUS_LIST_PARAMETER)))
+                .thenReturn(dto);
         List<String> result = service.getCurrentStatusList();
         Assertions.assertEquals(Arrays.asList("APPROVED", "PENDING"), result);
     }
-
+    
     @Test
-    void testGetCurrentStatusList_whenDtoHasEmptyValue() {
-        // Eğer dto'nun değeri boş string ise if şartı devreye girmez,
-        // ve boş string split edilip [""], yani tek boş elemanlı liste döndürülür.
+    public void testGetCurrentStatusList_whenDtoValueIsEmpty() {
+        // dto mevcut, değeri boş string ("") ise if koşulu devreye girmez
+        // ve split sonucu [""], yani tek boş elemanlı liste döndürülür.
         ReceiptParameterDefinitionDTO dto = new ReceiptParameterDefinitionDTO();
         dto.setValue("");
-        when(parameterDefinitionService.getApplicationParameterByName(eq(STATUS_LIST_PARAMETER))).thenReturn(dto);
+        when(parameterDefinitionService.getApplicationParameterByName(eq(STATUS_LIST_PARAMETER)))
+                .thenReturn(dto);
         List<String> result = service.getCurrentStatusList();
         Assertions.assertEquals(Arrays.asList(""), result);
+    }
+    
+    @Test
+    public void testGetCurrentStatusList_whenDtoValueIsBlank() {
+        // dto mevcut, değeri yalnızca boşluk karakterleri ise;
+        // CoreStringUtils.hasText("   ") false döneceğinden if'e girilmez
+        // ve split sonucu ["   "] (tek elemanlı liste) döndürülür.
+        ReceiptParameterDefinitionDTO dto = new ReceiptParameterDefinitionDTO();
+        dto.setValue("   ");
+        when(parameterDefinitionService.getApplicationParameterByName(eq(STATUS_LIST_PARAMETER)))
+                .thenReturn(dto);
+        List<String> result = service.getCurrentStatusList();
+        Assertions.assertEquals(Arrays.asList("   "), result);
     }
 }
