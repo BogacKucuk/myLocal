@@ -1,24 +1,124 @@
-@Test
-void whenFindByRentalSafeBoxIdAndStatus_shouldCalculateDebtCorrectly() {
-    // Arrange
-    List<DebtEntity> debts = new ArrayList<>();
-    DebtEntity debtEntity1 = new DebtEntity();
-    debtEntity1.setDebtAmount(new BigDecimal("150"));
-    DebtEntity debtEntity2 = new DebtEntity();
-    debtEntity2.setDebtAmount(new BigDecimal("50"));
-    debts.add(debtEntity1);
-    debts.add(debtEntity2);
+package com.ykb.corebanking.tellerline.receiptbatch.service.impl;
 
-    // Mock repository cevabı
-    when(debtRepository.findByRentalSafeBoxIdAndStatus(Mockito.anyLong(), Mockito.anyString()))
-            .thenReturn(debts);
+import com.ykb.corebanking.tellerline.receiptbatch.dto.ReceiptParameterDefinitionDTO;
+import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-    // Act
-    BigDecimal debt = safeDepositBoxDebtService.findByRentalSafeBoxDebt(123L);
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
-    // Assert
-    // 150 + 50 = 200 olmalı
-    assertThat(debt).isNotNull();
-    assertThat(debt).isEqualTo(new BigDecimal("200"));
+import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.Mockito.when;
+
+@ExtendWith(SpringExtension.class)
+class ReceiptExpenseJobParameterService_CurrentTest {
+
+    @InjectMocks
+    private ReceiptExpenseJobParameterService service;
+
+    @Mock
+    private ReceiptParameterDefinitionService parameterDefinitionService;
+
+    private static final String PERIOD_PARAMETER = "app.harmoni.glb.receiptbatch.expensejob.period";
+    private static final String STATUS_LIST_PARAMETER = "app.harmoni.glb.receiptbatch.expensejob.statuslist";
+    private static final String PARAMETER_OFF = "OFF";
+    private static final String PARAMETER_ES = "ES";
+
+    // =======================
+    // Tests for getCurrentPeriod
+    // =======================
+
+    @Test
+    void testGetCurrentPeriod_whenDtoIsNull() {
+        // Eğer DTO null ise metod null döndürmeli.
+        when(parameterDefinitionService.getApplicationParameterByName(eq(PERIOD_PARAMETER))).thenReturn(null);
+        String result = service.getCurrentPeriod();
+        Assertions.assertNull(result);
+    }
+
+    @Test
+    void testGetCurrentPeriod_whenDtoHasNoText() {
+        // Eğer DTO değeri boşsa (örneğin empty string) metot null döndürmeli.
+        ReceiptParameterDefinitionDTO dto = new ReceiptParameterDefinitionDTO();
+        dto.setValue(""); // boş string
+        when(parameterDefinitionService.getApplicationParameterByName(eq(PERIOD_PARAMETER))).thenReturn(dto);
+        String result = service.getCurrentPeriod();
+        Assertions.assertNull(result);
+    }
+
+    @Test
+    void testGetCurrentPeriod_whenDtoHasNonOffValue() {
+        // Eğer DTO değeri "OFF" dışında bir değer içeriyorsa metot null döndürmeli.
+        ReceiptParameterDefinitionDTO dto = new ReceiptParameterDefinitionDTO();
+        dto.setValue("202304"); // "OFF" değil
+        when(parameterDefinitionService.getApplicationParameterByName(eq(PERIOD_PARAMETER))).thenReturn(dto);
+        String result = service.getCurrentPeriod();
+        Assertions.assertNull(result);
+    }
+
+    @Test
+    void testGetCurrentPeriod_whenDtoHasOffValue() {
+        // Eğer DTO değeri "OFF" ise, metot bugünden 1 ay öncesini hesaplayıp döndürmeli.
+        ReceiptParameterDefinitionDTO dto = new ReceiptParameterDefinitionDTO();
+        dto.setValue(PARAMETER_OFF);
+        when(parameterDefinitionService.getApplicationParameterByName(eq(PERIOD_PARAMETER))).thenReturn(dto);
+
+        String result = service.getCurrentPeriod();
+        String expected = LocalDate.now().minusMonths(1)
+                .format(DateTimeFormatter.ofPattern("yyyyMM"));
+        Assertions.assertEquals(expected, result);
+        // Ayrıca DTO'nun değeri de güncellenmiş olmalı.
+        Assertions.assertEquals(expected, dto.getValue());
+    }
+
+    // =======================
+    // Tests for getCurrentStatusList
+    // =======================
+
+    @Test
+    void testGetCurrentStatusList_whenDtoIsNull() {
+        // Eğer DTO null ise metod boş liste döndürmeli.
+        when(parameterDefinitionService.getApplicationParameterByName(eq(STATUS_LIST_PARAMETER))).thenReturn(null);
+        List<String> result = service.getCurrentStatusList();
+        Assertions.assertEquals(Collections.emptyList(), result);
+    }
+
+    @Test
+    void testGetCurrentStatusList_whenDtoHasNoText() {
+        // Eğer DTO değeri boş ya da yalnızca boşluklardan oluşuyorsa metod boş liste döndürmeli.
+        ReceiptParameterDefinitionDTO dto = new ReceiptParameterDefinitionDTO();
+        dto.setValue("   "); // yalnızca boşluk
+        when(parameterDefinitionService.getApplicationParameterByName(eq(STATUS_LIST_PARAMETER))).thenReturn(dto);
+        List<String> result = service.getCurrentStatusList();
+        Assertions.assertEquals(Collections.emptyList(), result);
+    }
+
+    @Test
+    void testGetCurrentStatusList_whenDtoHasNonOffValue() {
+        // Eğer DTO değeri "OFF" dışında bir değer içeriyorsa, if bloğu çalışmadığından boş liste döndürmeli.
+        ReceiptParameterDefinitionDTO dto = new ReceiptParameterDefinitionDTO();
+        dto.setValue("APPROVED;PENDING");
+        when(parameterDefinitionService.getApplicationParameterByName(eq(STATUS_LIST_PARAMETER))).thenReturn(dto);
+        List<String> result = service.getCurrentStatusList();
+        Assertions.assertEquals(Collections.emptyList(), result);
+    }
+
+    @Test
+    void testGetCurrentStatusList_whenDtoHasOffValue() {
+        // Eğer DTO değeri "OFF" ise, metod değeri "ES" olarak güncelleyip, ["ES"] listesini döndürmeli.
+        ReceiptParameterDefinitionDTO dto = new ReceiptParameterDefinitionDTO();
+        dto.setValue(PARAMETER_OFF);
+        when(parameterDefinitionService.getApplicationParameterByName(eq(STATUS_LIST_PARAMETER))).thenReturn(dto);
+        List<String> result = service.getCurrentStatusList();
+        Assertions.assertEquals(Arrays.asList(PARAMETER_ES), result);
+        // Ayrıca DTO'nun değeri "ES" olarak güncellenmeli.
+        Assertions.assertEquals(PARAMETER_ES, dto.getValue());
+    }
 }
-
