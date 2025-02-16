@@ -1,161 +1,93 @@
-package com.ykb.corebanking.tellerline.receiptbatch.service.impl;
-
-import com.ykb.corebanking.tellerline.receiptbatch.dto.ReceiptParameterDefinitionDTO;
-import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.springframework.test.context.junit.jupiter.SpringExtension;
+import org.mockito.Mockito;
+import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.amqp.core.Message;
+import org.springframework.amqp.rabbit.listener.exception.AmqpRejectAndDontRequeueException;
 
-import java.time.LocalDate;
-import java.time.format.DateTimeFormatter;
-import java.util.Arrays;
-import java.util.List;
+import java.nio.charset.StandardCharsets;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.when;
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.*;
 
-@ExtendWith(SpringExtension.class)
-public class ReceiptExpenseJobParameterService_UpdatedTest {
+@ExtendWith(MockitoExtension.class)
+class CardPaymentConsumerTest {
 
     @InjectMocks
-    private ReceiptExpenseJobParameterService service;
+    CardPaymentConsumer cardPaymentConsumer;
 
     @Mock
-    private ReceiptParameterDefinitionService parameterDefinitionService;
+    CardPaymentsClient cardPaymentsClient;
 
-    private static final String PERIOD_PARAMETER = "app.harmoni.glb.receiptbatch.expensejob.period";
-    private static final String STATUS_LIST_PARAMETER = "app.harmoni.glb.receiptbatch.expensejob.statuslist";
-    private static final String PARAMETER_OFF = "OFF";
-    private static final String PARAMETER_ES = "ES";
+    @Mock
+    Message message;
 
-    // ================================
-    // Tests for getCurrentPeriod method
-    // ================================
-    
     @Test
-    public void testGetCurrentPeriod_whenDtoIsNull() {
-        // Eğer dto null ise if şartı sağlanmaz, önceki ayın tarihi döndürülür.
-        when(parameterDefinitionService.getApplicationParameterByName(eq(PERIOD_PARAMETER)))
-                .thenReturn(null);
-        String result = service.getCurrentPeriod();
-        String expected = LocalDate.now().minusMonths(1)
-                .format(DateTimeFormatter.ofPattern("yyyyMM"));
-        Assertions.assertEquals(expected, result);
+    void consumeMessage_shouldProcessSuccessfully() {
+        // Arrange
+        String jsonRequest = "{\"transactionType\":\"test\",\"transactionKey\":\"12345\"}";
+        when(message.getBody()).thenReturn(jsonRequest.getBytes(StandardCharsets.UTF_8));
+        doNothing().when(cardPaymentsClient).createCbsTransaction(Mockito.any());
+
+        // Act
+        cardPaymentConsumer.consumeMessage(message, Collections.emptyMap());
+
+        // Assert
+        verify(cardPaymentsClient, times(1)).createCbsTransaction(Mockito.any());
     }
-    
+
     @Test
-    public void testGetCurrentPeriod_whenDtoValueIsNull() {
-        // dto mevcut ancak değeri null ise if koşulunda "hasText" false döneceğinden,
-        // önceki ayın tarihi döndürülür.
-        ReceiptParameterDefinitionDTO dto = new ReceiptParameterDefinitionDTO();
-        dto.setValue(null);
-        when(parameterDefinitionService.getApplicationParameterByName(eq(PERIOD_PARAMETER)))
-                .thenReturn(dto);
-        String result = service.getCurrentPeriod();
-        String expected = LocalDate.now().minusMonths(1)
-                .format(DateTimeFormatter.ofPattern("yyyyMM"));
-        Assertions.assertEquals(expected, result);
+    void consumeMessage_shouldThrowException_whenJsonParsingFails() {
+        // Arrange
+        when(message.getBody()).thenReturn("invalid_json".getBytes(StandardCharsets.UTF_8));
+
+        // Act & Assert
+        assertThrows(AmqpRejectAndDontRequeueException.class, () ->
+                cardPaymentConsumer.consumeMessage(message, Collections.emptyMap()));
     }
-    
+
     @Test
-    public void testGetCurrentPeriod_whenDtoValueIsEmpty() {
-        // dto mevcut, değeri boş string ("") ise, önceki ayın tarihi döndürülür.
-        ReceiptParameterDefinitionDTO dto = new ReceiptParameterDefinitionDTO();
-        dto.setValue("");
-        when(parameterDefinitionService.getApplicationParameterByName(eq(PERIOD_PARAMETER)))
-                .thenReturn(dto);
-        String result = service.getCurrentPeriod();
-        String expected = LocalDate.now().minusMonths(1)
-                .format(DateTimeFormatter.ofPattern("yyyyMM"));
-        Assertions.assertEquals(expected, result);
+    void consumeMessage_shouldNotProcess_whenRetryLimitExceeded() {
+        // Arrange
+        Map<String, Object> deathHeader = new HashMap<>();
+        deathHeader.put("count", "3"); // RETRY_COUNT is 3
+
+        // Act
+        cardPaymentConsumer.consumeMessage(message, deathHeader);
+
+        // Assert
+        verifyNoInteractions(cardPaymentsClient);
     }
-    
+
     @Test
-    public void testGetCurrentPeriod_whenDtoValueIsOff() {
-        // dto mevcut, değeri "OFF" ise if koşulu sağlanmaz (negasyon ile kontrol ediliyor),
-        // dolayısıyla önceki ayın tarihi döndürülür.
-        ReceiptParameterDefinitionDTO dto = new ReceiptParameterDefinitionDTO();
-        dto.setValue(PARAMETER_OFF);
-        when(parameterDefinitionService.getApplicationParameterByName(eq(PERIOD_PARAMETER)))
-                .thenReturn(dto);
-        String result = service.getCurrentPeriod();
-        String expected = LocalDate.now().minusMonths(1)
-                .format(DateTimeFormatter.ofPattern("yyyyMM"));
-        Assertions.assertEquals(expected, result);
+    void retry_shouldReturnTrue_whenNoDeathHeader() {
+        assertThat(cardPaymentConsumer.retry(null)).isTrue();
     }
-    
+
     @Test
-    public void testGetCurrentPeriod_whenDtoHasValidValue() {
-        // dto mevcut, değeri "OFF" dışında (örneğin "ABC") ise, direkt o değer döndürülür.
-        ReceiptParameterDefinitionDTO dto = new ReceiptParameterDefinitionDTO();
-        dto.setValue("ABC");
-        when(parameterDefinitionService.getApplicationParameterByName(eq(PERIOD_PARAMETER)))
-                .thenReturn(dto);
-        String result = service.getCurrentPeriod();
-        Assertions.assertEquals("ABC", result);
+    void retry_shouldReturnTrue_whenDeathCountIsNull() {
+        Map<String, Object> deathHeader = new HashMap<>();
+        deathHeader.put("count", null);
+        assertThat(cardPaymentConsumer.retry(deathHeader)).isTrue();
     }
-    
-    // ==================================
-    // Tests for getCurrentStatusList method
-    // ==================================
-    
+
     @Test
-    public void testGetCurrentStatusList_whenDtoIsNull() {
-        // dto null ise, if koşuluna girilip yeni dto oluşturulur ve değeri "ES" set edilir.
-        // Sonuçta "ES" değeri split edilerek ["ES"] listesi döndürülür.
-        when(parameterDefinitionService.getApplicationParameterByName(eq(STATUS_LIST_PARAMETER)))
-                .thenReturn(null);
-        List<String> result = service.getCurrentStatusList();
-        Assertions.assertEquals(Arrays.asList(PARAMETER_ES), result);
+    void retry_shouldReturnTrue_whenDeathCountIsLessThanRetryLimit() {
+        Map<String, Object> deathHeader = new HashMap<>();
+        deathHeader.put("count", "2"); // Less than RETRY_COUNT
+        assertThat(cardPaymentConsumer.retry(deathHeader)).isTrue();
     }
-    
+
     @Test
-    public void testGetCurrentStatusList_whenDtoValueIsOff() {
-        // dto mevcut, değeri "OFF" ise if koşuluna girer ve değeri "ES" set edilir.
-        ReceiptParameterDefinitionDTO dto = new ReceiptParameterDefinitionDTO();
-        dto.setValue(PARAMETER_OFF);
-        when(parameterDefinitionService.getApplicationParameterByName(eq(STATUS_LIST_PARAMETER)))
-                .thenReturn(dto);
-        List<String> result = service.getCurrentStatusList();
-        Assertions.assertEquals(Arrays.asList(PARAMETER_ES), result);
-    }
-    
-    @Test
-    public void testGetCurrentStatusList_whenDtoHasValidValue() {
-        // dto mevcut, değeri "OFF" dışında (örneğin "APPROVED;PENDING") ise if'e girilmez,
-        // ve split işlemi sonucunda ["APPROVED", "PENDING"] listesi döndürülür.
-        ReceiptParameterDefinitionDTO dto = new ReceiptParameterDefinitionDTO();
-        dto.setValue("APPROVED;PENDING");
-        when(parameterDefinitionService.getApplicationParameterByName(eq(STATUS_LIST_PARAMETER)))
-                .thenReturn(dto);
-        List<String> result = service.getCurrentStatusList();
-        Assertions.assertEquals(Arrays.asList("APPROVED", "PENDING"), result);
-    }
-    
-    @Test
-    public void testGetCurrentStatusList_whenDtoValueIsEmpty() {
-        // dto mevcut, değeri boş string ("") ise if koşulu devreye girmez
-        // ve split sonucu [""], yani tek boş elemanlı liste döndürülür.
-        ReceiptParameterDefinitionDTO dto = new ReceiptParameterDefinitionDTO();
-        dto.setValue("");
-        when(parameterDefinitionService.getApplicationParameterByName(eq(STATUS_LIST_PARAMETER)))
-                .thenReturn(dto);
-        List<String> result = service.getCurrentStatusList();
-        Assertions.assertEquals(Arrays.asList(""), result);
-    }
-    
-    @Test
-    public void testGetCurrentStatusList_whenDtoValueIsBlank() {
-        // dto mevcut, değeri yalnızca boşluk karakterleri ise;
-        // CoreStringUtils.hasText("   ") false döneceğinden if'e girilmez
-        // ve split sonucu ["   "] (tek elemanlı liste) döndürülür.
-        ReceiptParameterDefinitionDTO dto = new ReceiptParameterDefinitionDTO();
-        dto.setValue("   ");
-        when(parameterDefinitionService.getApplicationParameterByName(eq(STATUS_LIST_PARAMETER)))
-                .thenReturn(dto);
-        List<String> result = service.getCurrentStatusList();
-        Assertions.assertEquals(Arrays.asList("   "), result);
+    void retry_shouldReturnFalse_whenDeathCountExceedsRetryLimit() {
+        Map<String, Object> deathHeader = new HashMap<>();
+        deathHeader.put("count", "3"); // Equal to RETRY_COUNT
+        assertThat(cardPaymentConsumer.retry(deathHeader)).isFalse();
     }
 }
