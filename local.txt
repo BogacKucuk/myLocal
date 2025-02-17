@@ -1,93 +1,73 @@
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
+import static org.mockito.Mockito.times;
+
+import java.util.Arrays;
+
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
-import org.mockito.Mockito;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.amqp.core.Message;
-import org.springframework.amqp.rabbit.listener.exception.AmqpRejectAndDontRequeueException;
+import org.mockito.MockitoAnnotations;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.test.context.junit.jupiter.SpringExtension;
 
-import java.nio.charset.StandardCharsets;
-import java.util.Collections;
-import java.util.HashMap;
-import java.util.Map;
-
-import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.*;
-
-@ExtendWith(MockitoExtension.class)
-class CardPaymentConsumerTest {
+@ExtendWith(SpringExtension.class)
+class SafeDepositBoxClosingIdentityControlControllerTest {
 
     @InjectMocks
-    CardPaymentConsumer cardPaymentConsumer;
+    SafeDepositBoxClosingIdentityControlController controller;
 
     @Mock
-    CardPaymentsClient cardPaymentsClient;
+    ISafeDepositBoxClosingIdentityControlService identityControlService;
 
-    @Mock
-    Message message;
-
-    @Test
-    void consumeMessage_shouldProcessSuccessfully() {
-        // Arrange
-        String jsonRequest = "{\"transactionType\":\"test\",\"transactionKey\":\"12345\"}";
-        when(message.getBody()).thenReturn(jsonRequest.getBytes(StandardCharsets.UTF_8));
-        doNothing().when(cardPaymentsClient).createCbsTransaction(Mockito.any());
-
-        // Act
-        cardPaymentConsumer.consumeMessage(message, Collections.emptyMap());
-
-        // Assert
-        verify(cardPaymentsClient, times(1)).createCbsTransaction(Mockito.any());
+    @BeforeEach
+    void setup() {
+        MockitoAnnotations.openMocks(this);
     }
 
     @Test
-    void consumeMessage_shouldThrowException_whenJsonParsingFails() {
-        // Arrange
-        when(message.getBody()).thenReturn("invalid_json".getBytes(StandardCharsets.UTF_8));
+    void checkIdentitySuccess() throws Exception {
+        RequestSafeDepositBoxClosingIdentityControl request = new RequestSafeDepositBoxClosingIdentityControl();
+        request.setClientType("PERSONAL");
+        request.setClientNo(1);
+        request.setBranchCode("001");
+        request.setUserCode("user123");
 
-        // Act & Assert
-        assertThrows(AmqpRejectAndDontRequeueException.class, () ->
-                cardPaymentConsumer.consumeMessage(message, Collections.emptyMap()));
+        ResponseSafeDepositBoxClosingIdentityControl response = new ResponseSafeDepositBoxClosingIdentityControl();
+        response.setIdentityControlNecessary(true);
+        response.setProcessTypeCodes(Arrays.asList("TYPE1", "TYPE2"));
+        response.setChannelCode("CH001");
+        response.setClientNo(1);
+        response.setBranchCode("001");
+        response.setClientType("PERSONAL");
+        response.setThirdPerson(false);
+
+        when(identityControlService.checkIdentity(request)).thenReturn(response);
+
+        ResponseEntity<ResponseSafeDepositBoxClosingIdentityControl> result = controller.checkIdentity(request);
+
+        assertEquals(HttpStatus.OK, result.getStatusCode());
+        assertEquals(response, result.getBody());
+        verify(identityControlService, times(1)).checkIdentity(request);
     }
 
     @Test
-    void consumeMessage_shouldNotProcess_whenRetryLimitExceeded() {
-        // Arrange
-        Map<String, Object> deathHeader = new HashMap<>();
-        deathHeader.put("count", "3"); // RETRY_COUNT is 3
+    void checkIdentityThrowsException() throws Exception {
+        RequestSafeDepositBoxClosingIdentityControl request = new RequestSafeDepositBoxClosingIdentityControl();
+        request.setClientType("BUSINESS");
+        request.setClientNo(2);
+        request.setBranchCode("002");
+        request.setUserCode("user456");
 
-        // Act
-        cardPaymentConsumer.consumeMessage(message, deathHeader);
+        when(identityControlService.checkIdentity(request))
+                .thenThrow(new SafeDepositBoxClosingIdentityControlException("Test Exception"));
 
-        // Assert
-        verifyNoInteractions(cardPaymentsClient);
-    }
-
-    @Test
-    void retry_shouldReturnTrue_whenNoDeathHeader() {
-        assertThat(cardPaymentConsumer.retry(null)).isTrue();
-    }
-
-    @Test
-    void retry_shouldReturnTrue_whenDeathCountIsNull() {
-        Map<String, Object> deathHeader = new HashMap<>();
-        deathHeader.put("count", null);
-        assertThat(cardPaymentConsumer.retry(deathHeader)).isTrue();
-    }
-
-    @Test
-    void retry_shouldReturnTrue_whenDeathCountIsLessThanRetryLimit() {
-        Map<String, Object> deathHeader = new HashMap<>();
-        deathHeader.put("count", "2"); // Less than RETRY_COUNT
-        assertThat(cardPaymentConsumer.retry(deathHeader)).isTrue();
-    }
-
-    @Test
-    void retry_shouldReturnFalse_whenDeathCountExceedsRetryLimit() {
-        Map<String, Object> deathHeader = new HashMap<>();
-        deathHeader.put("count", "3"); // Equal to RETRY_COUNT
-        assertThat(cardPaymentConsumer.retry(deathHeader)).isFalse();
+        assertThrows(SafeDepositBoxClosingIdentityControlException.class, () -> controller.checkIdentity(request));
+        verify(identityControlService, times(1)).checkIdentity(request);
     }
 }
