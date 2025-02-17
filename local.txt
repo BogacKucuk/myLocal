@@ -1,8 +1,7 @@
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
-import static org.mockito.Mockito.verify;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
-import static org.mockito.Mockito.times;
 
 import java.util.Arrays;
 
@@ -12,62 +11,143 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.test.context.junit.jupiter.SpringExtension;
 
+// İlgili sınıfların (Request, Response, DTO’lar, Exception’lar, Constant’lar, Channel, ClientType vs.) projede mevcut olduğunu varsayıyoruz.
 @ExtendWith(SpringExtension.class)
-class SafeDepositBoxClosingIdentityControlControllerTest {
+class SafeDepositBoxClosingIdentityControlServiceTest {
 
     @InjectMocks
-    SafeDepositBoxClosingIdentityControlController controller;
+    SafeDepositBoxClosingIdentityControlService service;
 
     @Mock
-    ISafeDepositBoxClosingIdentityControlService identityControlService;
+    IIdentityControlService identityControlService;
 
     @BeforeEach
     void setup() {
         MockitoAnnotations.openMocks(this);
     }
 
+    // Test senaryosu 1:
+    // ClientType TRUSTEE olduğunda ve identityControlNecessary true ise,
+    // response nesnesinde ilgili alanlar doldurulmalı.
     @Test
-    void checkIdentitySuccess() throws Exception {
+    void checkIdentityWithTrueOutputForTrustee() throws Exception {
         RequestSafeDepositBoxClosingIdentityControl request = new RequestSafeDepositBoxClosingIdentityControl();
-        request.setClientType("PERSONAL");
-        request.setClientNo(1);
-        request.setBranchCode("001");
-        request.setUserCode("user123");
+        request.setClientType("TRUSTEE");
+        request.setClientNo(123);
+        request.setBranchCode("B001");
+        request.setUserCode("userTrustee");
 
-        ResponseSafeDepositBoxClosingIdentityControl response = new ResponseSafeDepositBoxClosingIdentityControl();
-        response.setIdentityControlNecessary(true);
-        response.setProcessTypeCodes(Arrays.asList("TYPE1", "TYPE2"));
-        response.setChannelCode("CH001");
-        response.setClientNo(1);
-        response.setBranchCode("001");
-        response.setClientType("PERSONAL");
-        response.setThirdPerson(false);
+        IdentityNecessityOutputDTO identityOutput = new IdentityNecessityOutputDTO();
+        identityOutput.setIdentityControlNecessary(true);
 
-        when(identityControlService.checkIdentity(request)).thenReturn(response);
+        // Gerçek servis çağrısı yerine, DTO'nun döneceğini simüle ediyoruz.
+        when(identityControlService.checkIdentity(any(IdentityNecessityInputDTO.class)))
+                .thenReturn(identityOutput);
 
-        ResponseEntity<ResponseSafeDepositBoxClosingIdentityControl> result = controller.checkIdentity(request);
+        ResponseSafeDepositBoxClosingIdentityControl response = service.checkIdentity(request);
 
-        assertEquals(HttpStatus.OK, result.getStatusCode());
-        assertEquals(response, result.getBody());
-        verify(identityControlService, times(1)).checkIdentity(request);
+        // Identity kontrolü true olduğundan if bloğu çalışır ve ek alanlar set edilir.
+        assertEquals(true, response.getIdentityControlNecessary());
+        assertEquals(Arrays.asList(SafeDepositBoxOpeningConstant.IDENTITY_CONTROL_PROCESS_CODE), response.getProcessTypeCodes());
+        assertEquals("B001", response.getBranchCode());
+        assertEquals(Channel.BRANCH.getChannelCode(), response.getChannelCode());
+        assertEquals(123, response.getClientNo());
+        assertEquals("TRUSTEE", response.getClientType());
+        assertEquals(true, response.getThirdPerson());
     }
 
+    // Test senaryosu 2:
+    // ClientType TRUSTEE dışı olduğunda ve identityControlNecessary false ise,
+    // if bloğu çalışmaz; sadece identityControlNecessary değeri set edilir.
     @Test
-    void checkIdentityThrowsException() throws Exception {
+    void checkIdentityWithFalseOutputForNonTrustee() throws Exception {
         RequestSafeDepositBoxClosingIdentityControl request = new RequestSafeDepositBoxClosingIdentityControl();
-        request.setClientType("BUSINESS");
-        request.setClientNo(2);
-        request.setBranchCode("002");
-        request.setUserCode("user456");
+        request.setClientType("PERSONAL");
+        request.setClientNo(456);
+        request.setBranchCode("B002");
+        request.setUserCode("userPersonal");
 
-        when(identityControlService.checkIdentity(request))
-                .thenThrow(new SafeDepositBoxClosingIdentityControlException("Test Exception"));
+        IdentityNecessityOutputDTO identityOutput = new IdentityNecessityOutputDTO();
+        identityOutput.setIdentityControlNecessary(false);
 
-        assertThrows(SafeDepositBoxClosingIdentityControlException.class, () -> controller.checkIdentity(request));
-        verify(identityControlService, times(1)).checkIdentity(request);
+        when(identityControlService.checkIdentity(any(IdentityNecessityInputDTO.class)))
+                .thenReturn(identityOutput);
+
+        ResponseSafeDepositBoxClosingIdentityControl response = service.checkIdentity(request);
+
+        assertEquals(false, response.getIdentityControlNecessary());
+        // if bloğu çalışmadığından diğer alanlar null olarak kalır.
+        assertEquals(null, response.getProcessTypeCodes());
+        assertEquals(null, response.getBranchCode());
+        assertEquals(null, response.getChannelCode());
+        assertEquals(null, response.getClientNo());
+        assertEquals(null, response.getClientType());
+        assertEquals(null, response.getThirdPerson());
+    }
+
+    // Test senaryosu 3:
+    // identityControlService’den dönen DTO null ise, metod hata fırlatmalı.
+    @Test
+    void checkIdentityThrowsExceptionWhenOutputIsNull() throws Exception {
+        RequestSafeDepositBoxClosingIdentityControl request = new RequestSafeDepositBoxClosingIdentityControl();
+        request.setClientType("TRUSTEE");
+        request.setClientNo(789);
+        request.setBranchCode("B003");
+        request.setUserCode("userError");
+
+        when(identityControlService.checkIdentity(any(IdentityNecessityInputDTO.class)))
+                .thenReturn(null);
+
+        SafeDepositBoxClosingIdentityControlException exception = assertThrows(
+                SafeDepositBoxClosingIdentityControlException.class,
+                () -> service.checkIdentity(request)
+        );
+        assertEquals(SafeDepositBoxOpeningConstant.ERROR_CHECK_IDENTITY_INVALID_RESPONSE, exception.getMessage());
+    }
+
+    // Test senaryosu 4:
+    // Dönen DTO'da identityControlNecessary değeri null ise hata fırlatılmalı.
+    @Test
+    void checkIdentityThrowsExceptionWhenOutputIdentityControlNecessaryIsNull() throws Exception {
+        RequestSafeDepositBoxClosingIdentityControl request = new RequestSafeDepositBoxClosingIdentityControl();
+        request.setClientType("TRUSTEE");
+        request.setClientNo(101);
+        request.setBranchCode("B004");
+        request.setUserCode("userNull");
+
+        IdentityNecessityOutputDTO identityOutput = new IdentityNecessityOutputDTO();
+        identityOutput.setIdentityControlNecessary(null);
+
+        when(identityControlService.checkIdentity(any(IdentityNecessityInputDTO.class)))
+                .thenReturn(identityOutput);
+
+        SafeDepositBoxClosingIdentityControlException exception = assertThrows(
+                SafeDepositBoxClosingIdentityControlException.class,
+                () -> service.checkIdentity(request)
+        );
+        assertEquals(SafeDepositBoxOpeningConstant.ERROR_CHECK_IDENTITY_INVALID_RESPONSE, exception.getMessage());
+    }
+
+    // Test senaryosu 5:
+    // identityControlService.checkIdentity çağrısı sırasında exception fırlatılırsa,
+    // metodun catch bloğunda yakalanıp SafeDepositBoxClosingIdentityControlException fırlattığı kontrol edilir.
+    @Test
+    void checkIdentityThrowsExceptionWhenServiceThrows() throws Exception {
+        RequestSafeDepositBoxClosingIdentityControl request = new RequestSafeDepositBoxClosingIdentityControl();
+        request.setClientType("TRUSTEE");
+        request.setClientNo(102);
+        request.setBranchCode("B005");
+        request.setUserCode("userException");
+
+        when(identityControlService.checkIdentity(any(IdentityNecessityInputDTO.class)))
+                .thenThrow(new RuntimeException("Service failure"));
+
+        SafeDepositBoxClosingIdentityControlException exception = assertThrows(
+                SafeDepositBoxClosingIdentityControlException.class,
+                () -> service.checkIdentity(request)
+        );
+        assertEquals(SafeDepositBoxOpeningConstant.ERROR_CHECK_IDENTITY_INVALID_RESPONSE, exception.getMessage());
     }
 }
