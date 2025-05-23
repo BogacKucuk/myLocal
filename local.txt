@@ -3,7 +3,7 @@
 """
 COBOL Dosya Temizleyici (Python 2.7)
 Bu script, COBOL dosyalarındaki satır numaralarını ve ünlem işaretlerini temizler,
-indentation yapısını koruyarak VS Code'da temiz bir görünüm sağlar.
+gereksiz boşlukları kaldırır ve temiz bir çıktı üretir.
 """
 
 import re
@@ -11,63 +11,69 @@ import sys
 import os
 import codecs
 
+def calculate_indentation(line):
+    """
+    Satırdaki ünlem işaretlerine göre indentation seviyesini hesaplar.
+    Her ünlem işareti bir indentation seviyesi demektir.
+    """
+    exclamation_count = 0
+    for char in line:
+        if char == '!':
+            exclamation_count += 1
+        elif char not in ' \t':
+            break
+    return exclamation_count
+
 def clean_cobol_line(line):
     """
     COBOL satırını temizler:
-    - Satır numaralarını (103*, 95* gibi) kaldırır
-    - Ünlem işaretlerini (!) uygun boşluklarla değiştirir
-    - Indentation yapısını korur
+    1. Satır numaralarını kaldırır
+    2. Ünlem işaretlerini sayar ve uygun indentation yapar
+    3. Gereksiz boşlukları temizler
     """
     # Satır boşsa veya sadece whitespace varsa olduğu gibi bırak
     if not line.strip():
         return line
     
-    # Önce COBOL satır numarasını temizle
+    # Önce COBOL satır numarasını bul ve kaldır
     # Pattern: başta boşluk, sonra sayılar ve *, sonra boşluk
-    cobol_line_pattern = r'^(\s*)(\d+\*)\s+'
+    cobol_line_pattern = r'^(\s*)(\d+\*)\s*'
     
     match = re.match(cobol_line_pattern, line)
     if match:
-        # İlk whitespace'leri ve COBOL satır numarasını al
-        initial_space = match.group(1)
-        line_number = match.group(2)  # Örn: "103*"
-        
-        # Satırın geri kalanı (asıl kod kısmı)
-        rest_of_line = line[match.end():]
-        
-        # Satır numarası yerine boşluk koy
-        spaces_for_number = ' ' * len(line_number)
-        line = initial_space + spaces_for_number + ' ' + rest_of_line
+        # Satır numarasından sonraki kısmı al
+        line = line[match.end():]
     
-    # Şimdi ünlem işaretlerini temizle
-    # Her ünlem işareti 2 boşluk indentation anlamına geliyor gibi görünüyor
-    # Ünlemleri sayıp uygun boşluklarla değiştir
-    cleaned_line = ""
+    # Şimdi ünlem işaretlerini say ve temizle
+    indent_level = 0
     i = 0
     
-    while i < len(line):
+    # Ünlem işaretlerini say
+    while i < len(line) and line[i] in '! \t':
         if line[i] == '!':
-            # Ünlem yerine 2 boşluk koy (veya tercihe göre ayarlanabilir)
-            cleaned_line += "  "
-        else:
-            # Ünlem değilse, geri kalan satırı ekle ve döngüden çık
-            cleaned_line += line[i:]
-            break
+            indent_level += 1
         i += 1
     
-    return cleaned_line
-
-def clean_special_markers(line):
-    """
-    Özel işaretleri ve notasyonları temizler veya düzenler.
-    <--- ESCAPE gibi işaretleri daha okunabilir hale getirir.
-    """
-    # ASCII karakterler kullan (Python 2.7 uyumluluğu için)
-    line = re.sub(r'<---', '<--', line)
+    # Asıl kod içeriğini al (ünlemlerden sonraki kısım)
+    code_content = line[i:].lstrip()
     
-    # +-- işaretlerini de temizle
-    line = re.sub(r'\+--', '|--', line)
-    line = re.sub(r'\+>', '|>', line)
+    # Eğer satır sadece ünlemlerden oluşuyorsa (kod içeriği yoksa)
+    if not code_content:
+        return '\n'
+    
+    # Her indentation seviyesi için 2 boşluk kullan
+    indentation = '  ' * indent_level
+    
+    # Temizlenmiş satırı oluştur
+    return indentation + code_content
+
+def clean_scope_markers(line):
+    """
+    Scope işaretlerini temizler ve düzenler.
+    """
+    # +-- gibi işaretleri koru ama düzenle
+    line = re.sub(r'\s*\+--\s*', ' -- ', line)
+    line = re.sub(r'\s*<---\s*', ' <-- ', line)
     
     return line
 
@@ -87,12 +93,11 @@ def process_cobol_file(input_file, output_file=None):
         output_file = base_name + "_cleaned" + extension
     
     try:
-        # Dosyayı oku ve işle (UTF-8 encoding ile)
+        # Dosyayı oku (encoding hata yönetimi ile)
         try:
             with codecs.open(input_file, 'r', encoding='utf-8') as infile:
                 lines = infile.readlines()
         except UnicodeDecodeError:
-            # UTF-8 okuma başarısız olursa, latin-1 dene
             with codecs.open(input_file, 'r', encoding='latin-1') as infile:
                 lines = infile.readlines()
         
@@ -101,15 +106,15 @@ def process_cobol_file(input_file, output_file=None):
         in_procedure_division = False
         
         for line in lines:
-            # PROCEDURE DIVISION'ı kontrol et (logic kısmının başlangıcı)
+            # PROCEDURE DIVISION'ı kontrol et
             if 'PROCEDURE DIVISION' in line.upper():
                 in_procedure_division = True
             
-            # Sadece PROCEDURE DIVISION içindeyse temizle
             if in_procedure_division:
+                # Satırı temizle
                 cleaned_line = clean_cobol_line(line)
-                # Özel işaretleri de temizle (opsiyonel)
-                cleaned_line = clean_special_markers(cleaned_line)
+                # Scope işaretlerini düzenle
+                cleaned_line = clean_scope_markers(cleaned_line)
             else:
                 # DATA DIVISION ve diğer kısımlarda satırı olduğu gibi bırak
                 cleaned_line = line
@@ -121,14 +126,13 @@ def process_cobol_file(input_file, output_file=None):
             with codecs.open(output_file, 'w', encoding='utf-8') as outfile:
                 outfile.writelines(cleaned_lines)
         except UnicodeEncodeError:
-            # UTF-8 yazma başarısız olursa, latin-1 dene
             with codecs.open(output_file, 'w', encoding='latin-1') as outfile:
                 outfile.writelines(cleaned_lines)
         
         print "✓ Başarılı! Temizlenmiş dosya: '%s'" % output_file
         print "  - Satır numaraları kaldırıldı"
-        print "  - Ünlem işaretleri boşluklarla değiştirildi"
-        print "  - Kod yapısı korundu"
+        print "  - Ünlem işaretleri indentation ile değiştirildi"
+        print "  - Gereksiz boşluklar temizlendi"
         return True
         
     except Exception as e:
@@ -137,21 +141,16 @@ def process_cobol_file(input_file, output_file=None):
 
 def main():
     """
-    Ana fonksiyon - komut satırı argümanlarını işler.
+    Ana fonksiyon
     """
     if len(sys.argv) < 2:
         print "COBOL Dosya Temizleyici"
         print "=" * 30
-        print "Kullanım: python cobol_cleaner.py <girdi_dosyasi> [cikti_dosyasi]"
+        print "Kullanım: python %s <girdi_dosyasi> [cikti_dosyasi]" % sys.argv[0]
         print ""
         print "Örnekler:"
-        print "  python cobol_cleaner.py program.cbl"
-        print "  python cobol_cleaner.py program.cbl program_temiz.cbl"
-        print ""
-        print "Bu script şunları yapar:"
-        print "  - COBOL satır numaralarını (103*, 95* vb.) kaldırır"
-        print "  - Ünlem işaretlerini (!) boşluklarla değiştirir"
-        print "  - Kod yapısını ve hizalamasını korur"
+        print "  python %s program.cbl" % sys.argv[0]
+        print "  python %s program.cbl program_temiz.cbl" % sys.argv[0]
         sys.exit(1)
     
     input_file = sys.argv[1]
