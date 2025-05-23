@@ -1,22 +1,126 @@
-public enum Gnarr {
-    ID_01("BU", "01", "KURUMSAL SUBE", ""),
-    ID_02("BU", "02", "TICARI SUBE", ""),
-    ID_03("BU", "03", "KISIYE OZEL SUBE", ""),
-    ID_04("BU", "04", "PERAKENDE OZEL SUBE", ""),
-    ID_05("BU", "05", "OPERASYON YONETIMI", ""),
-    ID_06("BU", "06", "ULUSLARARASI BANKACILIK", "");
+#!/usr/bin/env python3
+"""
+COBOL Satır Numarası Temizleyici
+Bu script, COBOL dosyalarındaki satır numaralarını (103*, 95* gibi) temizler 
+ve VS Code'da syntax highlighting çalışması için yeni bir dosya oluşturur.
+"""
 
-    private final String gnarrTableType;
-    private final String gnarrId;
-    private final String gnarrText;
-    private final String tAnahtar;
+import re
+import sys
+import os
+from pathlib import Path
 
-    Gnarr(String gnarrTableType, String gnarrId, String gnarrText, String tAnahtar) {
-        this.gnarrTableType = gnarrTableType;
-        this.gnarrId = gnarrId;
-        this.gnarrText = gnarrText;
-        this.tAnahtar = tAnahtar;
-    }
+def clean_cobol_line(line):
+    """
+    COBOL satırındaki numaraları temizler, yapısal özellikleri korur.
+    103* gibi COBOL satır numaralarını kaldırır.
+    """
+    # Satır boşsa veya sadece whitespace varsa olduğu gibi bırak
+    if not line.strip():
+        return line
     
-    // Getter metodları, vs.
-}
+    # COBOL satır numarası pattern'i: sayılar ve * karakteri
+    # Örnek: "103*", "95*", "111*" vb.
+    # Pattern: başta boşluk, sonra sayılar ve *, sonra boşluk
+    cobol_line_pattern = r'^(\s*)(\d+\*)\s+'
+    
+    match = re.match(cobol_line_pattern, line)
+    if match:
+        # İlk whitespace'leri ve COBOL satır numarasını al
+        initial_space = match.group(1)
+        line_number = match.group(2)  # Örn: "103*"
+        
+        # Satırın geri kalanı (asıl kod kısmı)
+        rest_of_line = line[match.end():]
+        
+        # COBOL satır numarası genelde 4-5 karakter (103*, 95* vb.)
+        # Bu alanı boşlukla doldur ki hizalama bozulmasın
+        spaces_to_add = ' ' * len(line_number)
+        
+        # Yeni satırı oluştur
+        return initial_space + spaces_to_add + ' ' + rest_of_line
+    
+    # Pattern match etmezse satırı olduğu gibi döndür
+    return line
+
+def process_cobol_file(input_file, output_file=None):
+    """
+    COBOL dosyasını işler ve temizlenmiş versiyonu yazar.
+    """
+    # Girdi dosyasının varlığını kontrol et
+    if not os.path.exists(input_file):
+        print(f"Hata: '{input_file}' dosyası bulunamadı!")
+        return False
+    
+    # Çıktı dosya adını belirle
+    if output_file is None:
+        path = Path(input_file)
+        output_file = path.parent / f"{path.stem}_cleaned{path.suffix}"
+    
+    try:
+        # Dosyayı oku ve işle
+        with open(input_file, 'r', encoding='utf-8') as infile:
+            lines = infile.readlines()
+        
+        # Her satırı temizle
+        cleaned_lines = []
+        in_procedure_division = False
+        
+        for line in lines:
+            # PROCEDURE DIVISION'ı kontrol et (logic kısmının başlangıcı)
+            if 'PROCEDURE DIVISION' in line.upper():
+                in_procedure_division = True
+            
+            # Sadece PROCEDURE DIVISION içindeyse temizle
+            if in_procedure_division:
+                cleaned_line = clean_cobol_line(line)
+            else:
+                # DATA DIVISION ve diğer kısımlarda satırı olduğu gibi bırak
+                cleaned_line = line
+            
+            cleaned_lines.append(cleaned_line)
+        
+        # Temizlenmiş içeriği yaz
+        with open(output_file, 'w', encoding='utf-8') as outfile:
+            outfile.writelines(cleaned_lines)
+        
+        print(f"✓ Başarılı! Temizlenmiş dosya: '{output_file}'")
+        return True
+        
+    except Exception as e:
+        print(f"Hata oluştu: {str(e)}")
+        return False
+
+def main():
+    """
+    Ana fonksiyon - komut satırı argümanlarını işler.
+    """
+    if len(sys.argv) < 2:
+        print("Kullanım: python cobol_cleaner.py <girdi_dosyasi> [cikti_dosyasi]")
+        print("Örnek: python cobol_cleaner.py program.cbl")
+        print("       python cobol_cleaner.py program.cbl program_temiz.cbl")
+        sys.exit(1)
+    
+    input_file = sys.argv[1]
+    output_file = sys.argv[2] if len(sys.argv) > 2 else None
+    
+    # Dosyayı işle
+    success = process_cobol_file(input_file, output_file)
+    
+    if not success:
+        sys.exit(1)
+
+if __name__ == "__main__":
+    main()
+
+# Örnek kullanım (script olarak çalıştırılmadığında)
+"""
+# Python içinden kullanım:
+from cobol_cleaner import process_cobol_file
+
+# Otomatik isimle (program_cleaned.cbl)
+process_cobol_file('program.cbl')
+
+# Özel çıktı dosya ismiyle
+process_cobol_file('program.cbl', 'program_temiz.cbl')
+"""
