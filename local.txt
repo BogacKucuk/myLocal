@@ -1,9 +1,9 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 """
-COBOL Satır Numarası Temizleyici (Python 2.7)
-Bu script, COBOL dosyalarındaki satır numaralarını (103*, 95* gibi) temizler 
-ve VS Code'da syntax highlighting çalışması için yeni bir dosya oluşturur.
+COBOL Dosya Temizleyici (Python 2.7)
+Bu script, COBOL dosyalarındaki satır numaralarını ve ünlem işaretlerini temizler,
+indentation yapısını koruyarak VS Code'da temiz bir görünüm sağlar.
 """
 
 import re
@@ -13,15 +13,16 @@ import codecs
 
 def clean_cobol_line(line):
     """
-    COBOL satırındaki numaraları temizler, yapısal özellikleri korur.
-    103* gibi COBOL satır numaralarını kaldırır.
+    COBOL satırını temizler:
+    - Satır numaralarını (103*, 95* gibi) kaldırır
+    - Ünlem işaretlerini (!) uygun boşluklarla değiştirir
+    - Indentation yapısını korur
     """
     # Satır boşsa veya sadece whitespace varsa olduğu gibi bırak
     if not line.strip():
         return line
     
-    # COBOL satır numarası pattern'i: sayılar ve * karakteri
-    # Örnek: "103*", "95*", "111*" vb.
+    # Önce COBOL satır numarasını temizle
     # Pattern: başta boşluk, sonra sayılar ve *, sonra boşluk
     cobol_line_pattern = r'^(\s*)(\d+\*)\s+'
     
@@ -34,14 +35,40 @@ def clean_cobol_line(line):
         # Satırın geri kalanı (asıl kod kısmı)
         rest_of_line = line[match.end():]
         
-        # COBOL satır numarası genelde 4-5 karakter (103*, 95* vb.)
-        # Bu alanı boşlukla doldur ki hizalama bozulmasın
-        spaces_to_add = ' ' * len(line_number)
-        
-        # Yeni satırı oluştur
-        return initial_space + spaces_to_add + ' ' + rest_of_line
+        # Satır numarası yerine boşluk koy
+        spaces_for_number = ' ' * len(line_number)
+        line = initial_space + spaces_for_number + ' ' + rest_of_line
     
-    # Pattern match etmezse satırı olduğu gibi döndür
+    # Şimdi ünlem işaretlerini temizle
+    # Her ünlem işareti 2 boşluk indentation anlamına geliyor gibi görünüyor
+    # Ünlemleri sayıp uygun boşluklarla değiştir
+    cleaned_line = ""
+    i = 0
+    
+    while i < len(line):
+        if line[i] == '!':
+            # Ünlem yerine 2 boşluk koy (veya tercihe göre ayarlanabilir)
+            cleaned_line += "  "
+        else:
+            # Ünlem değilse, geri kalan satırı ekle ve döngüden çık
+            cleaned_line += line[i:]
+            break
+        i += 1
+    
+    return cleaned_line
+
+def clean_special_markers(line):
+    """
+    Özel işaretleri ve notasyonları temizler veya düzenler.
+    <--- ESCAPE gibi işaretleri daha okunabilir hale getirir.
+    """
+    # <--- işaretini ok işareti ile değiştir (daha temiz görünüm)
+    line = re.sub(r'<---', '◄──', line)
+    
+    # +-- işaretlerini de temizle
+    line = re.sub(r'\+--', '├──', line)
+    line = re.sub(r'\+>', '└►', line)
+    
     return line
 
 def process_cobol_file(input_file, output_file=None):
@@ -76,6 +103,8 @@ def process_cobol_file(input_file, output_file=None):
             # Sadece PROCEDURE DIVISION içindeyse temizle
             if in_procedure_division:
                 cleaned_line = clean_cobol_line(line)
+                # Özel işaretleri de temizle (opsiyonel)
+                cleaned_line = clean_special_markers(cleaned_line)
             else:
                 # DATA DIVISION ve diğer kısımlarda satırı olduğu gibi bırak
                 cleaned_line = line
@@ -87,6 +116,9 @@ def process_cobol_file(input_file, output_file=None):
             outfile.writelines(cleaned_lines)
         
         print "✓ Başarılı! Temizlenmiş dosya: '%s'" % output_file
+        print "  - Satır numaraları kaldırıldı"
+        print "  - Ünlem işaretleri boşluklarla değiştirildi"
+        print "  - Kod yapısı korundu"
         return True
         
     except Exception as e:
@@ -98,9 +130,18 @@ def main():
     Ana fonksiyon - komut satırı argümanlarını işler.
     """
     if len(sys.argv) < 2:
+        print "COBOL Dosya Temizleyici"
+        print "=" * 30
         print "Kullanım: python cobol_cleaner.py <girdi_dosyasi> [cikti_dosyasi]"
-        print "Örnek: python cobol_cleaner.py program.cbl"
-        print "       python cobol_cleaner.py program.cbl program_temiz.cbl"
+        print ""
+        print "Örnekler:"
+        print "  python cobol_cleaner.py program.cbl"
+        print "  python cobol_cleaner.py program.cbl program_temiz.cbl"
+        print ""
+        print "Bu script şunları yapar:"
+        print "  - COBOL satır numaralarını (103*, 95* vb.) kaldırır"
+        print "  - Ünlem işaretlerini (!) boşluklarla değiştirir"
+        print "  - Kod yapısını ve hizalamasını korur"
         sys.exit(1)
     
     input_file = sys.argv[1]
@@ -114,15 +155,3 @@ def main():
 
 if __name__ == "__main__":
     main()
-
-# Örnek kullanım (script olarak çalıştırılmadığında)
-"""
-# Python içinden kullanım:
-from cobol_cleaner import process_cobol_file
-
-# Otomatik isimle (program_cleaned.cbl)
-process_cobol_file('program.cbl')
-
-# Özel çıktı dosya ismiyle
-process_cobol_file('program.cbl', 'program_temiz.cbl')
-"""
