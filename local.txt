@@ -1,6 +1,7 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
+# -*- coding: utf-8 -*-
 """
-COBOL Satır Numarası Temizleyici
+COBOL Satır Numarası Temizleyici (Python 2.7)
 Bu script, COBOL dosyalarındaki satır numaralarını (103*, 95* gibi) temizler 
 ve VS Code'da syntax highlighting çalışması için yeni bir dosya oluşturur.
 """
@@ -8,7 +9,7 @@ ve VS Code'da syntax highlighting çalışması için yeni bir dosya oluşturur.
 import re
 import sys
 import os
-from pathlib import Path
+import codecs
 
 def clean_cobol_line(line):
     """
@@ -49,17 +50,18 @@ def process_cobol_file(input_file, output_file=None):
     """
     # Girdi dosyasının varlığını kontrol et
     if not os.path.exists(input_file):
-        print(f"Hata: '{input_file}' dosyası bulunamadı!")
+        print "Hata: '%s' dosyası bulunamadı!" % input_file
         return False
     
     # Çıktı dosya adını belirle
     if output_file is None:
-        path = Path(input_file)
-        output_file = path.parent / f"{path.stem}_cleaned{path.suffix}"
+        base_name = os.path.splitext(input_file)[0]
+        extension = os.path.splitext(input_file)[1]
+        output_file = base_name + "_cleaned" + extension
     
     try:
-        # Dosyayı oku ve işle
-        with open(input_file, 'r', encoding='utf-8') as infile:
+        # Dosyayı oku ve işle (UTF-8 encoding ile)
+        with codecs.open(input_file, 'r', encoding='utf-8') as infile:
             lines = infile.readlines()
         
         # Her satırı temizle
@@ -81,14 +83,14 @@ def process_cobol_file(input_file, output_file=None):
             cleaned_lines.append(cleaned_line)
         
         # Temizlenmiş içeriği yaz
-        with open(output_file, 'w', encoding='utf-8') as outfile:
+        with codecs.open(output_file, 'w', encoding='utf-8') as outfile:
             outfile.writelines(cleaned_lines)
         
-        print(f"✓ Başarılı! Temizlenmiş dosya: '{output_file}'")
+        print "✓ Başarılı! Temizlenmiş dosya: '%s'" % output_file
         return True
         
     except Exception as e:
-        print(f"Hata oluştu: {str(e)}")
+        print "Hata oluştu: %s" % str(e)
         return False
 
 def main():
@@ -96,9 +98,9 @@ def main():
     Ana fonksiyon - komut satırı argümanlarını işler.
     """
     if len(sys.argv) < 2:
-        print("Kullanım: python cobol_cleaner.py <girdi_dosyasi> [cikti_dosyasi]")
-        print("Örnek: python cobol_cleaner.py program.cbl")
-        print("       python cobol_cleaner.py program.cbl program_temiz.cbl")
+        print "Kullanım: python cobol_cleaner.py <girdi_dosyasi> [cikti_dosyasi]"
+        print "Örnek: python cobol_cleaner.py program.cbl"
+        print "       python cobol_cleaner.py program.cbl program_temiz.cbl"
         sys.exit(1)
     
     input_file = sys.argv[1]
