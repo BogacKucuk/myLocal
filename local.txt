@@ -62,12 +62,12 @@ def clean_special_markers(line):
     Özel işaretleri ve notasyonları temizler veya düzenler.
     <--- ESCAPE gibi işaretleri daha okunabilir hale getirir.
     """
-    # <--- işaretini ok işareti ile değiştir (daha temiz görünüm)
-    line = re.sub(r'<---', '◄──', line)
+    # ASCII karakterler kullan (Python 2.7 uyumluluğu için)
+    line = re.sub(r'<---', '<--', line)
     
     # +-- işaretlerini de temizle
-    line = re.sub(r'\+--', '├──', line)
-    line = re.sub(r'\+>', '└►', line)
+    line = re.sub(r'\+--', '|--', line)
+    line = re.sub(r'\+>', '|>', line)
     
     return line
 
@@ -88,8 +88,13 @@ def process_cobol_file(input_file, output_file=None):
     
     try:
         # Dosyayı oku ve işle (UTF-8 encoding ile)
-        with codecs.open(input_file, 'r', encoding='utf-8') as infile:
-            lines = infile.readlines()
+        try:
+            with codecs.open(input_file, 'r', encoding='utf-8') as infile:
+                lines = infile.readlines()
+        except UnicodeDecodeError:
+            # UTF-8 okuma başarısız olursa, latin-1 dene
+            with codecs.open(input_file, 'r', encoding='latin-1') as infile:
+                lines = infile.readlines()
         
         # Her satırı temizle
         cleaned_lines = []
@@ -112,8 +117,13 @@ def process_cobol_file(input_file, output_file=None):
             cleaned_lines.append(cleaned_line)
         
         # Temizlenmiş içeriği yaz
-        with codecs.open(output_file, 'w', encoding='utf-8') as outfile:
-            outfile.writelines(cleaned_lines)
+        try:
+            with codecs.open(output_file, 'w', encoding='utf-8') as outfile:
+                outfile.writelines(cleaned_lines)
+        except UnicodeEncodeError:
+            # UTF-8 yazma başarısız olursa, latin-1 dene
+            with codecs.open(output_file, 'w', encoding='latin-1') as outfile:
+                outfile.writelines(cleaned_lines)
         
         print "✓ Başarılı! Temizlenmiş dosya: '%s'" % output_file
         print "  - Satır numaraları kaldırıldı"
