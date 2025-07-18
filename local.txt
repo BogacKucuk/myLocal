@@ -1,166 +1,39 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-"""
-COBOL Dosya Temizleyici (Python 2.7)
-Bu script, COBOL dosyalarındaki satır numaralarını ve ünlem işaretlerini temizler,
-gereksiz boşlukları kaldırır ve temiz bir çıktı üretir.
-"""
+// src/features/lastTransactions/lastTransactionsApi.ts
+import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
+import type { Transaction, LastTransactionsResponse } from './types';
 
-import re
-import sys
-import os
-import codecs
+export const lastTransactionsApi = createApi({
+  reducerPath: 'lastTransactionsApi',
+  baseQuery: fetchBaseQuery({ baseUrl: 'http://localhost:8080/api' }),
+  endpoints: (builder) => ({
+    getLastTransactions: builder.query<
+      Transaction[],
+      number
+    >({
+      // customerNumber’ı direkt argüman olarak alıyoruz
+      query: (customerNumber) => ({
+        url: '/last-transactions',
+        method: 'POST',
+        body: { customerNumber },
+      }),
+      transformResponse: (res: LastTransactionsResponse) =>
+        res.transactions,
+      // isteğe bağlı cache invalidation tag’leri
+      providesTags: (result) =>
+        result
+          ? [
+              ...result.map(({ customerNumber }) => ({
+                type: 'LastTx' as const,
+                id: customerNumber,
+              })),
+              { type: 'LastTx', id: 'LIST' },
+            ]
+          : [{ type: 'LastTx', id: 'LIST' }],
+    }),
+  }),
+});
 
-def calculate_indentation(line):
-    """
-    Satırdaki ünlem işaretlerine göre indentation seviyesini hesaplar.
-    Her ünlem işareti bir indentation seviyesi demektir.
-    """
-    exclamation_count = 0
-    for char in line:
-        if char == '!':
-            exclamation_count += 1
-        elif char not in ' \t':
-            break
-    return exclamation_count
-
-def clean_cobol_line(line):
-    """
-    COBOL satırını temizler:
-    1. Satır numaralarını kaldırır
-    2. Ünlem işaretlerini sayar ve uygun indentation yapar
-    3. Gereksiz boşlukları temizler
-    """
-    # Satır boşsa veya sadece whitespace varsa olduğu gibi bırak
-    if not line.strip():
-        return line
-    
-    # Önce COBOL satır numarasını bul ve kaldır
-    # Pattern: başta boşluk, sonra sayılar ve *, sonra boşluk
-    cobol_line_pattern = r'^(\s*)(\d+\*)\s*'
-    
-    match = re.match(cobol_line_pattern, line)
-    if match:
-        # Satır numarasından sonraki kısmı al
-        line = line[match.end():]
-    
-    # Şimdi ünlem işaretlerini say ve temizle
-    indent_level = 0
-    i = 0
-    
-    # Ünlem işaretlerini say
-    while i < len(line) and line[i] in '! \t':
-        if line[i] == '!':
-            indent_level += 1
-        i += 1
-    
-    # Asıl kod içeriğini al (ünlemlerden sonraki kısım)
-    code_content = line[i:].lstrip()
-    
-    # Eğer satır sadece ünlemlerden oluşuyorsa (kod içeriği yoksa)
-    if not code_content:
-        return '\n'
-    
-    # Her indentation seviyesi için 2 boşluk kullan
-    indentation = '  ' * indent_level
-    
-    # Temizlenmiş satırı oluştur
-    return indentation + code_content
-
-def clean_scope_markers(line):
-    """
-    Scope işaretlerini temizler ve düzenler.
-    """
-    # +-- gibi işaretleri koru ama düzenle
-    line = re.sub(r'\s*\+--\s*', ' -- ', line)
-    line = re.sub(r'\s*<---\s*', ' <-- ', line)
-    
-    return line
-
-def process_cobol_file(input_file, output_file=None):
-    """
-    COBOL dosyasını işler ve temizlenmiş versiyonu yazar.
-    """
-    # Girdi dosyasının varlığını kontrol et
-    if not os.path.exists(input_file):
-        print "Hata: '%s' dosyası bulunamadı!" % input_file
-        return False
-    
-    # Çıktı dosya adını belirle
-    if output_file is None:
-        base_name = os.path.splitext(input_file)[0]
-        extension = os.path.splitext(input_file)[1]
-        output_file = base_name + "_cleaned" + extension
-    
-    try:
-        # Dosyayı oku (encoding hata yönetimi ile)
-        try:
-            with codecs.open(input_file, 'r', encoding='utf-8') as infile:
-                lines = infile.readlines()
-        except UnicodeDecodeError:
-            with codecs.open(input_file, 'r', encoding='latin-1') as infile:
-                lines = infile.readlines()
-        
-        # Her satırı temizle
-        cleaned_lines = []
-        in_procedure_division = False
-        
-        for line in lines:
-            # PROCEDURE DIVISION'ı kontrol et
-            if 'PROCEDURE DIVISION' in line.upper():
-                in_procedure_division = True
-            
-            if in_procedure_division:
-                # Satırı temizle
-                cleaned_line = clean_cobol_line(line)
-                # Scope işaretlerini düzenle
-                cleaned_line = clean_scope_markers(cleaned_line)
-            else:
-                # DATA DIVISION ve diğer kısımlarda satırı olduğu gibi bırak
-                cleaned_line = line
-            
-            cleaned_lines.append(cleaned_line)
-        
-        # Temizlenmiş içeriği yaz
-        try:
-            with codecs.open(output_file, 'w', encoding='utf-8') as outfile:
-                outfile.writelines(cleaned_lines)
-        except UnicodeEncodeError:
-            with codecs.open(output_file, 'w', encoding='latin-1') as outfile:
-                outfile.writelines(cleaned_lines)
-        
-        print "✓ Başarılı! Temizlenmiş dosya: '%s'" % output_file
-        print "  - Satır numaraları kaldırıldı"
-        print "  - Ünlem işaretleri indentation ile değiştirildi"
-        print "  - Gereksiz boşluklar temizlendi"
-        return True
-        
-    except Exception as e:
-        print "Hata oluştu: %s" % str(e)
-        return False
-
-def main():
-    """
-    Ana fonksiyon
-    """
-    if len(sys.argv) < 2:
-        print "COBOL Dosya Temizleyici"
-        print "=" * 30
-        print "Kullanım: python %s <girdi_dosyasi> [cikti_dosyasi]" % sys.argv[0]
-        print ""
-        print "Örnekler:"
-        print "  python %s program.cbl" % sys.argv[0]
-        print "  python %s program.cbl program_temiz.cbl" % sys.argv[0]
-        sys.exit(1)
-    
-    input_file = sys.argv[1]
-    output_file = sys.argv[2] if len(sys.argv) > 2 else None
-    
-    # Dosyayı işle
-    success = process_cobol_file(input_file, output_file)
-    
-    if not success:
-        sys.exit(1)
-
-if __name__ == "__main__":
-    main()
+export const {
+  useGetLastTransactionsQuery,
+  useLazyGetLastTransactionsQuery,
+} = lastTransactionsApi;
