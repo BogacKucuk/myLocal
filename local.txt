@@ -1,39 +1,66 @@
-// src/features/lastTransactions/lastTransactionsApi.ts
-import { createApi, fetchBaseQuery } from '@reduxjs/toolkit/query/react';
-import type { Transaction, LastTransactionsResponse } from './types';
+// src/features/lastTransactions/LastTransactionsPopupComponent.tsx
+import React from 'react'
+import { useGetLastTransactionsQuery } from './lastTransactionsApi'
+import type {
+  ListTransactions,
+  Transaction,
+  FindTransactionByCustomerNumber,
+} from '../types/Transaction.type'
 
-export const lastTransactionsApi = createApi({
-  reducerPath: 'lastTransactionsApi',
-  baseQuery: fetchBaseQuery({ baseUrl: 'http://localhost:8080/api' }),
-  endpoints: (builder) => ({
-    getLastTransactions: builder.query<
-      Transaction[],
-      number
-    >({
-      // customerNumber’ı direkt argüman olarak alıyoruz
-      query: (customerNumber) => ({
-        url: '/last-transactions',
-        method: 'POST',
-        body: { customerNumber },
-      }),
-      transformResponse: (res: LastTransactionsResponse) =>
-        res.transactions,
-      // isteğe bağlı cache invalidation tag’leri
-      providesTags: (result) =>
-        result
-          ? [
-              ...result.map(({ customerNumber }) => ({
-                type: 'LastTx' as const,
-                id: customerNumber,
-              })),
-              { type: 'LastTx', id: 'LIST' },
-            ]
-          : [{ type: 'LastTx', id: 'LIST' }],
-    }),
-  }),
-});
+type Props = {
+  onClose: () => void
+  dataTestId?: string
+  visible?: boolean
+}
 
-export const {
-  useGetLastTransactionsQuery,
-  useLazyGetLastTransactionsQuery,
-} = lastTransactionsApi;
+export const LastTransactionsPopupComponent: React.FC<Props> = ({
+  onClose,
+  dataTestId,
+  visible,
+}) => {
+  // ——— 1) Dummy payload ✏️
+  const dummyPayload: FindTransactionByCustomerNumber = {
+    customerNumber: 123456789,
+  }
+
+  // ——— 2) Hook’u çağır, data === ListTransactions | undefined
+  const {
+    data: list,       // tip: ListTransactions | undefined
+    isLoading,
+    error,
+  } = useGetLastTransactionsQuery(dummyPayload)
+
+  if (isLoading) return <div>Yükleniyor…</div>
+  if (error) return <div>Hata oluştu: {(error as any).message}</div>
+
+  // ——— 3) transactions dizisini çek (boşsa []) ve UI formatına maple
+  const transactions: Transaction[] = list?.transactions ?? []
+
+  const tableData = transactions.map((tx) => ({
+    date: new Date().toLocaleDateString('tr-TR'),         // eğer API’den tarih geliyorsa onu kullan
+    branch: tx.channel,                                   // channel → Şube
+    account: tx.customerAccount,                          // customerAccount → Hesap
+    amount: `${tx.transactionAmount
+      .toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
+      ${tx.currency}`,                                    // miktar + para birimi
+    type: tx.opCode,                                      // opCode → Açıklama
+  }))
+
+  const header = [
+    { label: 'İşlem Tarihi' },
+    { label: 'Şube' },
+    { label: 'Hesap' },
+    { label: 'Tutar' },
+    { label: 'Açıklama' },
+  ]
+
+  if (!visible) return null
+  return (
+    <YourTableComponent
+      header={header}
+      data={tableData}
+      onClose={onClose}
+      dataTestId={dataTestId}
+    />
+  )
+}
