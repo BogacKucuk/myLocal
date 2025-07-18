@@ -1,11 +1,19 @@
 // src/features/lastTransactions/LastTransactionsPopupComponent.tsx
-import React from 'react'
+import React, { useState, useEffect } from 'react'
 import { useGetLastTransactionsQuery } from './lastTransactionsApi'
 import type {
   ListTransactions,
   Transaction,
   FindTransactionByCustomerNumber,
 } from '../types/Transaction.type'
+
+type Row = {
+  date: string
+  branch: string
+  account: string
+  amount: string
+  type: string
+}
 
 type Props = {
   onClose: () => void
@@ -18,33 +26,41 @@ export const LastTransactionsPopupComponent: React.FC<Props> = ({
   dataTestId,
   visible,
 }) => {
-  // ——— 1) Dummy payload ✏️
+  // ——— 1) Local state tanımla
+  const [rawTxs, setRawTxs] = useState<Transaction[]>([])
+  const [rows, setRows] = useState<Row[]>([])
+
+  // ——— 2) Dummy payload ile hook’u çağır
   const dummyPayload: FindTransactionByCustomerNumber = {
     customerNumber: 123456789,
   }
+  const { data: list, isLoading, error } =
+    useGetLastTransactionsQuery(dummyPayload)
 
-  // ——— 2) Hook’u çağır, data === ListTransactions | undefined
-  const {
-    data: list,       // tip: ListTransactions | undefined
-    isLoading,
-    error,
-  } = useGetLastTransactionsQuery(dummyPayload)
+  // ——— 3) list değiştiğinde state’i güncelle
+  useEffect(() => {
+    if (list?.transactions) {
+      setRawTxs(list.transactions)
+    }
+  }, [list])
 
+  // ——— 4) rawTxs değiştiğinde UI için map’le
+  useEffect(() => {
+    const mapped: Row[] = rawTxs.map((tx) => ({
+      date: new Date().toLocaleDateString('tr-TR'),
+      branch: tx.channel,
+      account: tx.customerAccount,
+      amount: `${tx.transactionAmount.toLocaleString('tr-TR', {
+        minimumFractionDigits: 2,
+      })} ${tx.currency}`,
+      type: tx.opCode,
+    }))
+    setRows(mapped)
+  }, [rawTxs])
+
+  if (!visible) return null
   if (isLoading) return <div>Yükleniyor…</div>
   if (error) return <div>Hata oluştu: {(error as any).message}</div>
-
-  // ——— 3) transactions dizisini çek (boşsa []) ve UI formatına maple
-  const transactions: Transaction[] = list?.transactions ?? []
-
-  const tableData = transactions.map((tx) => ({
-    date: new Date().toLocaleDateString('tr-TR'),         // eğer API’den tarih geliyorsa onu kullan
-    branch: tx.channel,                                   // channel → Şube
-    account: tx.customerAccount,                          // customerAccount → Hesap
-    amount: `${tx.transactionAmount
-      .toLocaleString('tr-TR', { minimumFractionDigits: 2 })}
-      ${tx.currency}`,                                    // miktar + para birimi
-    type: tx.opCode,                                      // opCode → Açıklama
-  }))
 
   const header = [
     { label: 'İşlem Tarihi' },
@@ -54,11 +70,10 @@ export const LastTransactionsPopupComponent: React.FC<Props> = ({
     { label: 'Açıklama' },
   ]
 
-  if (!visible) return null
   return (
     <YourTableComponent
       header={header}
-      data={tableData}
+      data={rows}
       onClose={onClose}
       dataTestId={dataTestId}
     />
