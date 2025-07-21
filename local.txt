@@ -364,6 +364,33 @@ class TransactionGrpcServiceImplTest {
     }
 
     @Test
+    void testFindTransactionByCustomerNumber_ServiceReturnsNull() throws Exception {
+        // Given
+        Integer customerNumber = 888888;
+        FindTransactionByCustomerNumberGrpcRequest request = 
+                FindTransactionByCustomerNumberGrpcRequest.newBuilder()
+                        .setCustomerNumber(customerNumber)
+                        .build();
+
+        when(transactionService.findTransactionByCustomerNumber(customerNumber))
+                .thenReturn(null); // Service null dönüyor
+
+        // When
+        transactionGrpcService.findTransactionByCustomerNumber(request, responseObserver);
+
+        // Then
+        ArgumentCaptor<StatusRuntimeException> errorCaptor = 
+                ArgumentCaptor.forClass(StatusRuntimeException.class);
+        
+        verify(responseObserver).onError(errorCaptor.capture());
+        verify(responseObserver, never()).onNext(any());
+        verify(responseObserver, never()).onCompleted();
+        
+        StatusRuntimeException capturedError = errorCaptor.getValue();
+        assertEquals(Status.INTERNAL.getCode(), capturedError.getStatus().getCode());
+    }
+
+    @Test
     void testFindTransactionByCustomerNumber_TransactionWithNullFields() throws Exception {
         // Given
         Integer customerNumber = 222222;
@@ -410,31 +437,7 @@ class TransactionGrpcServiceImplTest {
     }
 
     @Test
-    void testFindTransactionByCustomerNumber_ServiceReturnsNull() throws Exception {
-        // Given
-        Integer customerNumber = 888888;
-        FindTransactionByCustomerNumberGrpcRequest request = 
-                FindTransactionByCustomerNumberGrpcRequest.newBuilder()
-                        .setCustomerNumber(customerNumber)
-                        .build();
-
-        when(transactionService.findTransactionByCustomerNumber(customerNumber))
-                .thenReturn(null); // Service null dönüyor
-
-        // When
-        transactionGrpcService.findTransactionByCustomerNumber(request, responseObserver);
-
-        // Then
-        ArgumentCaptor<StatusRuntimeException> errorCaptor = 
-                ArgumentCaptor.forClass(StatusRuntimeException.class);
-        
-        verify(responseObserver).onError(errorCaptor.capture());
-        verify(responseObserver, never()).onNext(any());
-        verify(responseObserver, never()).onCompleted();
-        
-        StatusRuntimeException capturedError = errorCaptor.getValue();
-        assertEquals(Status.INTERNAL.getCode(), capturedError.getStatus().getCode());
-    }
+    void testFindTransactionByCustomerNumber_LargeDataSet() throws Exception {
         // Given
         Integer customerNumber = 111111;
         FindTransactionByCustomerNumberGrpcRequest request = 
