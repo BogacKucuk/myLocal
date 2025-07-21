@@ -1,81 +1,355 @@
-// src/features/lastTransactions/LastTransactionsPopupComponent.tsx
-import React, { useState, useEffect } from 'react'
-import { useGetLastTransactionsQuery } from './lastTransactionsApi'
-import type {
-  ListTransactions,
-  Transaction,
-  FindTransactionByCustomerNumber,
-} from '../types/Transaction.type'
+package com.garantibbva.depositwithdrawalmngmt.moneywithdrawbusiness.service.impl;
 
-type Row = {
-  date: string
-  branch: string
-  account: string
-  amount: string
-  type: string
-}
+import com.garantibbva.depositwithdrawalmngmt.moneywithdrawbusiness.data.contract.dao.TransactionDao;
+import com.garantibbva.depositwithdrawalmngmt.moneywithdrawbusiness.data.contract.model.entity.TransactionEntity;
+import com.garantibbva.depositwithdrawalmngmt.moneywithdrawbusiness.service.contract.model.TransactionDto;
+import com.garantibbva.depositwithdrawalmngmt.moneywithdrawbusiness.service.contract.model.response.TransactionListDto;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-type Props = {
-  onClose: () => void
-  dataTestId?: string
-  visible?: boolean
-}
+import java.math.BigDecimal;
+import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 
-export const LastTransactionsPopupComponent: React.FC<Props> = ({
-  onClose,
-  dataTestId,
-  visible,
-}) => {
-  // ——— 1) Local state tanımla
-  const [rawTxs, setRawTxs] = useState<Transaction[]>([])
-  const [rows, setRows] = useState<Row[]>([])
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
+import static org.mockito.Mockito.*;
 
-  // ——— 2) Dummy payload ile hook’u çağır
-  const dummyPayload: FindTransactionByCustomerNumber = {
-    customerNumber: 123456789,
-  }
-  const { data: list, isLoading, error } =
-    useGetLastTransactionsQuery(dummyPayload)
+@ExtendWith(MockitoExtension.class)
+class TransactionServiceImplTest {
 
-  // ——— 3) list değiştiğinde state’i güncelle
-  useEffect(() => {
-    if (list?.transactions) {
-      setRawTxs(list.transactions)
+    @Mock
+    private TransactionDao transactionDao;
+
+    @InjectMocks
+    private TransactionServiceImpl transactionService;
+
+    private TransactionEntity transactionEntity;
+    private List<TransactionEntity> transactionEntities;
+
+    @BeforeEach
+    void setUp() {
+        // TransactionEntity setup
+        transactionEntity = new TransactionEntity();
+        transactionEntity.setOperationType("DEPOSIT");
+        transactionEntity.setCustomerNumber(123456);
+        transactionEntity.setCustomerAccount("ACC123456");
+        transactionEntity.setTransactionAmount(new BigDecimal("1000.00"));
+        transactionEntity.setCurrency("TRY");
+        transactionEntity.setOpCode("OP001");
+        transactionEntity.setStoredRequest("REQUEST_001");
+        transactionEntity.setChannel("MOBILE");
+
+        transactionEntities = new ArrayList<>();
+        transactionEntities.add(transactionEntity);
     }
-  }, [list])
 
-  // ——— 4) rawTxs değiştiğinde UI için map’le
-  useEffect(() => {
-    const mapped: Row[] = rawTxs.map((tx) => ({
-      date: new Date().toLocaleDateString('tr-TR'),
-      branch: tx.channel,
-      account: tx.customerAccount,
-      amount: `${tx.transactionAmount.toLocaleString('tr-TR', {
-        minimumFractionDigits: 2,
-      })} ${tx.currency}`,
-      type: tx.opCode,
-    }))
-    setRows(mapped)
-  }, [rawTxs])
+    @Test
+    void testFindTransactionByCustomerNumber_Success() throws SQLException {
+        // Given
+        Integer customerNumber = 123456;
+        when(transactionDao.findByCustomerNumber(customerNumber))
+                .thenReturn(Optional.of(transactionEntities));
 
-  if (!visible) return null
-  if (isLoading) return <div>Yükleniyor…</div>
-  if (error) return <div>Hata oluştu: {(error as any).message}</div>
+        // When
+        TransactionListDto result = transactionService.findTransactionByCustomerNumber(customerNumber);
 
-  const header = [
-    { label: 'İşlem Tarihi' },
-    { label: 'Şube' },
-    { label: 'Hesap' },
-    { label: 'Tutar' },
-    { label: 'Açıklama' },
-  ]
+        // Then
+        assertNotNull(result);
+        assertNotNull(result.getTransactions());
+        assertEquals(1, result.getTransactions().size());
+        
+        TransactionDto resultDto = result.getTransactions().get(0);
+        assertEquals("DEPOSIT", resultDto.getOperationType());
+        assertEquals(123456, resultDto.getCustomerNumber());
+        assertEquals("ACC123456", resultDto.getCustomerAccount());
+        assertEquals(new BigDecimal("1000.00"), resultDto.getTransactionAmount());
+        assertEquals("TRY", resultDto.getCurrency());
+        assertEquals("OP001", resultDto.getOpCode());
+        assertEquals("REQUEST_001", resultDto.getStoredRequest());
+        assertEquals("MOBILE", resultDto.getChannel());
 
-  return (
-    <YourTableComponent
-      header={header}
-      data={rows}
-      onClose={onClose}
-      dataTestId={dataTestId}
-    />
-  )
+        verify(transactionDao, times(1)).findByCustomerNumber(customerNumber);
+    }
+
+    @Test
+    void testFindTransactionByCustomerNumber_EmptyResult() throws SQLException {
+        // Given
+        Integer customerNumber = 999999;
+        when(transactionDao.findByCustomerNumber(customerNumber))
+                .thenReturn(Optional.empty());
+
+        // When
+        TransactionListDto result = transactionService.findTransactionByCustomerNumber(customerNumber);
+
+        // Then
+        assertNotNull(result);
+        assertNotNull(result.getTransactions());
+        assertTrue(result.getTransactions().isEmpty());
+
+        verify(transactionDao, times(1)).findByCustomerNumber(customerNumber);
+    }
+
+    @Test
+    void testFindTransactionByCustomerNumber_EmptyList() throws SQLException {
+        // Given
+        Integer customerNumber = 888888;
+        when(transactionDao.findByCustomerNumber(customerNumber))
+                .thenReturn(Optional.of(Collections.emptyList()));
+
+        // When
+        TransactionListDto result = transactionService.findTransactionByCustomerNumber(customerNumber);
+
+        // Then
+        assertNotNull(result);
+        assertNotNull(result.getTransactions());
+        assertTrue(result.getTransactions().isEmpty());
+
+        verify(transactionDao, times(1)).findByCustomerNumber(customerNumber);
+    }
+
+    @Test
+    void testFindTransactionByCustomerNumber_MultipleTransactions() throws SQLException {
+        // Given
+        Integer customerNumber = 777777;
+        
+        // Create multiple transactions
+        TransactionEntity secondTransaction = new TransactionEntity();
+        secondTransaction.setOperationType("WITHDRAWAL");
+        secondTransaction.setCustomerNumber(777777);
+        secondTransaction.setCustomerAccount("ACC777777");
+        secondTransaction.setTransactionAmount(new BigDecimal("500.00"));
+        secondTransaction.setCurrency("USD");
+        secondTransaction.setOpCode("OP002");
+        secondTransaction.setStoredRequest("REQUEST_002");
+        secondTransaction.setChannel("WEB");
+
+        List<TransactionEntity> multipleEntities = new ArrayList<>();
+        multipleEntities.add(transactionEntity);
+        multipleEntities.add(secondTransaction);
+
+        when(transactionDao.findByCustomerNumber(customerNumber))
+                .thenReturn(Optional.of(multipleEntities));
+
+        // When
+        TransactionListDto result = transactionService.findTransactionByCustomerNumber(customerNumber);
+
+        // Then
+        assertNotNull(result);
+        assertNotNull(result.getTransactions());
+        assertEquals(2, result.getTransactions().size());
+        
+        // Verify first transaction
+        TransactionDto firstDto = result.getTransactions().get(0);
+        assertEquals("DEPOSIT", firstDto.getOperationType());
+        assertEquals(123456, firstDto.getCustomerNumber());
+        
+        // Verify second transaction
+        TransactionDto secondDto = result.getTransactions().get(1);
+        assertEquals("WITHDRAWAL", secondDto.getOperationType());
+        assertEquals(777777, secondDto.getCustomerNumber());
+        assertEquals("ACC777777", secondDto.getCustomerAccount());
+        assertEquals(new BigDecimal("500.00"), secondDto.getTransactionAmount());
+        assertEquals("USD", secondDto.getCurrency());
+
+        verify(transactionDao, times(1)).findByCustomerNumber(customerNumber);
+    }
+
+    @Test
+    void testFindTransactionByCustomerNumber_SQLException() throws SQLException {
+        // Given
+        Integer customerNumber = 666666;
+        when(transactionDao.findByCustomerNumber(customerNumber))
+                .thenThrow(new SQLException("Database connection error"));
+
+        // When & Then
+        SQLException exception = assertThrows(SQLException.class, () -> {
+            transactionService.findTransactionByCustomerNumber(customerNumber);
+        });
+
+        assertEquals("Database connection error", exception.getMessage());
+        verify(transactionDao, times(1)).findByCustomerNumber(customerNumber);
+    }
+
+    @Test
+    void testFindTransactionByCustomerNumber_NullCustomerNumber() throws SQLException {
+        // Given
+        Integer customerNumber = null;
+        when(transactionDao.findByCustomerNumber(null))
+                .thenReturn(Optional.empty());
+
+        // When
+        TransactionListDto result = transactionService.findTransactionByCustomerNumber(customerNumber);
+
+        // Then
+        assertNotNull(result);
+        assertNotNull(result.getTransactions());
+        assertTrue(result.getTransactions().isEmpty());
+
+        verify(transactionDao, times(1)).findByCustomerNumber(null);
+    }
+
+    @Test
+    void testFindTransactionByCustomerNumber_RuntimeException() throws SQLException {
+        // Given
+        Integer customerNumber = 555555;
+        when(transactionDao.findByCustomerNumber(customerNumber))
+                .thenThrow(new RuntimeException("Unexpected error"));
+
+        // When & Then
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            transactionService.findTransactionByCustomerNumber(customerNumber);
+        });
+
+        assertEquals("Unexpected error", exception.getMessage());
+        verify(transactionDao, times(1)).findByCustomerNumber(customerNumber);
+    }
+
+    @Test
+    void testConstructor() {
+        // Given
+        TransactionDao mockDao = mock(TransactionDao.class);
+
+        // When
+        TransactionServiceImpl service = new TransactionServiceImpl(mockDao);
+
+        // Then
+        assertNotNull(service);
+    }
+
+    @Test
+    void testFindTransactionByCustomerNumber_NullTransactionFields() throws SQLException {
+        // Given
+        Integer customerNumber = 333333;
+        
+        // Create transaction with null fields
+        TransactionEntity nullFieldsEntity = new TransactionEntity();
+        nullFieldsEntity.setOperationType(null);
+        nullFieldsEntity.setCustomerNumber(customerNumber);
+        nullFieldsEntity.setCustomerAccount(null);
+        nullFieldsEntity.setTransactionAmount(null);
+        nullFieldsEntity.setCurrency(null);
+        nullFieldsEntity.setOpCode(null);
+        nullFieldsEntity.setStoredRequest(null);
+        nullFieldsEntity.setChannel(null);
+        
+        List<TransactionEntity> entities = new ArrayList<>();
+        entities.add(nullFieldsEntity);
+        
+        when(transactionDao.findByCustomerNumber(customerNumber))
+                .thenReturn(Optional.of(entities));
+
+        // When
+        TransactionListDto result = transactionService.findTransactionByCustomerNumber(customerNumber);
+
+        // Then
+        assertNotNull(result);
+        assertNotNull(result.getTransactions());
+        assertEquals(1, result.getTransactions().size());
+        
+        TransactionDto resultDto = result.getTransactions().get(0);
+        assertNull(resultDto.getOperationType());
+        assertEquals(customerNumber, resultDto.getCustomerNumber());
+        assertNull(resultDto.getCustomerAccount());
+        assertNull(resultDto.getTransactionAmount());
+        assertNull(resultDto.getCurrency());
+        assertNull(resultDto.getOpCode());
+        assertNull(resultDto.getStoredRequest());
+        assertNull(resultDto.getChannel());
+
+        verify(transactionDao, times(1)).findByCustomerNumber(customerNumber);
+    }
+
+    @Test
+    void testFindTransactionByCustomerNumber_LargeDataSet() throws SQLException {
+        // Given
+        Integer customerNumber = 444444;
+        
+        // Create a large dataset
+        List<TransactionEntity> largeEntityList = new ArrayList<>();
+        
+        for (int i = 0; i < 100; i++) {
+            TransactionEntity entity = new TransactionEntity();
+            entity.setOperationType("TYPE_" + i);
+            entity.setCustomerNumber(customerNumber);
+            entity.setCustomerAccount("ACC_" + i);
+            entity.setTransactionAmount(new BigDecimal(i * 100));
+            entity.setCurrency("TRY");
+            entity.setOpCode("OP_" + i);
+            entity.setStoredRequest("REQ_" + i);
+            entity.setChannel("CHANNEL_" + i);
+            largeEntityList.add(entity);
+        }
+
+        when(transactionDao.findByCustomerNumber(customerNumber))
+                .thenReturn(Optional.of(largeEntityList));
+
+        // When
+        TransactionListDto result = transactionService.findTransactionByCustomerNumber(customerNumber);
+
+        // Then
+        assertNotNull(result);
+        assertNotNull(result.getTransactions());
+        assertEquals(100, result.getTransactions().size());
+        
+        // Verify some samples
+        TransactionDto firstDto = result.getTransactions().get(0);
+        assertEquals("TYPE_0", firstDto.getOperationType());
+        assertEquals("ACC_0", firstDto.getCustomerAccount());
+        assertEquals(new BigDecimal("0"), firstDto.getTransactionAmount());
+        
+        TransactionDto lastDto = result.getTransactions().get(99);
+        assertEquals("TYPE_99", lastDto.getOperationType());
+        assertEquals("ACC_99", lastDto.getCustomerAccount());
+        assertEquals(new BigDecimal("9900"), lastDto.getTransactionAmount());
+
+        verify(transactionDao, times(1)).findByCustomerNumber(customerNumber);
+    }
+
+    @Test
+    void testFindTransactionByCustomerNumber_SpecialCharactersInData() throws SQLException {
+        // Given
+        Integer customerNumber = 222222;
+        
+        TransactionEntity specialCharsEntity = new TransactionEntity();
+        specialCharsEntity.setOperationType("DEPOSIT-TRANSFER");
+        specialCharsEntity.setCustomerNumber(customerNumber);
+        specialCharsEntity.setCustomerAccount("ACC-123/456");
+        specialCharsEntity.setTransactionAmount(new BigDecimal("1234.56"));
+        specialCharsEntity.setCurrency("EUR");
+        specialCharsEntity.setOpCode("OP#001&TEST");
+        specialCharsEntity.setStoredRequest("{\"test\":\"data\"}");
+        specialCharsEntity.setChannel("MOBILE/WEB");
+        
+        List<TransactionEntity> entities = new ArrayList<>();
+        entities.add(specialCharsEntity);
+        
+        when(transactionDao.findByCustomerNumber(customerNumber))
+                .thenReturn(Optional.of(entities));
+
+        // When
+        TransactionListDto result = transactionService.findTransactionByCustomerNumber(customerNumber);
+
+        // Then
+        assertNotNull(result);
+        assertNotNull(result.getTransactions());
+        assertEquals(1, result.getTransactions().size());
+        
+        TransactionDto resultDto = result.getTransactions().get(0);
+        assertEquals("DEPOSIT-TRANSFER", resultDto.getOperationType());
+        assertEquals("ACC-123/456", resultDto.getCustomerAccount());
+        assertEquals("OP#001&TEST", resultDto.getOpCode());
+        assertEquals("{\"test\":\"data\"}", resultDto.getStoredRequest());
+        assertEquals("MOBILE/WEB", resultDto.getChannel());
+
+        verify(transactionDao, times(1)).findByCustomerNumber(customerNumber);
+    }
 }
