@@ -219,7 +219,7 @@ class TransactionDaoImplTest {
         when(jdbcAccessor.query(
                 eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
                 any(ArkEntityBeanPropertyRowMapper.class),
-                isNull()
+                eq(customerNumber)
         )).thenReturn(Collections.emptyList());
 
         // When
@@ -232,7 +232,7 @@ class TransactionDaoImplTest {
         verify(jdbcAccessor).query(
                 eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
                 any(ArkEntityBeanPropertyRowMapper.class),
-                isNull()
+                eq(customerNumber)
         );
     }
 
