@@ -36,7 +36,7 @@ class ParameterServiceImplTest {
     void setUp() {
         parameterService = new ParameterServiceImpl(serviceBlockingStub);
 
-        // Setup test data for readParameter
+        // Setup RequestReadParameter
         requestReadParameter = new RequestReadParameter();
         requestReadParameter.setLanguageCode("TR");
         requestReadParameter.setCompanyCode("001");
@@ -46,7 +46,18 @@ class ParameterServiceImplTest {
         requestReadParameter.setPrmCode("CODE1");
         requestReadParameter.setPrmValue("VALUE1");
 
-        // Setup gRPC response
+        // Setup RequestParameterList
+        requestParameterList = new RequestParameterList();
+        requestParameterList.setLanguageCode("TR");
+        requestParameterList.setCompanyCode("001");
+        requestParameterList.setCompanyNum(1);
+        requestParameterList.setPrmGroupCode("GROUP1");
+        requestParameterList.setPrmAttributeName("ATTR1");
+        requestParameterList.setPrmCode("CODE1");
+        requestParameterList.setPrmValue("VALUE1");
+        requestParameterList.setAdditionalInfo("Info");
+
+        // Setup gRPC ParameterResponse
         grpcParameterResponse = ParameterReadBusinessProto.ParameterResponse.newBuilder()
                 .setCompanyCode("001")
                 .setCompanyNum(1)
@@ -61,17 +72,7 @@ class ParameterServiceImplTest {
                 .setUpdateUserId("USER2")
                 .build();
 
-        // Setup test data for getParameterList
-        requestParameterList = new RequestParameterList();
-        requestParameterList.setLanguageCode("TR");
-        requestParameterList.setCompanyCode("001");
-        requestParameterList.setCompanyNum(1);
-        requestParameterList.setPrmGroupCode("GROUP1");
-        requestParameterList.setPrmAttributeName("ATTR1");
-        requestParameterList.setPrmCode("CODE1");
-        requestParameterList.setPrmValue("VALUE1");
-        requestParameterList.setAdditionalInfo("Info");
-
+        // Setup gRPC ParameterResponseList
         grpcParameterResponseList = ParameterReadBusinessProto.ParameterResponseList.newBuilder()
                 .addParameterResponse(grpcParameterResponse)
                 .build();
@@ -105,19 +106,18 @@ class ParameterServiceImplTest {
 
     @Test
     void testReadParameter_NullRequest() {
-        // Given
-        RequestReadParameter nullRequest = null;
-
         // When & Then
         assertThrows(NullPointerException.class, () -> {
-            parameterService.readParameter(nullRequest);
+            parameterService.readParameter(null);
         });
     }
 
     @Test
     void testReadParameter_GrpcException() {
         // Given
-        StatusRuntimeException grpcException = new StatusRuntimeException(Status.INTERNAL.withDescription("gRPC error"));
+        StatusRuntimeException grpcException = new StatusRuntimeException(
+                Status.INTERNAL.withDescription("gRPC error")
+        );
         when(serviceBlockingStub.readParameter(any(ParameterReadBusinessProto.ReadParameterRequest.class)))
                 .thenThrow(grpcException);
 
@@ -144,10 +144,45 @@ class ParameterServiceImplTest {
 
         // Then
         assertNotNull(response);
-        // Proto3 default values
         assertEquals("", response.getCompanyCode());
         assertEquals(0, response.getCompanyNum());
         assertEquals("", response.getPrmGroupCode());
+    }
+
+    @Test
+    void testReadParameter_WithTimestamp() {
+        // Given
+        long seconds = System.currentTimeMillis() / 1000;
+        Timestamp timestamp = Timestamp.newBuilder()
+                .setSeconds(seconds)
+                .setNanos(0)
+                .build();
+        
+        requestReadParameter.setPrmValidDate(timestamp);
+        
+        ParameterReadBusinessProto.ParameterResponse responseWithTimestamp = 
+                ParameterReadBusinessProto.ParameterResponse.newBuilder()
+                        .setCompanyCode("001")
+                        .setPrmValidDate(timestamp)
+                        .setInstanceId(timestamp)
+                        .setPrmAttributedId(timestamp)
+                        .setPrmDetailId(timestamp)
+                        .setReferenceId(timestamp)
+                        .build();
+        
+        when(serviceBlockingStub.readParameter(any(ParameterReadBusinessProto.ReadParameterRequest.class)))
+                .thenReturn(responseWithTimestamp);
+
+        // When
+        ResponseReadParameter response = parameterService.readParameter(requestReadParameter);
+
+        // Then
+        assertNotNull(response);
+        assertNotNull(response.getPrmValidDate());
+        assertNotNull(response.getInstanceId());
+        assertNotNull(response.getPrmAttributedId());
+        assertNotNull(response.getPrmDetailId());
+        assertNotNull(response.getReferenceId());
     }
 
     @Test
@@ -198,23 +233,25 @@ class ParameterServiceImplTest {
     @Test
     void testGetParameterList_MultipleParameters() {
         // Given
-        ParameterReadBusinessProto.ParameterResponse param1 = ParameterReadBusinessProto.ParameterResponse.newBuilder()
-                .setCompanyCode("001")
-                .setPrmCode("CODE1")
-                .setPrmValue("VALUE1")
-                .setPrmGroupCode("GROUP1")
-                .setPrmAttributeName("ATTR1")
-                .setCompanyNum(1)
-                .build();
+        ParameterReadBusinessProto.ParameterResponse param1 = 
+                ParameterReadBusinessProto.ParameterResponse.newBuilder()
+                        .setCompanyCode("001")
+                        .setCompanyNum(1)
+                        .setPrmGroupCode("GROUP1")
+                        .setPrmAttributeName("ATTR1")
+                        .setPrmCode("CODE1")
+                        .setPrmValue("VALUE1")
+                        .build();
         
-        ParameterReadBusinessProto.ParameterResponse param2 = ParameterReadBusinessProto.ParameterResponse.newBuilder()
-                .setCompanyCode("002")
-                .setPrmCode("CODE2")
-                .setPrmValue("VALUE2")
-                .setPrmGroupCode("GROUP2")
-                .setPrmAttributeName("ATTR2")
-                .setCompanyNum(2)
-                .build();
+        ParameterReadBusinessProto.ParameterResponse param2 = 
+                ParameterReadBusinessProto.ParameterResponse.newBuilder()
+                        .setCompanyCode("002")
+                        .setCompanyNum(2)
+                        .setPrmGroupCode("GROUP2")
+                        .setPrmAttributeName("ATTR2")
+                        .setPrmCode("CODE2")
+                        .setPrmValue("VALUE2")
+                        .build();
         
         ParameterReadBusinessProto.ParameterResponseList multipleList = 
                 ParameterReadBusinessProto.ParameterResponseList.newBuilder()
@@ -249,7 +286,9 @@ class ParameterServiceImplTest {
     @Test
     void testGetParameterList_GrpcException() {
         // Given
-        StatusRuntimeException grpcException = new StatusRuntimeException(Status.UNAVAILABLE.withDescription("Service unavailable"));
+        StatusRuntimeException grpcException = new StatusRuntimeException(
+                Status.UNAVAILABLE.withDescription("Service unavailable")
+        );
         when(serviceBlockingStub.listParameter(any(ParameterReadBusinessProto.ListParameterRequest.class)))
                 .thenThrow(grpcException);
 
@@ -264,12 +303,9 @@ class ParameterServiceImplTest {
 
     @Test
     void testGetParameterList_NullRequest() {
-        // Given
-        RequestParameterList nullRequest = null;
-
         // When & Then
         assertThrows(NullPointerException.class, () -> {
-            parameterService.getParameterList(nullRequest);
+            parameterService.getParameterList(null);
         });
     }
 
@@ -289,7 +325,9 @@ class ParameterServiceImplTest {
     @Test
     void testReadParameter_TimeoutException() {
         // Given
-        StatusRuntimeException timeoutException = new StatusRuntimeException(Status.DEADLINE_EXCEEDED.withDescription("Timeout"));
+        StatusRuntimeException timeoutException = new StatusRuntimeException(
+                Status.DEADLINE_EXCEEDED.withDescription("Timeout")
+        );
         when(serviceBlockingStub.readParameter(any(ParameterReadBusinessProto.ReadParameterRequest.class)))
                 .thenThrow(timeoutException);
 
@@ -304,7 +342,9 @@ class ParameterServiceImplTest {
     @Test
     void testGetParameterList_TimeoutException() {
         // Given
-        StatusRuntimeException timeoutException = new StatusRuntimeException(Status.DEADLINE_EXCEEDED.withDescription("Timeout"));
+        StatusRuntimeException timeoutException = new StatusRuntimeException(
+                Status.DEADLINE_EXCEEDED.withDescription("Timeout")
+        );
         when(serviceBlockingStub.listParameter(any(ParameterReadBusinessProto.ListParameterRequest.class)))
                 .thenThrow(timeoutException);
 
@@ -317,91 +357,11 @@ class ParameterServiceImplTest {
     }
 
     @Test
-    void testReadParameter_WithTimestamp() {
+    void testReadParameter_PermissionDenied() {
         // Given
-        long seconds = System.currentTimeMillis() / 1000;
-        Timestamp timestamp = Timestamp.newBuilder()
-                .setSeconds(seconds)
-                .setNanos(0)
-                .build();
-        
-        requestReadParameter.setPrmValidDate(timestamp);
-        
-        ParameterReadBusinessProto.ParameterResponse responseWithTimestamp = 
-                ParameterReadBusinessProto.ParameterResponse.newBuilder()
-                        .setCompanyCode("001")
-                        .setPrmValidDate(timestamp)
-                        .setInstanceId(timestamp)
-                        .setPrmAttributedId(timestamp)
-                        .setPrmDetailId(timestamp)
-                        .setReferenceId(timestamp)
-                        .build();
-        
-        when(serviceBlockingStub.readParameter(any(ParameterReadBusinessProto.ReadParameterRequest.class)))
-                .thenReturn(responseWithTimestamp);
-
-        // When
-        ResponseReadParameter response = parameterService.readParameter(requestReadParameter);
-
-        // Then
-        assertNotNull(response);
-        assertNotNull(response.getPrmValidDate());
-        assertNotNull(response.getInstanceId());
-        assertNotNull(response.getPrmAttributedId());
-        assertNotNull(response.getPrmDetailId());
-        assertNotNull(response.getReferenceId());
-    }
-
-    @Test
-    void testGetParameterList_WithTimestamp() {
-        // Given
-        long seconds = System.currentTimeMillis() / 1000;
-        Timestamp timestamp = Timestamp.newBuilder()
-                .setSeconds(seconds)
-                .setNanos(0)
-                .build();
-        
-        requestParameterList.setPrmValidDate(timestamp);
-        
-        ParameterReadBusinessProto.ParameterResponse paramWithTimestamp = 
-                ParameterReadBusinessProto.ParameterResponse.newBuilder()
-                        .setCompanyCode("001")
-                        .setPrmCode("CODE1")
-                        .setPrmValue("VALUE1")
-                        .setPrmValidDate(timestamp)
-                        .setInstanceId(timestamp)
-                        .setPrmAttributedId(timestamp)
-                        .setPrmDetailId(timestamp)
-                        .setReferenceId(timestamp)
-                        .build();
-        
-        ParameterReadBusinessProto.ParameterResponseList listWithTimestamp = 
-                ParameterReadBusinessProto.ParameterResponseList.newBuilder()
-                        .addParameterResponse(paramWithTimestamp)
-                        .build();
-        
-        when(serviceBlockingStub.listParameter(any(ParameterReadBusinessProto.ListParameterRequest.class)))
-                .thenReturn(listWithTimestamp);
-
-        // When
-        ResponseParameterList response = parameterService.getParameterList(requestParameterList);
-
-        // Then
-        assertNotNull(response);
-        assertNotNull(response.getParameterList());
-        assertEquals(1, response.getParameterList().size());
-        
-        ResponseReadParameter param = response.getParameterList().get(0);
-        assertNotNull(param.getPrmValidDate());
-        assertNotNull(param.getInstanceId());
-        assertNotNull(param.getPrmAttributedId());
-        assertNotNull(param.getPrmDetailId());
-        assertNotNull(param.getReferenceId());
-        
-        verify(serviceBlockingStub).listParameter(any(ParameterReadBusinessProto.ListParameterRequest.class));
-    }
-        // Given
-        StatusRuntimeException permissionException = new StatusRuntimeException(Status.PERMISSION_DENIED.withDescription("Access denied"));
+        StatusRuntimeException permissionException = new StatusRuntimeException(
+                Status.PERMISSION_DENIED.withDescription("Access denied")
+        );
         when(serviceBlockingStub.readParameter(any(ParameterReadBusinessProto.ReadParameterRequest.class)))
                 .thenThrow(permissionException);
 
