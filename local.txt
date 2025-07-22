@@ -174,7 +174,7 @@ class TransactionDaoImplTest {
     void testFindByCustomerNumber_DataAccessException() throws SQLException {
         // Given
         Integer customerNumber = 666666;
-        DataAccessException dataAccessException = mock(DataAccessException.class);
+        DataAccessException dataAccessException = new DataAccessException("Connection error") {};
         
         when(jdbcAccessor.query(
                 eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
@@ -335,20 +335,27 @@ class TransactionDaoImplTest {
     void testFindByCustomerNumber_SQLException() throws SQLException {
         // Given
         Integer customerNumber = 333333;
-        SQLException sqlException = new SQLException("Database connection failed");
+        // Spring JDBC unchecked exception kullanır
+        DataAccessException dataAccessException = new DataAccessException("Database connection failed") {};
         
         when(jdbcAccessor.query(
                 eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
                 any(ArkEntityBeanPropertyRowMapper.class),
                 eq(customerNumber)
-        )).thenThrow(sqlException);
+        )).thenThrow(dataAccessException);
 
         // When & Then
         SQLException thrown = assertThrows(SQLException.class, () -> {
             transactionDao.findByCustomerNumber(customerNumber);
         });
         
-        // Original SQLException mesajı yerine generic SQLException fırlatılıyor
+        // DAO SQLException'a wrap ediyor
         assertNotNull(thrown);
+        
+        verify(jdbcAccessor).query(
+                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
+                any(ArkEntityBeanPropertyRowMapper.class),
+                eq(customerNumber)
+        );
     }
 }
