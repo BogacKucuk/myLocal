@@ -73,7 +73,7 @@ class ParameterServiceImplTest {
         requestParameterList.setAdditionalInfo("Info");
 
         grpcParameterResponseList = ParameterReadBusinessProto.ParameterResponseList.newBuilder()
-                .addParameters(grpcParameterResponse)
+                .addParameterResponse(grpcParameterResponse)
                 .build();
     }
 
@@ -218,8 +218,8 @@ class ParameterServiceImplTest {
         
         ParameterReadBusinessProto.ParameterResponseList multipleList = 
                 ParameterReadBusinessProto.ParameterResponseList.newBuilder()
-                        .addParameters(param1)
-                        .addParameters(param2)
+                        .addParameterResponse(param1)
+                        .addParameterResponse(param2)
                         .build();
         
         when(serviceBlockingStub.listParameter(any(ParameterReadBusinessProto.ListParameterRequest.class)))
@@ -377,7 +377,7 @@ class ParameterServiceImplTest {
         
         ParameterReadBusinessProto.ParameterResponseList listWithTimestamp = 
                 ParameterReadBusinessProto.ParameterResponseList.newBuilder()
-                        .addParameters(paramWithTimestamp)
+                        .addParameterResponse(paramWithTimestamp)
                         .build();
         
         when(serviceBlockingStub.listParameter(any(ParameterReadBusinessProto.ListParameterRequest.class)))
