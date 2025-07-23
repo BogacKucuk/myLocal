@@ -1,8 +1,8 @@
 package com.garantibbva.depositwithdrawalmngmt.moneywithdrawbusiness.data.impl.dao;
 
 import com.garanti.ark.base.contract.error.exception.BusinessException;
-import com.garanti.ark.data.jdbc.ArkEntityBeanPropertyRowMapper;
-import com.garanti.ark.data.jdbc.JdbcAccessor;
+import com.garanti.ark.dal3.jdbc.mapper.ArkEntityBeanPropertyRowMapper;
+import com.garanti.ark.dal3.jdbc.JdbcAccessor;
 import com.garantibbva.depositwithdrawalmngmt.moneywithdrawbusiness.data.constant.ApplicationConstants;
 import com.garantibbva.depositwithdrawalmngmt.moneywithdrawbusiness.data.constant.TransactionQueryConstant;
 import com.garantibbva.depositwithdrawalmngmt.moneywithdrawbusiness.data.contract.model.entity.TransactionEntity;
