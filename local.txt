@@ -1,349 +1,369 @@
-package com.garantibbva.depositwithdrawalmngmt.moneywithdrawbusiness.service.impl;
+package com.garantibbva.depositwithdrawalmngmt.moneywithdrawbusiness.data.impl.dao;
 
-import com.garantibbva.depositwithdrawalmngmt.moneywithdrawbusiness.service.contract.model.request.RequestParameterList;
-import com.garantibbva.depositwithdrawalmngmt.moneywithdrawbusiness.service.contract.model.request.RequestReadParameter;
-import com.garantibbva.depositwithdrawalmngmt.moneywithdrawbusiness.service.contract.model.response.ResponseParameterList;
-import com.garantibbva.depositwithdrawalmngmt.moneywithdrawbusiness.service.contract.model.response.ResponseReadParameter;
-import com.garantibbva.parametermanagement.parameterreadbusiness.proto.ParameterReadBusinessGrpcServiceGrpc.ParameterReadBusinessGrpcServiceBlockingStub;
-import com.garantibbva.parametermanagement.parameterreadbusiness.proto.ParameterReadBusinessProto;
-import com.google.protobuf.Timestamp;
-import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
+import com.garanti.ark.base.contract.error.exception.BusinessException;
+import com.garanti.ark.data.jdbc.ArkEntityBeanPropertyRowMapper;
+import com.garanti.ark.data.jdbc.JdbcAccessor;
+import com.garantibbva.depositwithdrawalmngmt.moneywithdrawbusiness.data.constant.ApplicationConstants;
+import com.garantibbva.depositwithdrawalmngmt.moneywithdrawbusiness.data.constant.TransactionQueryConstant;
+import com.garantibbva.depositwithdrawalmngmt.moneywithdrawbusiness.data.contract.model.entity.TransactionEntity;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.dao.DataAccessException;
+import org.springframework.jdbc.core.RowMapper;
+
+import java.math.BigDecimal;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class ParameterServiceImplTest {
+class TransactionDaoImplTest {
 
     @Mock
-    private ParameterReadBusinessGrpcServiceBlockingStub serviceBlockingStub;
+    private JdbcAccessor jdbcAccessor;
 
-    private ParameterServiceImpl parameterService;
+    @InjectMocks
+    private TransactionDaoImpl transactionDao;
 
-    private RequestReadParameter requestReadParameter;
-    private RequestParameterList requestParameterList;
-    private ParameterReadBusinessProto.ParameterResponse grpcParameterResponse;
-    private ParameterReadBusinessProto.ParameterResponseList grpcParameterResponseList;
+    private TransactionEntity transactionEntity;
+    private List<TransactionEntity> transactionEntities;
 
     @BeforeEach
     void setUp() {
-        parameterService = new ParameterServiceImpl(serviceBlockingStub);
+        // TransactionEntity setup
+        transactionEntity = new TransactionEntity();
+        transactionEntity.setOperationType("DEPOSIT");
+        transactionEntity.setCustomerNumber(123456);
+        transactionEntity.setCustomerAccount("ACC123456");
+        transactionEntity.setTransactionAmount(new BigDecimal("1000.00"));
+        transactionEntity.setCurrency("TRY");
+        transactionEntity.setOpCode("OP001");
+        transactionEntity.setStoredRequest("REQUEST_001");
+        transactionEntity.setChannel("MOBILE");
 
-        // Setup RequestReadParameter
-        requestReadParameter = new RequestReadParameter();
-        requestReadParameter.setLanguageCode("TR");
-        requestReadParameter.setCompanyCode("001");
-        requestReadParameter.setCompanyNum(1);
-        requestReadParameter.setPrmGroupCode("GROUP1");
-        requestReadParameter.setPrmAttributeName("ATTR1");
-        requestReadParameter.setPrmCode("CODE1");
-        requestReadParameter.setPrmValue("VALUE1");
-
-        // Setup RequestParameterList
-        requestParameterList = new RequestParameterList();
-        requestParameterList.setLanguageCode("TR");
-        requestParameterList.setCompanyCode("001");
-        requestParameterList.setCompanyNum(1);
-        requestParameterList.setPrmGroupCode("GROUP1");
-        requestParameterList.setPrmAttributeName("ATTR1");
-        requestParameterList.setPrmCode("CODE1");
-        requestParameterList.setPrmValue("VALUE1");
-        requestParameterList.setAdditionalInfo("Info");
-
-        // Setup gRPC ParameterResponse
-        grpcParameterResponse = ParameterReadBusinessProto.ParameterResponse.newBuilder()
-                .setCompanyCode("001")
-                .setCompanyNum(1)
-                .setPrmGroupCode("GROUP1")
-                .setPrmAttributeName("ATTR1")
-                .setPrmCode("CODE1")
-                .setPrmValue("VALUE1")
-                .setAdditionalInfo("Additional Info")
-                .setDescription("Description")
-                .setOrderNum(1)
-                .setCreateUserId("USER1")
-                .setUpdateUserId("USER2")
-                .build();
-
-        // Setup gRPC ParameterResponseList
-        grpcParameterResponseList = ParameterReadBusinessProto.ParameterResponseList.newBuilder()
-                .addParameterResponse(grpcParameterResponse)
-                .build();
+        transactionEntities = new ArrayList<>();
+        transactionEntities.add(transactionEntity);
+        
+        // Reflection to inject jdbcAccessor
+        try {
+            java.lang.reflect.Field field = transactionDao.getClass().getSuperclass().getDeclaredField("jdbcAccessor");
+            field.setAccessible(true);
+            field.set(transactionDao, jdbcAccessor);
+        } catch (Exception e) {
+            fail("Failed to inject jdbcAccessor: " + e.getMessage());
+        }
     }
 
     @Test
-    void testReadParameter_Success() {
+    void testFindByCustomerNumber_Success() throws BusinessException {
         // Given
-        when(serviceBlockingStub.readParameter(any(ParameterReadBusinessProto.ReadParameterRequest.class)))
-                .thenReturn(grpcParameterResponse);
+        Integer customerNumber = 123456;
+        when(jdbcAccessor.query(
+                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
+                any(ArkEntityBeanPropertyRowMapper.class),
+                eq(customerNumber)
+        )).thenReturn(transactionEntities);
 
         // When
-        ResponseReadParameter response = parameterService.readParameter(requestReadParameter);
+        Optional<List<TransactionEntity>> result = transactionDao.findByCustomerNumber(customerNumber);
 
         // Then
-        assertNotNull(response);
-        assertEquals("001", response.getCompanyCode());
-        assertEquals(1, response.getCompanyNum());
-        assertEquals("GROUP1", response.getPrmGroupCode());
-        assertEquals("ATTR1", response.getPrmAttributeName());
-        assertEquals("CODE1", response.getPrmCode());
-        assertEquals("VALUE1", response.getPrmValue());
-        assertEquals("Additional Info", response.getAdditionalInfo());
-        assertEquals("Description", response.getDescription());
-        assertEquals(1, response.getOrderNum());
-        assertEquals("USER1", response.getCreateUserId());
-        assertEquals("USER2", response.getUpdateUserId());
-
-        verify(serviceBlockingStub).readParameter(any(ParameterReadBusinessProto.ReadParameterRequest.class));
-    }
-
-    @Test
-    void testReadParameter_NullRequest() {
-        // Given
-        when(serviceBlockingStub.readParameter(any()))
-                .thenReturn(grpcParameterResponse);
-
-        // When
-        parameterService.readParameter(null);
-
-        // Then
-        verify(serviceBlockingStub).readParameter(any());
-    }
-
-    @Test
-    void testReadParameter_GrpcException() {
-        // Given
-        StatusRuntimeException grpcException = new StatusRuntimeException(
-                Status.INTERNAL.withDescription("gRPC error")
+        assertTrue(result.isPresent());
+        assertEquals(1, result.get().size());
+        assertEquals(transactionEntity, result.get().get(0));
+        
+        verify(jdbcAccessor).query(
+                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
+                any(ArkEntityBeanPropertyRowMapper.class),
+                eq(customerNumber)
         );
-        when(serviceBlockingStub.readParameter(any(ParameterReadBusinessProto.ReadParameterRequest.class)))
-                .thenThrow(grpcException);
+    }
+
+    @Test
+    void testFindByCustomerNumber_EmptyResult() throws BusinessException {
+        // Given
+        Integer customerNumber = 999999;
+        when(jdbcAccessor.query(
+                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
+                any(ArkEntityBeanPropertyRowMapper.class),
+                eq(customerNumber)
+        )).thenReturn(Collections.emptyList());
+
+        // When
+        Optional<List<TransactionEntity>> result = transactionDao.findByCustomerNumber(customerNumber);
+
+        // Then
+        assertTrue(result.isPresent());
+        assertTrue(result.get().isEmpty());
+        
+        verify(jdbcAccessor).query(
+                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
+                any(ArkEntityBeanPropertyRowMapper.class),
+                eq(customerNumber)
+        );
+    }
+
+    @Test
+    void testFindByCustomerNumber_NullResult() throws BusinessException {
+        // Given
+        Integer customerNumber = 888888;
+        when(jdbcAccessor.query(
+                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
+                any(ArkEntityBeanPropertyRowMapper.class),
+                eq(customerNumber)
+        )).thenReturn(null);
+
+        // When
+        Optional<List<TransactionEntity>> result = transactionDao.findByCustomerNumber(customerNumber);
+
+        // Then
+        assertFalse(result.isPresent());
+        
+        verify(jdbcAccessor).query(
+                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
+                any(ArkEntityBeanPropertyRowMapper.class),
+                eq(customerNumber)
+        );
+    }
+
+    @Test
+    void testFindByCustomerNumber_MultipleResults() throws BusinessException {
+        // Given
+        Integer customerNumber = 777777;
+        
+        TransactionEntity secondTransaction = new TransactionEntity();
+        secondTransaction.setOperationType("WITHDRAWAL");
+        secondTransaction.setCustomerNumber(customerNumber);
+        secondTransaction.setCustomerAccount("ACC777777");
+        secondTransaction.setTransactionAmount(new BigDecimal("500.00"));
+        secondTransaction.setCurrency("USD");
+        secondTransaction.setOpCode("OP002");
+        secondTransaction.setStoredRequest("REQUEST_002");
+        secondTransaction.setChannel("WEB");
+        
+        List<TransactionEntity> multipleEntities = new ArrayList<>();
+        multipleEntities.add(transactionEntity);
+        multipleEntities.add(secondTransaction);
+        
+        when(jdbcAccessor.query(
+                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
+                any(ArkEntityBeanPropertyRowMapper.class),
+                eq(customerNumber)
+        )).thenReturn(multipleEntities);
+
+        // When
+        Optional<List<TransactionEntity>> result = transactionDao.findByCustomerNumber(customerNumber);
+
+        // Then
+        assertTrue(result.isPresent());
+        assertEquals(2, result.get().size());
+        assertEquals(transactionEntity, result.get().get(0));
+        assertEquals(secondTransaction, result.get().get(1));
+    }
+
+    @Test
+    void testFindByCustomerNumber_DataAccessException() {
+        // Given
+        Integer customerNumber = 666666;
+        DataAccessException dataAccessException = new DataAccessException("Connection error") {};
+        
+        when(jdbcAccessor.query(
+                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
+                any(ArkEntityBeanPropertyRowMapper.class),
+                eq(customerNumber)
+        )).thenThrow(dataAccessException);
 
         // When & Then
-        StatusRuntimeException thrown = assertThrows(StatusRuntimeException.class, () -> {
-            parameterService.readParameter(requestReadParameter);
+        BusinessException thrown = assertThrows(BusinessException.class, () -> {
+            transactionDao.findByCustomerNumber(customerNumber);
         });
         
-        assertEquals(Status.INTERNAL.getCode(), thrown.getStatus().getCode());
-        assertEquals("gRPC error", thrown.getStatus().getDescription());
-    }
-
-    @Test
-    void testReadParameter_EmptyResponse() {
-        // Given
-        ParameterReadBusinessProto.ParameterResponse emptyResponse = 
-                ParameterReadBusinessProto.ParameterResponse.newBuilder().build();
+        assertEquals(ApplicationConstants.MWB300241001, thrown.getCode());
+        assertEquals(dataAccessException, thrown.getCause());
         
-        when(serviceBlockingStub.readParameter(any(ParameterReadBusinessProto.ReadParameterRequest.class)))
-                .thenReturn(emptyResponse);
-
-        // When
-        ResponseReadParameter response = parameterService.readParameter(requestReadParameter);
-
-        // Then
-        assertNotNull(response);
-        assertEquals("", response.getCompanyCode());
-        assertEquals(0, response.getCompanyNum());
-        assertEquals("", response.getPrmGroupCode());
-    }
-
-    @Test
-    void testReadParameter_WithTimestamp() {
-        // Given
-        long seconds = System.currentTimeMillis() / 1000;
-        Timestamp timestamp = Timestamp.newBuilder()
-                .setSeconds(seconds)
-                .setNanos(0)
-                .build();
-        
-        requestReadParameter.setPrmValidDate(timestamp);
-        
-        ParameterReadBusinessProto.ParameterResponse responseWithTimestamp = 
-                ParameterReadBusinessProto.ParameterResponse.newBuilder()
-                        .setCompanyCode("001")
-                        .setPrmValidDate(timestamp)
-                        .setInstanceId(timestamp)
-                        .setPrmAttributedId(timestamp)
-                        .setPrmDetailId(timestamp)
-                        .setReferenceId(timestamp)
-                        .build();
-        
-        when(serviceBlockingStub.readParameter(any(ParameterReadBusinessProto.ReadParameterRequest.class)))
-                .thenReturn(responseWithTimestamp);
-
-        // When
-        ResponseReadParameter response = parameterService.readParameter(requestReadParameter);
-
-        // Then
-        assertNotNull(response);
-        assertNotNull(response.getPrmValidDate());
-        assertNotNull(response.getInstanceId());
-        // getPrmAttributedId() method'u yoksa bu satırları kaldıralım
-        assertNotNull(response.getPrmDetailId());
-        assertNotNull(response.getReferenceId());
-    }
-
-    @Test
-    void testGetParameterList_Success() {
-        // Given
-        when(serviceBlockingStub.listParameter(any(ParameterReadBusinessProto.ListParameterRequest.class)))
-                .thenReturn(grpcParameterResponseList);
-
-        // When
-        parameterService.getParameterList(requestParameterList);
-
-        // Then
-        // Sadece method çağrıldığını verify edelim
-        verify(serviceBlockingStub).listParameter(any(ParameterReadBusinessProto.ListParameterRequest.class));
-    }
-
-    @Test
-    void testGetParameterList_EmptyList() {
-        // Given
-        ParameterReadBusinessProto.ParameterResponseList emptyList = 
-                ParameterReadBusinessProto.ParameterResponseList.newBuilder().build();
-        
-        when(serviceBlockingStub.listParameter(any(ParameterReadBusinessProto.ListParameterRequest.class)))
-                .thenReturn(emptyList);
-
-        // When
-        parameterService.getParameterList(requestParameterList);
-
-        // Then
-        verify(serviceBlockingStub).listParameter(any(ParameterReadBusinessProto.ListParameterRequest.class));
-    }
-
-    @Test
-    void testGetParameterList_MultipleParameters() {
-        // Given
-        ParameterReadBusinessProto.ParameterResponse param1 = 
-                ParameterReadBusinessProto.ParameterResponse.newBuilder()
-                        .setCompanyCode("001")
-                        .setPrmCode("CODE1")
-                        .build();
-        
-        ParameterReadBusinessProto.ParameterResponse param2 = 
-                ParameterReadBusinessProto.ParameterResponse.newBuilder()
-                        .setCompanyCode("002")
-                        .setPrmCode("CODE2")
-                        .build();
-        
-        ParameterReadBusinessProto.ParameterResponseList multipleList = 
-                ParameterReadBusinessProto.ParameterResponseList.newBuilder()
-                        .addParameterResponse(param1)
-                        .addParameterResponse(param2)
-                        .build();
-        
-        when(serviceBlockingStub.listParameter(any(ParameterReadBusinessProto.ListParameterRequest.class)))
-                .thenReturn(multipleList);
-
-        // When
-        parameterService.getParameterList(requestParameterList);
-
-        // Then
-        verify(serviceBlockingStub).listParameter(any(ParameterReadBusinessProto.ListParameterRequest.class));
-    }
-
-    @Test
-    void testGetParameterList_GrpcException() {
-        // Given
-        StatusRuntimeException grpcException = new StatusRuntimeException(
-                Status.UNAVAILABLE.withDescription("Service unavailable")
+        verify(jdbcAccessor).query(
+                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
+                any(ArkEntityBeanPropertyRowMapper.class),
+                eq(customerNumber)
         );
-        when(serviceBlockingStub.listParameter(any(ParameterReadBusinessProto.ListParameterRequest.class)))
-                .thenThrow(grpcException);
+    }
+
+    @Test
+    void testFindByCustomerNumber_RuntimeException() {
+        // Given
+        Integer customerNumber = 555555;
+        RuntimeException runtimeException = new RuntimeException("Unexpected error");
+        
+        when(jdbcAccessor.query(
+                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
+                any(ArkEntityBeanPropertyRowMapper.class),
+                eq(customerNumber)
+        )).thenThrow(runtimeException);
 
         // When & Then
-        StatusRuntimeException thrown = assertThrows(StatusRuntimeException.class, () -> {
-            parameterService.getParameterList(requestParameterList);
+        BusinessException thrown = assertThrows(BusinessException.class, () -> {
+            transactionDao.findByCustomerNumber(customerNumber);
         });
         
-        assertEquals(Status.UNAVAILABLE.getCode(), thrown.getStatus().getCode());
-        assertEquals("Service unavailable", thrown.getStatus().getDescription());
+        assertEquals(ApplicationConstants.MWB300241001, thrown.getCode());
+        assertEquals(runtimeException, thrown.getCause());
     }
 
     @Test
-    void testGetParameterList_NullRequest() {
+    void testFindByCustomerNumber_NullCustomerNumber() throws SQLException {
         // Given
-        when(serviceBlockingStub.listParameter(any()))
-                .thenReturn(grpcParameterResponseList);
+        Integer customerNumber = null;
+        when(jdbcAccessor.query(
+                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
+                any(ArkEntityBeanPropertyRowMapper.class),
+                any()
+        )).thenReturn(Collections.emptyList());
 
         // When
-        parameterService.getParameterList(null);
+        Optional<List<TransactionEntity>> result = transactionDao.findByCustomerNumber(customerNumber);
 
         // Then
-        verify(serviceBlockingStub).listParameter(any());
+        assertTrue(result.isPresent());
+        assertTrue(result.get().isEmpty());
+        
+        verify(jdbcAccessor).query(
+                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
+                any(ArkEntityBeanPropertyRowMapper.class),
+                eq(customerNumber)
+        );
     }
 
     @Test
-    void testConstructor() {
+    void testFindByCustomerNumber_ZeroCustomerNumber() throws BusinessException {
         // Given
-        ParameterReadBusinessGrpcServiceBlockingStub mockStub = 
-                mock(ParameterReadBusinessGrpcServiceBlockingStub.class);
+        Integer customerNumber = 0;
+        when(jdbcAccessor.query(
+                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
+                any(ArkEntityBeanPropertyRowMapper.class),
+                eq(0)
+        )).thenReturn(transactionEntities);
 
         // When
-        ParameterServiceImpl service = new ParameterServiceImpl(mockStub);
+        Optional<List<TransactionEntity>> result = transactionDao.findByCustomerNumber(customerNumber);
 
         // Then
-        assertNotNull(service);
+        assertTrue(result.isPresent());
+        assertEquals(1, result.get().size());
     }
 
     @Test
-    void testReadParameter_TimeoutException() {
+    void testFindByCustomerNumber_NegativeCustomerNumber() throws BusinessException {
         // Given
-        StatusRuntimeException timeoutException = new StatusRuntimeException(
-                Status.DEADLINE_EXCEEDED.withDescription("Timeout")
-        );
-        when(serviceBlockingStub.readParameter(any(ParameterReadBusinessProto.ReadParameterRequest.class)))
-                .thenThrow(timeoutException);
+        Integer customerNumber = -12345;
+        when(jdbcAccessor.query(
+                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
+                any(ArkEntityBeanPropertyRowMapper.class),
+                eq(-12345)
+        )).thenReturn(Collections.emptyList());
 
-        // When & Then
-        StatusRuntimeException thrown = assertThrows(StatusRuntimeException.class, () -> {
-            parameterService.readParameter(requestReadParameter);
-        });
-        
-        assertEquals(Status.DEADLINE_EXCEEDED.getCode(), thrown.getStatus().getCode());
+        // When
+        Optional<List<TransactionEntity>> result = transactionDao.findByCustomerNumber(customerNumber);
+
+        // Then
+        assertTrue(result.isPresent());
+        assertTrue(result.get().isEmpty());
     }
 
     @Test
-    void testGetParameterList_TimeoutException() {
+    void testFindByCustomerNumber_VerifyRowMapperType() throws BusinessException {
         // Given
-        StatusRuntimeException timeoutException = new StatusRuntimeException(
-                Status.DEADLINE_EXCEEDED.withDescription("Timeout")
-        );
-        when(serviceBlockingStub.listParameter(any(ParameterReadBusinessProto.ListParameterRequest.class)))
-                .thenThrow(timeoutException);
+        Integer customerNumber = 444444;
+        when(jdbcAccessor.query(
+                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
+                any(ArkEntityBeanPropertyRowMapper.class),
+                eq(customerNumber)
+        )).thenReturn(transactionEntities);
 
-        // When & Then
-        StatusRuntimeException thrown = assertThrows(StatusRuntimeException.class, () -> {
-            parameterService.getParameterList(requestParameterList);
-        });
+        // When
+        transactionDao.findByCustomerNumber(customerNumber);
+
+        // Then
+        ArgumentCaptor<RowMapper> rowMapperCaptor = ArgumentCaptor.forClass(RowMapper.class);
+        verify(jdbcAccessor).query(
+                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
+                rowMapperCaptor.capture(),
+                eq(customerNumber)
+        );
         
-        assertEquals(Status.DEADLINE_EXCEEDED.getCode(), thrown.getStatus().getCode());
+        assertTrue(rowMapperCaptor.getValue() instanceof ArkEntityBeanPropertyRowMapper);
     }
 
     @Test
-    void testReadParameter_PermissionDenied() {
+    void testFindByCustomerNumber_LargeDataSet() throws BusinessException {
         // Given
-        StatusRuntimeException permissionException = new StatusRuntimeException(
-                Status.PERMISSION_DENIED.withDescription("Access denied")
-        );
-        when(serviceBlockingStub.readParameter(any(ParameterReadBusinessProto.ReadParameterRequest.class)))
-                .thenThrow(permissionException);
+        Integer customerNumber = 111111;
+        List<TransactionEntity> largeEntityList = new ArrayList<>();
+        
+        for (int i = 0; i < 1000; i++) {
+            TransactionEntity entity = new TransactionEntity();
+            entity.setOperationType("TYPE_" + i);
+            entity.setCustomerNumber(customerNumber);
+            entity.setCustomerAccount("ACC_" + i);
+            entity.setTransactionAmount(new BigDecimal(i * 100));
+            entity.setCurrency("TRY");
+            entity.setOpCode("OP_" + i);
+            entity.setStoredRequest("REQ_" + i);
+            entity.setChannel("CHANNEL_" + i);
+            largeEntityList.add(entity);
+        }
+        
+        when(jdbcAccessor.query(
+                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
+                any(ArkEntityBeanPropertyRowMapper.class),
+                eq(customerNumber)
+        )).thenReturn(largeEntityList);
+
+        // When
+        Optional<List<TransactionEntity>> result = transactionDao.findByCustomerNumber(customerNumber);
+
+        // Then
+        assertTrue(result.isPresent());
+        assertEquals(1000, result.get().size());
+        assertEquals("TYPE_0", result.get().get(0).getOperationType());
+        assertEquals("TYPE_999", result.get().get(999).getOperationType());
+    }
+
+    @Test
+    void testFindByCustomerNumber_SQLException() {
+        // Given
+        Integer customerNumber = 333333;
+        // Spring JDBC unchecked exception kullanır
+        DataAccessException dataAccessException = new DataAccessException("Database connection failed") {};
+        
+        when(jdbcAccessor.query(
+                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
+                any(ArkEntityBeanPropertyRowMapper.class),
+                eq(customerNumber)
+        )).thenThrow(dataAccessException);
 
         // When & Then
-        StatusRuntimeException thrown = assertThrows(StatusRuntimeException.class, () -> {
-            parameterService.readParameter(requestReadParameter);
+        BusinessException thrown = assertThrows(BusinessException.class, () -> {
+            transactionDao.findByCustomerNumber(customerNumber);
         });
         
-        assertEquals(Status.PERMISSION_DENIED.getCode(), thrown.getStatus().getCode());
-        assertEquals("Access denied", thrown.getStatus().getDescription());
+        // BusinessException'a wrap ediliyor
+        assertEquals(ApplicationConstants.MWB300241001, thrown.getCode());
+        assertNotNull(thrown.getCause());
+        
+        verify(jdbcAccessor).query(
+                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
+                any(ArkEntityBeanPropertyRowMapper.class),
+                eq(customerNumber)
+        );
     }
 }
