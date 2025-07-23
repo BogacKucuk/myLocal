@@ -1,20 +1,17 @@
-package com.garantibbva.depositwithdrawalmngmt.moneywithdrawbusiness.data.impl.dao;
+package com.garantibbva.depositwithdrawalmngmt.moneywithdrawbusiness.service.impl;
 
 import com.garanti.ark.base.contract.error.exception.BusinessException;
-import com.garanti.ark.dal3.jdbc.mapper.ArkEntityBeanPropertyRowMapper;
-import com.garanti.ark.dal3.jdbc.JdbcAccessor;
-import com.garantibbva.depositwithdrawalmngmt.moneywithdrawbusiness.data.constant.ApplicationConstants;
-import com.garantibbva.depositwithdrawalmngmt.moneywithdrawbusiness.data.constant.TransactionQueryConstant;
+import com.garantibbva.depositwithdrawalmngmt.moneywithdrawbusiness.data.contract.dao.TransactionDao;
+import com.garantibbva.depositwithdrawalmngmt.moneywithdrawbusiness.data.impl.dao.TransactionDaoImpl;
 import com.garantibbva.depositwithdrawalmngmt.moneywithdrawbusiness.data.contract.model.entity.TransactionEntity;
+import com.garantibbva.depositwithdrawalmngmt.moneywithdrawbusiness.service.contract.model.TransactionDto;
+import com.garantibbva.depositwithdrawalmngmt.moneywithdrawbusiness.service.contract.model.response.TransactionListDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.dao.DataAccessException;
-import org.springframework.jdbc.core.RowMapper;
 
 import java.math.BigDecimal;
 import java.util.ArrayList;
@@ -23,17 +20,18 @@ import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class TransactionDaoImplTest {
+class TransactionServiceImplTest {
 
     @Mock
-    private JdbcAccessor jdbcAccessor;
+    private TransactionDao transactionDao;
 
     @InjectMocks
-    private TransactionDaoImpl transactionDao;
+    private TransactionServiceImpl transactionService;
 
     private TransactionEntity transactionEntity;
     private List<TransactionEntity> transactionEntities;
@@ -53,263 +51,235 @@ class TransactionDaoImplTest {
 
         transactionEntities = new ArrayList<>();
         transactionEntities.add(transactionEntity);
-        
-        // Reflection to inject jdbcAccessor
-        try {
-            java.lang.reflect.Field field = transactionDao.getClass().getSuperclass().getDeclaredField("jdbcAccessor");
-            field.setAccessible(true);
-            field.set(transactionDao, jdbcAccessor);
-        } catch (Exception e) {
-            fail("Failed to inject jdbcAccessor: " + e.getMessage());
-        }
     }
 
     @Test
-    void testFindByCustomerNumber_Success() throws BusinessException {
+    void testFindTransactionByCustomerNumber_Success() throws BusinessException {
         // Given
         Integer customerNumber = 123456;
-        when(jdbcAccessor.query(
-                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
-                any(ArkEntityBeanPropertyRowMapper.class),
-                eq(customerNumber)
-        )).thenReturn(transactionEntities);
+        when(transactionDao.findByCustomerNumber(customerNumber))
+                .thenReturn(Optional.of(transactionEntities));
 
         // When
-        Optional<List<TransactionEntity>> result = transactionDao.findByCustomerNumber(customerNumber);
+        TransactionListDto result = transactionService.findTransactionByCustomerNumber(customerNumber);
 
         // Then
-        assertTrue(result.isPresent());
-        assertEquals(1, result.get().size());
-        assertEquals(transactionEntity, result.get().get(0));
+        assertNotNull(result);
+        assertNotNull(result.getTransactions());
+        assertEquals(1, result.getTransactions().size());
         
-        verify(jdbcAccessor).query(
-                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
-                any(ArkEntityBeanPropertyRowMapper.class),
-                eq(customerNumber)
-        );
+        TransactionDto resultDto = result.getTransactions().get(0);
+        assertEquals("DEPOSIT", resultDto.getOperationType());
+        assertEquals(123456, resultDto.getCustomerNumber());
+        assertEquals("ACC123456", resultDto.getCustomerAccount());
+        assertEquals(new BigDecimal("1000.00"), resultDto.getTransactionAmount());
+        assertEquals("TRY", resultDto.getCurrency());
+        assertEquals("OP001", resultDto.getOpCode());
+        assertEquals("REQUEST_001", resultDto.getStoredRequest());
+        assertEquals("MOBILE", resultDto.getChannel());
+
+        verify(transactionDao, times(1)).findByCustomerNumber(customerNumber);
     }
 
     @Test
-    void testFindByCustomerNumber_EmptyResult() throws BusinessException {
+    void testFindTransactionByCustomerNumber_EmptyResult() throws BusinessException {
         // Given
         Integer customerNumber = 999999;
-        when(jdbcAccessor.query(
-                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
-                any(ArkEntityBeanPropertyRowMapper.class),
-                eq(customerNumber)
-        )).thenReturn(Collections.emptyList());
+        when(transactionDao.findByCustomerNumber(customerNumber))
+                .thenReturn(Optional.empty());
 
         // When
-        Optional<List<TransactionEntity>> result = transactionDao.findByCustomerNumber(customerNumber);
+        TransactionListDto result = transactionService.findTransactionByCustomerNumber(customerNumber);
 
         // Then
-        assertTrue(result.isPresent());
-        assertTrue(result.get().isEmpty());
-        
-        verify(jdbcAccessor).query(
-                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
-                any(ArkEntityBeanPropertyRowMapper.class),
-                eq(customerNumber)
-        );
+        assertNotNull(result);
+        assertNotNull(result.getTransactions());
+        assertTrue(result.getTransactions().isEmpty());
+
+        verify(transactionDao, times(1)).findByCustomerNumber(customerNumber);
     }
 
     @Test
-    void testFindByCustomerNumber_NullResult() throws BusinessException {
+    void testFindTransactionByCustomerNumber_EmptyList() throws BusinessException {
         // Given
         Integer customerNumber = 888888;
-        when(jdbcAccessor.query(
-                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
-                any(ArkEntityBeanPropertyRowMapper.class),
-                eq(customerNumber)
-        )).thenReturn(null);
+        when(transactionDao.findByCustomerNumber(customerNumber))
+                .thenReturn(Optional.of(Collections.emptyList()));
 
         // When
-        Optional<List<TransactionEntity>> result = transactionDao.findByCustomerNumber(customerNumber);
+        TransactionListDto result = transactionService.findTransactionByCustomerNumber(customerNumber);
 
         // Then
-        assertFalse(result.isPresent());
-        
-        verify(jdbcAccessor).query(
-                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
-                any(ArkEntityBeanPropertyRowMapper.class),
-                eq(customerNumber)
-        );
+        assertNotNull(result);
+        assertNotNull(result.getTransactions());
+        assertTrue(result.getTransactions().isEmpty());
+
+        verify(transactionDao, times(1)).findByCustomerNumber(customerNumber);
     }
 
     @Test
-    void testFindByCustomerNumber_MultipleResults() throws BusinessException {
+    void testFindTransactionByCustomerNumber_MultipleTransactions() throws BusinessException {
         // Given
         Integer customerNumber = 777777;
         
+        // Create multiple transactions
         TransactionEntity secondTransaction = new TransactionEntity();
         secondTransaction.setOperationType("WITHDRAWAL");
-        secondTransaction.setCustomerNumber(customerNumber);
+        secondTransaction.setCustomerNumber(777777);
         secondTransaction.setCustomerAccount("ACC777777");
         secondTransaction.setTransactionAmount(new BigDecimal("500.00"));
         secondTransaction.setCurrency("USD");
         secondTransaction.setOpCode("OP002");
         secondTransaction.setStoredRequest("REQUEST_002");
         secondTransaction.setChannel("WEB");
-        
+
         List<TransactionEntity> multipleEntities = new ArrayList<>();
         multipleEntities.add(transactionEntity);
         multipleEntities.add(secondTransaction);
-        
-        when(jdbcAccessor.query(
-                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
-                any(ArkEntityBeanPropertyRowMapper.class),
-                eq(customerNumber)
-        )).thenReturn(multipleEntities);
+
+        when(transactionDao.findByCustomerNumber(customerNumber))
+                .thenReturn(Optional.of(multipleEntities));
 
         // When
-        Optional<List<TransactionEntity>> result = transactionDao.findByCustomerNumber(customerNumber);
+        TransactionListDto result = transactionService.findTransactionByCustomerNumber(customerNumber);
 
         // Then
-        assertTrue(result.isPresent());
-        assertEquals(2, result.get().size());
-        assertEquals(transactionEntity, result.get().get(0));
-        assertEquals(secondTransaction, result.get().get(1));
+        assertNotNull(result);
+        assertNotNull(result.getTransactions());
+        assertEquals(2, result.getTransactions().size());
+        
+        // Verify first transaction
+        TransactionDto firstDto = result.getTransactions().get(0);
+        assertEquals("DEPOSIT", firstDto.getOperationType());
+        assertEquals(123456, firstDto.getCustomerNumber());
+        
+        // Verify second transaction
+        TransactionDto secondDto = result.getTransactions().get(1);
+        assertEquals("WITHDRAWAL", secondDto.getOperationType());
+        assertEquals(777777, secondDto.getCustomerNumber());
+        assertEquals("ACC777777", secondDto.getCustomerAccount());
+        assertEquals(new BigDecimal("500.00"), secondDto.getTransactionAmount());
+        assertEquals("USD", secondDto.getCurrency());
+
+        verify(transactionDao, times(1)).findByCustomerNumber(customerNumber);
     }
 
     @Test
-    void testFindByCustomerNumber_DataAccessException() {
+    void testFindTransactionByCustomerNumber_BusinessException() throws BusinessException {
         // Given
         Integer customerNumber = 666666;
-        DataAccessException dataAccessException = new DataAccessException("Connection error") {};
+        BusinessException businessException = new BusinessException("MWB300241001", "Database error");
         
-        when(jdbcAccessor.query(
-                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
-                any(ArkEntityBeanPropertyRowMapper.class),
-                eq(customerNumber)
-        )).thenThrow(dataAccessException);
+        when(transactionDao.findByCustomerNumber(customerNumber))
+                .thenThrow(businessException);
 
         // When & Then
-        BusinessException thrown = assertThrows(BusinessException.class, () -> {
-            transactionDao.findByCustomerNumber(customerNumber);
+        BusinessException exception = assertThrows(BusinessException.class, () -> {
+            transactionService.findTransactionByCustomerNumber(customerNumber);
         });
-        
-        assertEquals(ApplicationConstants.MWB300241001, thrown.getCode());
-        assertEquals(dataAccessException, thrown.getCause());
-        
-        verify(jdbcAccessor).query(
-                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
-                any(ArkEntityBeanPropertyRowMapper.class),
-                eq(customerNumber)
-        );
+
+        assertEquals("MWB300241001", exception.getCode());
+        verify(transactionDao, times(1)).findByCustomerNumber(customerNumber);
     }
 
     @Test
-    void testFindByCustomerNumber_RuntimeException() {
-        // Given
-        Integer customerNumber = 555555;
-        RuntimeException runtimeException = new RuntimeException("Unexpected error");
-        
-        when(jdbcAccessor.query(
-                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
-                any(ArkEntityBeanPropertyRowMapper.class),
-                eq(customerNumber)
-        )).thenThrow(runtimeException);
-
-        // When & Then
-        BusinessException thrown = assertThrows(BusinessException.class, () -> {
-            transactionDao.findByCustomerNumber(customerNumber);
-        });
-        
-        assertEquals(ApplicationConstants.MWB300241001, thrown.getCode());
-        assertEquals(runtimeException, thrown.getCause());
-    }
-
-    @Test
-    void testFindByCustomerNumber_NullCustomerNumber() throws SQLException {
+    void testFindTransactionByCustomerNumber_NullCustomerNumber() throws BusinessException {
         // Given
         Integer customerNumber = null;
-        when(jdbcAccessor.query(
-                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
-                any(ArkEntityBeanPropertyRowMapper.class),
-                any()
-        )).thenReturn(Collections.emptyList());
+        when(transactionDao.findByCustomerNumber(null))
+                .thenReturn(Optional.empty());
 
         // When
-        Optional<List<TransactionEntity>> result = transactionDao.findByCustomerNumber(customerNumber);
+        TransactionListDto result = transactionService.findTransactionByCustomerNumber(customerNumber);
 
         // Then
-        assertTrue(result.isPresent());
-        assertTrue(result.get().isEmpty());
+        assertNotNull(result);
+        assertNotNull(result.getTransactions());
+        assertTrue(result.getTransactions().isEmpty());
+
+        verify(transactionDao, times(1)).findByCustomerNumber(null);
+    }
+
+    @Test
+    void testFindTransactionByCustomerNumber_RuntimeException() throws SQLException {
+        // Given
+        Integer customerNumber = 555555;
+        when(transactionDao.findByCustomerNumber(customerNumber))
+                .thenThrow(new RuntimeException("Unexpected error"));
+
+        // When & Then
+        RuntimeException exception = assertThrows(RuntimeException.class, () -> {
+            transactionService.findTransactionByCustomerNumber(customerNumber);
+        });
+
+        assertEquals("Unexpected error", exception.getMessage());
+        verify(transactionDao, times(1)).findByCustomerNumber(customerNumber);
+    }
+
+    @Test
+    void testConstructor() {
+        // Given
+        TransactionDaoImpl mockDaoImpl = mock(TransactionDaoImpl.class);
+
+        // When
+        TransactionServiceImpl service = new TransactionServiceImpl(mockDaoImpl);
+
+        // Then
+        assertNotNull(service);
+    }
+
+    @Test
+    void testFindTransactionByCustomerNumber_NullTransactionFields() throws BusinessException {
+        // Given
+        Integer customerNumber = 333333;
         
-        verify(jdbcAccessor).query(
-                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
-                any(ArkEntityBeanPropertyRowMapper.class),
-                eq(customerNumber)
-        );
-    }
-
-    @Test
-    void testFindByCustomerNumber_ZeroCustomerNumber() throws BusinessException {
-        // Given
-        Integer customerNumber = 0;
-        when(jdbcAccessor.query(
-                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
-                any(ArkEntityBeanPropertyRowMapper.class),
-                eq(0)
-        )).thenReturn(transactionEntities);
-
-        // When
-        Optional<List<TransactionEntity>> result = transactionDao.findByCustomerNumber(customerNumber);
-
-        // Then
-        assertTrue(result.isPresent());
-        assertEquals(1, result.get().size());
-    }
-
-    @Test
-    void testFindByCustomerNumber_NegativeCustomerNumber() throws BusinessException {
-        // Given
-        Integer customerNumber = -12345;
-        when(jdbcAccessor.query(
-                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
-                any(ArkEntityBeanPropertyRowMapper.class),
-                eq(-12345)
-        )).thenReturn(Collections.emptyList());
+        // Create transaction with null fields
+        TransactionEntity nullFieldsEntity = new TransactionEntity();
+        nullFieldsEntity.setOperationType(null);
+        nullFieldsEntity.setCustomerNumber(customerNumber);
+        nullFieldsEntity.setCustomerAccount(null);
+        nullFieldsEntity.setTransactionAmount(null);
+        nullFieldsEntity.setCurrency(null);
+        nullFieldsEntity.setOpCode(null);
+        nullFieldsEntity.setStoredRequest(null);
+        nullFieldsEntity.setChannel(null);
+        
+        List<TransactionEntity> entities = new ArrayList<>();
+        entities.add(nullFieldsEntity);
+        
+        when(transactionDao.findByCustomerNumber(customerNumber))
+                .thenReturn(Optional.of(entities));
 
         // When
-        Optional<List<TransactionEntity>> result = transactionDao.findByCustomerNumber(customerNumber);
+        TransactionListDto result = transactionService.findTransactionByCustomerNumber(customerNumber);
 
         // Then
-        assertTrue(result.isPresent());
-        assertTrue(result.get().isEmpty());
+        assertNotNull(result);
+        assertNotNull(result.getTransactions());
+        assertEquals(1, result.getTransactions().size());
+        
+        TransactionDto resultDto = result.getTransactions().get(0);
+        assertNull(resultDto.getOperationType());
+        assertEquals(customerNumber, resultDto.getCustomerNumber());
+        assertNull(resultDto.getCustomerAccount());
+        assertNull(resultDto.getTransactionAmount());
+        assertNull(resultDto.getCurrency());
+        assertNull(resultDto.getOpCode());
+        assertNull(resultDto.getStoredRequest());
+        assertNull(resultDto.getChannel());
+
+        verify(transactionDao, times(1)).findByCustomerNumber(customerNumber);
     }
 
     @Test
-    void testFindByCustomerNumber_VerifyRowMapperType() throws BusinessException {
+    void testFindTransactionByCustomerNumber_LargeDataSet() throws BusinessException {
         // Given
         Integer customerNumber = 444444;
-        when(jdbcAccessor.query(
-                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
-                any(ArkEntityBeanPropertyRowMapper.class),
-                eq(customerNumber)
-        )).thenReturn(transactionEntities);
-
-        // When
-        transactionDao.findByCustomerNumber(customerNumber);
-
-        // Then
-        ArgumentCaptor<RowMapper> rowMapperCaptor = ArgumentCaptor.forClass(RowMapper.class);
-        verify(jdbcAccessor).query(
-                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
-                rowMapperCaptor.capture(),
-                eq(customerNumber)
-        );
         
-        assertTrue(rowMapperCaptor.getValue() instanceof ArkEntityBeanPropertyRowMapper);
-    }
-
-    @Test
-    void testFindByCustomerNumber_LargeDataSet() throws BusinessException {
-        // Given
-        Integer customerNumber = 111111;
+        // Create a large dataset
         List<TransactionEntity> largeEntityList = new ArrayList<>();
         
-        for (int i = 0; i < 1000; i++) {
+        for (int i = 0; i < 100; i++) {
             TransactionEntity entity = new TransactionEntity();
             entity.setOperationType("TYPE_" + i);
             entity.setCustomerNumber(customerNumber);
@@ -321,49 +291,68 @@ class TransactionDaoImplTest {
             entity.setChannel("CHANNEL_" + i);
             largeEntityList.add(entity);
         }
-        
-        when(jdbcAccessor.query(
-                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
-                any(ArkEntityBeanPropertyRowMapper.class),
-                eq(customerNumber)
-        )).thenReturn(largeEntityList);
+
+        when(transactionDao.findByCustomerNumber(customerNumber))
+                .thenReturn(Optional.of(largeEntityList));
 
         // When
-        Optional<List<TransactionEntity>> result = transactionDao.findByCustomerNumber(customerNumber);
+        TransactionListDto result = transactionService.findTransactionByCustomerNumber(customerNumber);
 
         // Then
-        assertTrue(result.isPresent());
-        assertEquals(1000, result.get().size());
-        assertEquals("TYPE_0", result.get().get(0).getOperationType());
-        assertEquals("TYPE_999", result.get().get(999).getOperationType());
+        assertNotNull(result);
+        assertNotNull(result.getTransactions());
+        assertEquals(100, result.getTransactions().size());
+        
+        // Verify some samples
+        TransactionDto firstDto = result.getTransactions().get(0);
+        assertEquals("TYPE_0", firstDto.getOperationType());
+        assertEquals("ACC_0", firstDto.getCustomerAccount());
+        assertEquals(new BigDecimal("0"), firstDto.getTransactionAmount());
+        
+        TransactionDto lastDto = result.getTransactions().get(99);
+        assertEquals("TYPE_99", lastDto.getOperationType());
+        assertEquals("ACC_99", lastDto.getCustomerAccount());
+        assertEquals(new BigDecimal("9900"), lastDto.getTransactionAmount());
+
+        verify(transactionDao, times(1)).findByCustomerNumber(customerNumber);
     }
 
     @Test
-    void testFindByCustomerNumber_SQLException() {
+    void testFindTransactionByCustomerNumber_SpecialCharactersInData() throws BusinessException {
         // Given
-        Integer customerNumber = 333333;
-        // Spring JDBC unchecked exception kullanır
-        DataAccessException dataAccessException = new DataAccessException("Database connection failed") {};
+        Integer customerNumber = 222222;
         
-        when(jdbcAccessor.query(
-                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
-                any(ArkEntityBeanPropertyRowMapper.class),
-                eq(customerNumber)
-        )).thenThrow(dataAccessException);
+        TransactionEntity specialCharsEntity = new TransactionEntity();
+        specialCharsEntity.setOperationType("DEPOSIT-TRANSFER");
+        specialCharsEntity.setCustomerNumber(customerNumber);
+        specialCharsEntity.setCustomerAccount("ACC-123/456");
+        specialCharsEntity.setTransactionAmount(new BigDecimal("1234.56"));
+        specialCharsEntity.setCurrency("EUR");
+        specialCharsEntity.setOpCode("OP#001&TEST");
+        specialCharsEntity.setStoredRequest("{\"test\":\"data\"}");
+        specialCharsEntity.setChannel("MOBILE/WEB");
+        
+        List<TransactionEntity> entities = new ArrayList<>();
+        entities.add(specialCharsEntity);
+        
+        when(transactionDao.findByCustomerNumber(customerNumber))
+                .thenReturn(Optional.of(entities));
 
-        // When & Then
-        BusinessException thrown = assertThrows(BusinessException.class, () -> {
-            transactionDao.findByCustomerNumber(customerNumber);
-        });
+        // When
+        TransactionListDto result = transactionService.findTransactionByCustomerNumber(customerNumber);
+
+        // Then
+        assertNotNull(result);
+        assertNotNull(result.getTransactions());
+        assertEquals(1, result.getTransactions().size());
         
-        // BusinessException'a wrap ediliyor
-        assertEquals(ApplicationConstants.MWB300241001, thrown.getCode());
-        assertNotNull(thrown.getCause());
-        
-        verify(jdbcAccessor).query(
-                eq(TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER),
-                any(ArkEntityBeanPropertyRowMapper.class),
-                eq(customerNumber)
-        );
+        TransactionDto resultDto = result.getTransactions().get(0);
+        assertEquals("DEPOSIT-TRANSFER", resultDto.getOperationType());
+        assertEquals("ACC-123/456", resultDto.getCustomerAccount());
+        assertEquals("OP#001&TEST", resultDto.getOpCode());
+        assertEquals("{\"test\":\"data\"}", resultDto.getStoredRequest());
+        assertEquals("MOBILE/WEB", resultDto.getChannel());
+
+        verify(transactionDao, times(1)).findByCustomerNumber(customerNumber);
     }
 }
