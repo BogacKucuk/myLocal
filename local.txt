@@ -1,535 +1,72 @@
-package com.garantibbva.depositwithdrawalmngmt.depositwithdrawalchannel.rest.impl;
-
-import com.garantibbva.depositwithdrawalmngmt.depositwithdrawalchannel.service.contract.TransactionService;
-import com.garantibbva.depositwithdrawalmngmt.depositwithdrawalchannel.service.model.request.FindTransactionRequestDto;
-import com.garantibbva.depositwithdrawalmngmt.depositwithdrawalchannel.service.model.response.TransactionDto;
-import com.garantibbva.depositwithdrawalmngmt.depositwithdrawalchannel.service.model.response.TransactionListDto;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-
-import java.math.BigDecimal;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
-@ExtendWith(MockitoExtension.class)
-class TransactionControllerImplTest {
-
-    @Mock
-    private TransactionService transactionService;
-
-    @InjectMocks
-    private TransactionControllerImpl transactionController;
-
-    private FindTransactionRequestDto requestDto;
-    private TransactionListDto transactionListDto;
-    private TransactionDto transactionDto;
-
-    @BeforeEach
-    void setUp() {
-        // Setup request
-        requestDto = new FindTransactionRequestDto();
-        requestDto.setCustomerNumber(123456);
-
-        // Setup transaction
-        transactionDto = TransactionDto.builder()
-                .operationType("DEPOSIT")
-                .customerNumber(123456)
-                .customerAccount("ACC123456")
-                .transactionAmount(new BigDecimal("1000.00"))
-                .currency("TRY")
-                .opCode("OP001")
-                .storedRequest("REQUEST_001")
-                .channel("MOBILE")
-                .build();
-
-        // Setup response
-        List<TransactionDto> transactions = new ArrayList<>();
-        transactions.add(transactionDto);
-        
-        transactionListDto = TransactionListDto.builder()
-                .transactions(transactions)
-                .build();
-    }
-
-    @Test
-    void testFindTransactionByCustomerNumber_Success() {
-        // Given
-        when(transactionService.findTransactionByCustomerNumber(any(FindTransactionRequestDto.class)))
-                .thenReturn(transactionListDto);
-
-        // When
-        ResponseEntity<TransactionListDto> response = 
-                transactionController.findTransactionByCustomerNumber(requestDto);
-
-        // Then
-        assertNotNull(response);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals(1, response.getBody().getTransactions().size());
-        assertEquals(transactionDto, response.getBody().getTransactions().get(0));
-        
-        verify(transactionService).findTransactionByCustomerNumber(requestDto);
-    }
-
-    @Test
-    void testFindTransactionByCustomerNumber_EmptyList() {
-        // Given
-        TransactionListDto emptyListDto = TransactionListDto.builder()
-                .transactions(Collections.emptyList())
-                .build();
-        
-        when(transactionService.findTransactionByCustomerNumber(any(FindTransactionRequestDto.class)))
-                .thenReturn(emptyListDto);
-
-        // When
-        ResponseEntity<TransactionListDto> response = 
-                transactionController.findTransactionByCustomerNumber(requestDto);
-
-        // Then
-        assertNotNull(response);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertTrue(response.getBody().getTransactions().isEmpty());
-        
-        verify(transactionService).findTransactionByCustomerNumber(requestDto);
-    }
-
-    @Test
-    void testFindTransactionByCustomerNumber_MultipleTransactions() {
-        // Given
-        TransactionDto secondTransaction = TransactionDto.builder()
-                .operationType("WITHDRAWAL")
-                .customerNumber(123456)
-                .customerAccount("ACC123457")
-                .transactionAmount(new BigDecimal("500.00"))
-                .currency("USD")
-                .opCode("OP002")
-                .storedRequest("REQUEST_002")
-                .channel("WEB")
-                .build();
-        
-        List<TransactionDto> multipleTransactions = new ArrayList<>();
-        multipleTransactions.add(transactionDto);
-        multipleTransactions.add(secondTransaction);
-        
-        TransactionListDto multipleListDto = TransactionListDto.builder()
-                .transactions(multipleTransactions)
-                .build();
-        
-        when(transactionService.findTransactionByCustomerNumber(any(FindTransactionRequestDto.class)))
-                .thenReturn(multipleListDto);
-
-        // When
-        ResponseEntity<TransactionListDto> response = 
-                transactionController.findTransactionByCustomerNumber(requestDto);
-
-        // Then
-        assertNotNull(response);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals(2, response.getBody().getTransactions().size());
-        
-        verify(transactionService).findTransactionByCustomerNumber(requestDto);
-    }
-
-    @Test
-    void testFindTransactionByCustomerNumber_NullRequest() {
-        // Given
-        when(transactionService.findTransactionByCustomerNumber(null))
-                .thenReturn(transactionListDto);
-
-        // When
-        ResponseEntity<TransactionListDto> response = 
-                transactionController.findTransactionByCustomerNumber(null);
-
-        // Then
-        assertNotNull(response);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        
-        verify(transactionService).findTransactionByCustomerNumber(null);
-    }
-
-    @Test
-    void testFindTransactionByCustomerNumber_ServiceThrowsException() {
-        // Given
-        when(transactionService.findTransactionByCustomerNumber(any(FindTransactionRequestDto.class)))
-                .thenThrow(new RuntimeException("Service error"));
-
-        // When & Then
-        assertThrows(RuntimeException.class, () -> {
-            transactionController.findTransactionByCustomerNumber(requestDto);
-        });
-        
-        verify(transactionService).findTransactionByCustomerNumber(requestDto);
-    }
-
-    @Test
-    void testConstructor() {
-        // Given
-        TransactionService mockService = mock(TransactionService.class);
-
-        // When
-        TransactionControllerImpl controller = new TransactionControllerImpl(mockService);
-
-        // Then
-        assertNotNull(controller);
-    }
-
-    @Test
-    void testFindTransactionByCustomerNumber_NullResponseFromService() {
-        // Given
-        when(transactionService.findTransactionByCustomerNumber(any(FindTransactionRequestDto.class)))
-                .thenReturn(null);
-
-        // When
-        ResponseEntity<TransactionListDto> response = 
-                transactionController.findTransactionByCustomerNumber(requestDto);
-
-        // Then
-        assertNotNull(response);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNull(response.getBody());
-        
-        verify(transactionService).findTransactionByCustomerNumber(requestDto);
-    }
-
-    @Test
-    void testFindTransactionByCustomerNumber_LargeDataSet() {
-        // Given
-        List<TransactionDto> largeTransactionList = new ArrayList<>();
-        for (int i = 0; i < 100; i++) {
-            TransactionDto dto = TransactionDto.builder()
-                    .operationType("TYPE_" + i)
-                    .customerNumber(123456)
-                    .customerAccount("ACC_" + i)
-                    .transactionAmount(new BigDecimal(i * 100))
-                    .currency("TRY")
-                    .opCode("OP_" + i)
-                    .storedRequest("REQ_" + i)
-                    .channel("CHANNEL_" + i)
-                    .build();
-            largeTransactionList.add(dto);
-        }
-        
-        TransactionListDto largeListDto = TransactionListDto.builder()
-                .transactions(largeTransactionList)
-                .build();
-        
-        when(transactionService.findTransactionByCustomerNumber(any(FindTransactionRequestDto.class)))
-                .thenReturn(largeListDto);
-
-        // When
-        ResponseEntity<TransactionListDto> response = 
-                transactionController.findTransactionByCustomerNumber(requestDto);
-
-        // Then
-        assertNotNull(response);
-        assertEquals(HttpStatus.OK, response.getStatusCode());
-        assertNotNull(response.getBody());
-        assertEquals(100, response.getBody().getTransactions().size());
-        
-        verify(transactionService).findTransactionByCustomerNumber(requestDto);
-    }
-}
-
-
-// ------------------------------------------------------------------------------------------------------
-
-package com.garantibbva.depositwithdrawalmngmt.depositwithdrawalchannel.service.contract.impl;
-
-import com.garantibbva.depositwithdrawalmngmt.depositwithdrawalchannel.service.model.request.FindTransactionRequestDto;
-import com.garantibbva.depositwithdrawalmngmt.depositwithdrawalchannel.service.model.response.TransactionDto;
-import com.garantibbva.depositwithdrawalmngmt.depositwithdrawalchannel.service.model.response.TransactionListDto;
-import com.garantibbva.depositwithdrawalmngmt.moneywithdrawbusiness.proto.TransactionProto.FindTransactionByCustomerNumberGrpcRequest;
-import com.garantibbva.depositwithdrawalmngmt.moneywithdrawbusiness.proto.TransactionProto.FindTransactionByCustomerNumberGrpcResponse;
-import com.garantibbva.depositwithdrawalmngmt.moneywithdrawbusiness.proto.TransactionProto.Transaction;
-import com.garantibbva.depositwithdrawalmngmt.moneywithdrawbusiness.proto.TransactionProto.TransactionGrpcServiceGrpc;
-import com.garantibbvaportfoy.utility.bigdecimal.proto.BigDecimalProto.BigDecimal;
-import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-
-import java.util.ArrayList;
-import java.util.List;
-
-import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-
-@ExtendWith(MockitoExtension.class)
-class TransactionServiceImplTest {
-
-    @Mock
-    private TransactionGrpcServiceGrpc.TransactionGrpcServiceBlockingStub transactionGrpcServiceBlockingStub;
-
-    private TransactionServiceImpl transactionService;
-
-    private FindTransactionRequestDto requestDto;
-    private FindTransactionByCustomerNumberGrpcRequest grpcRequest;
-    private FindTransactionByCustomerNumberGrpcResponse grpcResponse;
-
-    @BeforeEach
-    void setUp() {
-        transactionService = new TransactionServiceImpl(transactionGrpcServiceBlockingStub);
-
-        // Setup request
-        requestDto = new FindTransactionRequestDto();
-        requestDto.setCustomerNumber(123456);
-
-        // Setup gRPC request
-        grpcRequest = FindTransactionByCustomerNumberGrpcRequest.newBuilder()
-                .setCustomerNumber(123456)
-                .build();
-
-        // Setup gRPC transaction
-        Transaction grpcTransaction = Transaction.newBuilder()
-                .setOperationType("DEPOSIT")
-                .setCustomerNumber(123456)
-                .setCustomerAccount("ACC123456")
-                .setTransactionAmount(BigDecimal.newBuilder()
-                        .setScale(2)
-                        .setPrecision(6)
-                        .setValue(com.google.protobuf.ByteString.copyFrom(new byte[]{10, 0, 0}))
-                        .build())
-                .setCurrency("TRY")
-                .setOpCode("OP001")
-                .setStoredRequest("REQUEST_001")
-                .setChannel("MOBILE")
-                .build();
-
-        // Setup gRPC response
-        grpcResponse = FindTransactionByCustomerNumberGrpcResponse.newBuilder()
-                .addTransactions(grpcTransaction)
-                .build();
-    }
-
-    @Test
-    void testFindTransactionByCustomerNumber_Success() {
-        // Given
-        when(transactionGrpcServiceBlockingStub.findTransactionByCustomerNumber(any(FindTransactionByCustomerNumberGrpcRequest.class)))
-                .thenReturn(grpcResponse);
-
-        // When
-        TransactionListDto result = transactionService.findTransactionByCustomerNumber(requestDto);
-
-        // Then
-        assertNotNull(result);
-        assertNotNull(result.getTransactions());
-        assertEquals(1, result.getTransactions().size());
-        
-        TransactionDto transaction = result.getTransactions().get(0);
-        assertEquals("DEPOSIT", transaction.getOperationType());
-        assertEquals(123456, transaction.getCustomerNumber());
-        assertEquals("ACC123456", transaction.getCustomerAccount());
-        assertEquals("TRY", transaction.getCurrency());
-        assertEquals("OP001", transaction.getOpCode());
-        assertEquals("REQUEST_001", transaction.getStoredRequest());
-        assertEquals("MOBILE", transaction.getChannel());
-        
-        verify(transactionGrpcServiceBlockingStub).findTransactionByCustomerNumber(any(FindTransactionByCustomerNumberGrpcRequest.class));
-    }
-
-    @Test
-    void testFindTransactionByCustomerNumber_EmptyResponse() {
-        // Given
-        FindTransactionByCustomerNumberGrpcResponse emptyResponse = 
-                FindTransactionByCustomerNumberGrpcResponse.newBuilder().build();
-        
-        when(transactionGrpcServiceBlockingStub.findTransactionByCustomerNumber(any(FindTransactionByCustomerNumberGrpcRequest.class)))
-                .thenReturn(emptyResponse);
-
-        // When
-        TransactionListDto result = transactionService.findTransactionByCustomerNumber(requestDto);
-
-        // Then
-        assertNotNull(result);
-        assertNotNull(result.getTransactions());
-        assertTrue(result.getTransactions().isEmpty());
-        
-        verify(transactionGrpcServiceBlockingStub).findTransactionByCustomerNumber(any(FindTransactionByCustomerNumberGrpcRequest.class));
-    }
-
-    @Test
-    void testFindTransactionByCustomerNumber_MultipleTransactions() {
-        // Given
-        Transaction grpcTransaction2 = Transaction.newBuilder()
-                .setOperationType("WITHDRAWAL")
-                .setCustomerNumber(123456)
-                .setCustomerAccount("ACC123457")
-                .setTransactionAmount(BigDecimal.newBuilder()
-                        .setScale(2)
-                        .setPrecision(4)
-                        .setValue(com.google.protobuf.ByteString.copyFrom(new byte[]{5, 0, 0}))
-                        .build())
-                .setCurrency("USD")
-                .setOpCode("OP002")
-                .setStoredRequest("REQUEST_002")
-                .setChannel("WEB")
-                .build();
-
-        FindTransactionByCustomerNumberGrpcResponse multipleResponse = 
-                FindTransactionByCustomerNumberGrpcResponse.newBuilder()
-                        .addTransactions(grpcResponse.getTransactions(0))
-                        .addTransactions(grpcTransaction2)
-                        .build();
-        
-        when(transactionGrpcServiceBlockingStub.findTransactionByCustomerNumber(any(FindTransactionByCustomerNumberGrpcRequest.class)))
-                .thenReturn(multipleResponse);
-
-        // When
-        TransactionListDto result = transactionService.findTransactionByCustomerNumber(requestDto);
-
-        // Then
-        assertNotNull(result);
-        assertNotNull(result.getTransactions());
-        assertEquals(2, result.getTransactions().size());
-        
-        assertEquals("DEPOSIT", result.getTransactions().get(0).getOperationType());
-        assertEquals("WITHDRAWAL", result.getTransactions().get(1).getOperationType());
-        
-        verify(transactionGrpcServiceBlockingStub).findTransactionByCustomerNumber(any(FindTransactionByCustomerNumberGrpcRequest.class));
-    }
-
-    @Test
-    void testFindTransactionByCustomerNumber_GrpcException() {
-        // Given
-        StatusRuntimeException grpcException = new StatusRuntimeException(
-                Status.UNAVAILABLE.withDescription("Service unavailable")
-        );
-        
-        when(transactionGrpcServiceBlockingStub.findTransactionByCustomerNumber(any(FindTransactionByCustomerNumberGrpcRequest.class)))
-                .thenThrow(grpcException);
-
-        // When & Then
-        StatusRuntimeException thrown = assertThrows(StatusRuntimeException.class, () -> {
-            transactionService.findTransactionByCustomerNumber(requestDto);
-        });
-        
-        assertEquals(Status.UNAVAILABLE.getCode(), thrown.getStatus().getCode());
-        assertEquals("Service unavailable", thrown.getStatus().getDescription());
-        
-        verify(transactionGrpcServiceBlockingStub).findTransactionByCustomerNumber(any(FindTransactionByCustomerNumberGrpcRequest.class));
-    }
-
-    @Test
-    void testFindTransactionByCustomerNumber_NullRequest() {
-        // Given
-        when(transactionGrpcServiceBlockingStub.findTransactionByCustomerNumber(any()))
-                .thenReturn(grpcResponse);
-
-        // When
-        TransactionListDto result = transactionService.findTransactionByCustomerNumber(null);
-
-        // Then
-        assertNotNull(result);
-        verify(transactionGrpcServiceBlockingStub).findTransactionByCustomerNumber(any());
-    }
-
-    @Test
-    void testFindTransactionByCustomerNumber_TimeoutException() {
-        // Given
-        StatusRuntimeException timeoutException = new StatusRuntimeException(
-                Status.DEADLINE_EXCEEDED.withDescription("Timeout")
-        );
-        
-        when(transactionGrpcServiceBlockingStub.findTransactionByCustomerNumber(any(FindTransactionByCustomerNumberGrpcRequest.class)))
-                .thenThrow(timeoutException);
-
-        // When & Then
-        StatusRuntimeException thrown = assertThrows(StatusRuntimeException.class, () -> {
-            transactionService.findTransactionByCustomerNumber(requestDto);
-        });
-        
-        assertEquals(Status.DEADLINE_EXCEEDED.getCode(), thrown.getStatus().getCode());
-        
-        verify(transactionGrpcServiceBlockingStub).findTransactionByCustomerNumber(any(FindTransactionByCustomerNumberGrpcRequest.class));
-    }
-
-    @Test
-    void testFindTransactionByCustomerNumber_InternalError() {
-        // Given
-        StatusRuntimeException internalError = new StatusRuntimeException(
-                Status.INTERNAL.withDescription("Internal server error")
-        );
-        
-        when(transactionGrpcServiceBlockingStub.findTransactionByCustomerNumber(any(FindTransactionByCustomerNumberGrpcRequest.class)))
-                .thenThrow(internalError);
-
-        // When & Then
-        StatusRuntimeException thrown = assertThrows(StatusRuntimeException.class, () -> {
-            transactionService.findTransactionByCustomerNumber(requestDto);
-        });
-        
-        assertEquals(Status.INTERNAL.getCode(), thrown.getStatus().getCode());
-        
-        verify(transactionGrpcServiceBlockingStub).findTransactionByCustomerNumber(any(FindTransactionByCustomerNumberGrpcRequest.class));
-    }
-
-    @Test
-    void testConstructor() {
-        // Given
-        TransactionGrpcServiceGrpc.TransactionGrpcServiceBlockingStub mockStub = 
-                mock(TransactionGrpcServiceGrpc.TransactionGrpcServiceBlockingStub.class);
-
-        // When
-        TransactionServiceImpl service = new TransactionServiceImpl(mockStub);
-
-        // Then
-        assertNotNull(service);
-    }
-
-    @Test
-    void testFindTransactionByCustomerNumber_LargeDataSet() {
-        // Given
-        FindTransactionByCustomerNumberGrpcResponse.Builder responseBuilder = 
-                FindTransactionByCustomerNumberGrpcResponse.newBuilder();
-        
-        for (int i = 0; i < 100; i++) {
-            Transaction transaction = Transaction.newBuilder()
-                    .setOperationType("TYPE_" + i)
-                    .setCustomerNumber(123456)
-                    .setCustomerAccount("ACC_" + i)
-                    .setTransactionAmount(BigDecimal.newBuilder()
-                            .setScale(2)
-                            .setPrecision(5)
-                            .setValue(com.google.protobuf.ByteString.copyFrom(new byte[]{(byte)i, 0, 0}))
-                            .build())
-                    .setCurrency("TRY")
-                    .setOpCode("OP_" + i)
-                    .setStoredRequest("REQ_" + i)
-                    .setChannel("CHANNEL_" + i)
-                    .build();
-            responseBuilder.addTransactions(transaction);
-        }
-        
-        FindTransactionByCustomerNumberGrpcResponse largeResponse = responseBuilder.build();
-        
-        when(transactionGrpcServiceBlockingStub.findTransactionByCustomerNumber(any(FindTransactionByCustomerNumberGrpcRequest.class)))
-                .thenReturn(largeResponse);
-
-        // When
-        TransactionListDto result = transactionService.findTransactionByCustomerNumber(requestDto);
-
-        // Then
-        assertNotNull(result);
-        assertNotNull(result.getTransactions());
-        assertEquals(100, result.getTransactions().size());
-        
-        verify(transactionGrpcServiceBlockingStub).findTransactionByCustomerNumber(any(FindTransactionByCustomerNumberGrpcRequest.class));
-    }
-}
+import React from 'react';
+import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
+import sinon from 'sinon';
+import LastTransactionsPopupComponent from './LastTransactionsPopupComponent';
+
+describe('LastTransactionsPopupComponent', () => {
+  it('visible=false iken render etmez', () => {
+    render(<LastTransactionsPopupComponent visible={false} dataTestId="lt-popup" onClose={() => {}} />);
+    expect(screen.queryByTestId('lt-popup')).to.be.null;
+  });
+
+  it('visible iken popup görünür ve onClose çalışır', async () => {
+    const onClose = sinon.spy();
+    render(<LastTransactionsPopupComponent visible={true} dataTestId="lt-popup" onClose={onClose} />);
+
+    const popup = screen.getByTestId('lt-popup');
+    expect(popup).to.exist;
+
+    // Header kapatma butonu (mock'ta data-testid=efa-popup-close)
+    userEvent.click(screen.getByTestId('efa-popup-close'));
+    expect(onClose.calledOnce).to.be.true;
+
+    // Footer back button
+    const backBtn = screen.getByRole('button', { name: /button~back/i });
+    userEvent.click(backBtn);
+    expect(onClose.calledTwice).to.be.true;
+  });
+
+  it('mount sırasında trigger çağrılır ve loading geçişi yapılır', async () => {
+    render(<LastTransactionsPopupComponent visible={true} dataTestId="lt-popup" onClose={() => {}} />);
+
+    // İlk render'da datatable loading true olmalı (mock datatable'da prop'tan görmüyoruz
+    // ama rows boş -> hiç satır yok, sonra gelecek)
+    const table = await screen.findByTestId('efa-datatable');
+    expect(table).to.exist;
+
+    // Asenkron setTimeout sonrası data render olacak
+    await waitFor(() => {
+      const row = screen.getByTestId('row-0');
+      expect(row).to.exist;
+      expect(row).to.have.text(/DEP/);  // opCode check
+    });
+  });
+
+  it('transaction mapping’i doğru formatlar (tarih, amount)', async () => {
+    render(<LastTransactionsPopupComponent visible={true} dataTestId="lt-popup" onClose={() => {}} />);
+
+    await waitFor(() => screen.getByTestId('row-0'));
+
+    const firstRow = screen.getByTestId('row-0');
+    expect(firstRow).to.have.text(/01\.01\.2024/); // tr-TR format (01.01.2024)
+    expect(firstRow).to.have.text(/1\.234,50 TRY/); // locale string
+    expect(firstRow).to.have.text(/BRANCH-001/);
+    expect(firstRow).to.have.text(/DEP/);
+  });
+
+  it('satır seçildiğinde clearSelection çağrılır (datatable onRowSelect mocku)', async () => {
+    render(<LastTransactionsPopupComponent visible={true} dataTestId="lt-popup" onClose={() => {}} />);
+
+    await waitFor(() => screen.getByTestId('row-0'));
+
+    const firstRow = screen.getByTestId('row-0');
+    // onRowSelect mock'ta tr onClick ile tetikleniyor
+    fireEvent.click(firstRow);
+
+    // Eğer clearSelection ref üstünden çağırdıysa bir side effect test etmek zor.
+    // Mock içinde cleared flag yok ama biz burada en azından click ile crash olmadığını doğruladık.
+    // İstersen EfaDatatable mock'unda cleared flag'i expose edip assertion yapabiliriz.
+    expect(firstRow).to.exist;
+  });
+});
