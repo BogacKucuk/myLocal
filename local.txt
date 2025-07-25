@@ -16,7 +16,6 @@ import sinon from 'sinon';
 import { retrieveData } from '../../../test/testData/opCode';
 import { setOperationCode } from '../../../store/slices/operationCodeSlice';
 import { EfaAnchorElement } from '@efa-web-components/efa-anchor';
-import * as lastTransactionsApiModule from '../../../../store/transactionsApi';
 
 const MainMoneyWithdrawComponentWithRoute = (): JSX.Element => (
   <Provider store={store}>
@@ -118,41 +117,32 @@ describe('MainMoneyWithdrawComponent Component', () => {
   it('last trx anchor clicked on MainMoneyWithdrawComponent', async function() {
     console.log('test log');
     
-    // Hook'u mock'layalım
-    const mockTrigger = sandbox.stub();
-    const mockResponse = {
-      data: {
-        transactions: [
-          {
-            valueDate: new Date().toISOString(),
-            channelName: 'Test Branch',
-            customerAccount: '123456',
-            transactionAmount: 1000,
-            currency: 'TRY',
-            opCode: 'WITHDRAW'
-          }
-        ]
-      },
-      isLoading: false,
-      error: null
+    // Store'a mock endpoint ekleyelim
+    const mockTransactions = {
+      transactions: [
+        {
+          valueDate: new Date().toISOString(),
+          channelName: 'Test Branch',
+          customerAccount: '123456',
+          transactionAmount: 1000,
+          currency: 'TRY',
+          opCode: 'WITHDRAW'
+        }
+      ]
     };
     
-    // trigger fonksiyonu Promise döndürmeli
-    mockTrigger.resolves(mockResponse);
+    // API endpoint'ini direkt mock'layalım
+    const getLastTransactionsStub = sandbox.stub();
+    getLastTransactionsStub.resolves({
+      data: mockTransactions
+    });
     
-    // useLazyGetLastTransactionsQuery hook'unu mock'la
-    if (lastTransactionsApiModule.useLazyGetLastTransactionsQuery) {
-      transactionsApiStub = sandbox.stub(lastTransactionsApiModule, 'useLazyGetLastTransactionsQuery');
-      transactionsApiStub.returns([mockTrigger, mockResponse]);
-    }
+    // ArkInvoker üzerinden mock yapalım - zaten invokerStub var
+    invokerStub
+      .withArgs(HttpMethod.POST, sinon.match.has('url', getAppUrlForInvoker('getLastTransactions')))
+      .resolves(buildMockResponse(mockTransactions));
     
-    // Component'i yeniden render et (mock'lu hook ile)
-    const { container } = render(<MainMoneyWithdrawComponentWithRoute />);
-    
-    // Biraz bekle - component'in yüklenmesi için
-    await new Promise(resolve => setTimeout(resolve, 200));
-    
-    // Anchor'ı bul
+    // Önce anchor'ı bul
     const anchor: EfaAnchorElement = await screen.findByTestId('last-transaction-link');
     expect(anchor).to.exist;
     
@@ -164,47 +154,28 @@ describe('MainMoneyWithdrawComponent Component', () => {
     // State güncellemesi için bekle
     console.log('Waiting for popup to appear...');
     
-    // Popup'ı bulmak için birkaç deneme yap
-    let lastTransactionsPopup: EfaPopupElement | null = null;
-    let attempts = 0;
-    const maxAttempts = 10;
+    // Popup'ı bulmak için waitFor kullan
+    await waitFor(async () => {
+      const popup = screen.queryByTestId('last-transaction-popup');
+      expect(popup).to.exist;
+    }, {
+      timeout: 5000,
+      interval: 200
+    });
     
-    while (!lastTransactionsPopup && attempts < maxAttempts) {
-      await new Promise(resolve => setTimeout(resolve, 300));
-      
-      // Farklı yöntemlerle ara
-      lastTransactionsPopup = 
-        screen.queryByTestId('last-transaction-popup') as EfaPopupElement ||
-        container.querySelector('[data-testid="last-transaction-popup"]') as EfaPopupElement ||
-        document.querySelector('[data-testid="last-transaction-popup"]') as EfaPopupElement;
-      
-      attempts++;
-      console.log(`Attempt ${attempts}: Popup found = ${!!lastTransactionsPopup}`);
-    }
+    console.log('Popup found!');
     
-    if (lastTransactionsPopup) {
-      console.log('Popup found!');
-      expect(lastTransactionsPopup).to.exist;
-      
-      // Close button'ı bul ve tıkla
-      const closeButton: EfaButtonElement = await screen.findByTestId('last-transactions-closeBtn');
-      fireEvent.click(closeButton);
-      
-      // Popup'ın kapandığını kontrol et
-      await waitFor(() => {
-        const popup = screen.queryByTestId('last-transaction-popup');
-        expect(popup).to.not.exist;
-      });
-      
-      console.log('Test completed successfully');
-    } else {
-      console.error('Popup not found after all attempts');
-      console.log('Mock trigger called:', mockTrigger.called);
-      console.log('Mock trigger call count:', mockTrigger.callCount);
-      
-      // Test'i skip et
-      this.skip();
-    }
+    // Close button'ı bul ve tıkla
+    const closeButton: EfaButtonElement = await screen.findByTestId('last-transactions-closeBtn');
+    fireEvent.click(closeButton);
+    
+    // Popup'ın kapandığını kontrol et
+    await waitFor(() => {
+      const popup = screen.queryByTestId('last-transaction-popup');
+      expect(popup).to.not.exist;
+    });
+    
+    console.log('Test completed successfully');
   });
 
   afterEach(() => {
