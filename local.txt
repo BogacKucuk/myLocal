@@ -1,63 +1,32 @@
-import * as popupModule from '@efa-web-components/efa-popup';
-import * as apiModule from '@ark-technical-modules/ark-api-invoker';
-// … diğer import’lar …
-
-describe('MainMoneyWithdrawComponent Component', () => {
-  let sandbox: sinon.SinonSandbox;
-  let invokerStub: sinon.SinonStub;
-  let popupStub: sinon.SinonStub;
-
-  before(async () => {
-    await arkMultiLanguage.init('/locales/');
-    sandbox = sinon.createSandbox();
-
-    invokerStub = sandbox.stub(arkInvoker, 'callMethod');
-    // 1) getOperationCode stub
-    invokerStub
-      .withArgs(
-        HttpMethod.POST,
-        sinon.match.has('url', getAppUrlForInvoker('getOperationCode'))
-      )
-      .resolves(serverOpCodeResponse);
-
-    // 2) getLastTransactions stub
-    const lastTxMock = [ /* yukarıdaki gibi bir obje */ ];
-    const serverLastTxResponse = buildMockResponse({ transactions: lastTxMock });
-    invokerStub
-      .withArgs(
-        HttpMethod.POST,
-        sinon.match.has('url', getAppUrlForInvoker('getLastTransactions'))
-      )
-      .resolves(serverLastTxResponse);
-
-    // 3) EfaPopup stub
-    popupStub = sinon
-      .stub(popupModule, 'default')
-      .callsFake(({ visible, 'data-testid': tId, children }) =>
-        visible ? <div data-testid={tId}>{children}</div> : null
-      );
-  });
-
-  beforeEach(() => {
-    resetStoreCache();
-    render(<MainMoneyWithdrawComponentWithRoute />);
-  });
-
-  afterEach(() => {
-    sandbox.restore();
-    popupStub.restore();
-  });
-
-  it('last trx anchor clicked on MainMoneyWithdrawComponent', async () => {
-    const anchor = await screen.findByTestId('last-transaction-link');
-    fireEvent.click(anchor);
-
-    // Popup’un gelmesini bekle:
-    const popup = await screen.findByTestId('last-transaction-popup');
-    expect(popup).to.exist;
-
-    // Kapanış butonuna tıkla:
-    const closeBtn = await screen.findByTestId('last-transactions-closeBtn');
-    fireEvent.click(closeBtn);
+it('last trx anchor clicked on MainMoneyWithdrawComponent', async () => {
+  console.log('test log');
+  
+  // Anchor'ı bul ve tıkla
+  const anchor: EfaAnchorElement = await screen.findByTestId('last-transaction-link');
+  expect(anchor).to.exist;
+  
+  fireEvent.click(anchor);
+  
+  // Biraz bekle - state güncellemesi için
+  await new Promise(resolve => setTimeout(resolve, 300));
+  
+  // Popup'ı queryByTestId ile ara, sonra findByTestId ile doğrula
+  let popup = screen.queryByTestId('last-transaction-popup');
+  
+  if (!popup) {
+    // Popup hemen görünmüyorsa, waitFor ile tekrar dene
+    await waitFor(() => {
+      popup = screen.queryByTestId('last-transaction-popup');
+      expect(popup).to.exist;
+    }, { timeout: 5000 });
+  }
+  
+  // Artık popup var, close button'ı bul
+  const closeButton: EfaButtonElement = await screen.findByTestId('last-transactions-closeBtn');
+  fireEvent.click(closeButton);
+  
+  // Popup'ın kapandığını doğrula
+  await waitFor(() => {
+    expect(screen.queryByTestId('last-transaction-popup')).to.not.exist;
   });
 });
