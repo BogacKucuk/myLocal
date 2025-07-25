@@ -1,3 +1,4 @@
+// MainMoneyWithdrawComponent.test.tsx
 import { expect } from 'chai';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import * as arkMultiLanguage from '@ark-technical-modules/ark-multilanguage';
@@ -8,8 +9,8 @@ import { buildMockResponse, resetStoreCache } from '../../../test/testUtils';
 import { getAppUrlForInvoker } from '@ark-technical-modules/ark-utils';
 import { EfaButtonElement } from '@efa-web-components/efa-button';
 import { EfaPopupElement } from '@efa-web-components/efa-popup';
-import * as popupModule from '@efa-web-components/efa-popup';                       // <<< EfaPopup stub için
-import * as lastApi from '../../../store/apis/LastTransactionsApi';               // <<< Hook stub için
+import * as popupModule from '@efa-web-components/efa-popup';                 // <<< EfaPopup için stub
+import * as lastApi from '../../../store/apis/LastTransactionsApi';           // <<< Hook için stub
 import { store } from '../../../store';
 import MainMoneyWithdrawComponent from '../MainMoneyWithdrawComponent';
 import { EfaInfoboxElement } from '@efa-web-components/efa-infobox';
@@ -37,25 +38,23 @@ describe('MainMoneyWithdrawComponent Component', () => {
   let popupStub: sinon.SinonStub;
   let lazyStub: sinon.SinonStub;
 
-  //
-  // 1) Bu `before` bloğu : tüm stub’ları bir kere kuruyoruz
-  //
+  // 1) Bir kere stub’ları kuruyoruz
   before(async () => {
     await arkMultiLanguage.init('/locales/');
     sandbox = sinon.createSandbox();
 
-    // --- EfaPopup stub’u: visible=true olunca <div data-testid=…> render etsin ---
+    // --- EfaPopup stub’u ---
+    // @ts-ignore
     popupStub = sandbox
-      .stub(popupModule, 'default')
-      .callsFake(({ visible, 'data-testid': tId, children }) =>
+      .stub(popupModule as any, 'default')
+      .callsFake(({ visible, 'data-testid': tId, children }: any) =>
         visible ? <div data-testid={tId}>{children}</div> : null
       );
 
-    // --- useLazyGetLastTransactionsQuery hook stub’u ---
-    // Component mount olur olmaz, trigger ve hazır data dönsün:
+    // --- useLazyGetLastTransactionsQuery stub’u ---
     const fakeTx = [{
       valueDate: new Date().toISOString(),
-      channel: 'Şube X',              // Transaction.type’deki `channel` alanı
+      channel: 'Şube X',
       customerAccount: 'ACC123',
       transactionAmount: 500,
       currency: 'TL',
@@ -64,14 +63,15 @@ describe('MainMoneyWithdrawComponent Component', () => {
       customerNumber: 0,
       storedRequest: ''
     }];
+    // @ts-ignore
     lazyStub = sandbox
-      .stub(lastApi, 'useLazyGetLastTransactionsQuery')
+      .stub(lastApi as any, 'useLazyGetLastTransactionsQuery')
       .returns([
-        () => Promise.resolve(),      // trigger()
+        () => Promise.resolve({} as any),
         { data: { transactions: fakeTx }, isLoading: false, error: null }
       ]);
 
-    // --- ArkInvoker stub’ları ---
+    // --- ArkInvoker getOpCode stub’u ---
     invokerStub = sandbox.stub(arkInvoker, 'callMethod');
     getOperationCodeStub = invokerStub
       .withArgs(
@@ -79,22 +79,15 @@ describe('MainMoneyWithdrawComponent Component', () => {
         sinon.match.has('url', getAppUrlForInvoker('getOperationCode'))
       )
       .resolves(serverOpCodeResponse);
-
-    // (İsterseniz getLastTransactions endpoint’ini de stub’layabilirsiniz,
-    //  ama hook stub’u yeterli olacaktır, o gerçek çağrıyı engelliyor.)
   });
 
-  //
-  // 2) Her testten önce render edilsin
-  //
+  // 2) Her it() öncesi render
   beforeEach(() => {
     resetStoreCache();
     render(<MainMoneyWithdrawComponentWithRoute />);
   });
 
-  //
-  // 3) Her testten sonra tüm sandbox temizlensin
-  //
+  // 3) Her it() sonrası temizle
   afterEach(() => {
     sandbox.restore();
   });
@@ -137,8 +130,8 @@ describe('MainMoneyWithdrawComponent Component', () => {
         expect(lastTransactionPopup).to.exist;
       });
       fireEvent(lastTransactionPopup, new CustomEvent('close', { detail: {} }));
-    } catch (error) {
-      expect(true).to.be.true; // yoksa test geçsin
+    } catch {
+      expect(true).to.be.true;
     }
   });
 
@@ -166,7 +159,6 @@ describe('MainMoneyWithdrawComponent Component', () => {
 
     fireEvent.click(anchor);
 
-    // popup’un DOM’da belirip belirmediğini bekle:
     await waitFor(() => {
       const popup = screen.queryByTestId('last-transaction-popup');
       expect(popup).to.exist;
@@ -175,7 +167,6 @@ describe('MainMoneyWithdrawComponent Component', () => {
     const closeButton: EfaButtonElement = await screen.findByTestId('last-transactions-closeBtn');
     fireEvent.click(closeButton);
 
-    // kapandı mı kontrol et:
     await waitFor(() => {
       const popup = screen.queryByTestId('last-transaction-popup');
       expect(popup).to.not.exist;
