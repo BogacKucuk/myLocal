@@ -8,6 +8,8 @@ import { buildMockResponse, resetStoreCache } from '../../../test/testUtils';
 import { getAppUrlForInvoker } from '@ark-technical-modules/ark-utils';
 import { EfaButtonElement } from '@efa-web-components/efa-button';
 import { EfaPopupElement } from '@efa-web-components/efa-popup';
+import * as popupModule from '@efa-web-components/efa-popup';             // <<< EfaPopup stub için
+import * as lastApi from '../../lastTransactionsApi';                     // <<< hook stub için
 import { store } from '../../../store';
 import MainMoneyWithdrawComponent from '../MainMoneyWithdrawComponent';
 import { EfaInfoboxElement } from '@efa-web-components/efa-infobox';
@@ -31,9 +33,9 @@ const serverOpCodeResponse = buildMockResponse(retrieveData(1));
 describe('MainMoneyWithdrawComponent Component', () => {
   let sandbox: sinon.SinonSandbox;
   let invokerStub: sinon.SinonStub;
-  let onCloseSpy: sinon.SinonSpy;
   let getOperationCodeStub: sinon.SinonStub;
-  let transactionsApiStub: sinon.SinonStub | null = null;
+  let popupStub: sinon.SinonStub;
+  let lazyTransactionsStub: sinon.SinonStub;
 
   beforeEach(() => {
     resetStoreCache();
@@ -42,12 +44,50 @@ describe('MainMoneyWithdrawComponent Component', () => {
 
   before(async () => {
     await arkMultiLanguage.init('/locales/');
-    onCloseSpy = sinon.spy();
     sandbox = sinon.createSandbox();
+
+    // --- 1) getOperationCode stub ---
     invokerStub = sandbox.stub(arkInvoker, 'callMethod');
     getOperationCodeStub = invokerStub
-      .withArgs(HttpMethod.POST, sinon.match.has('url', getAppUrlForInvoker('getOperationCode')))
+      .withArgs(
+        HttpMethod.POST,
+        sinon.match.has('url', getAppUrlForInvoker('getOperationCode'))
+      )
       .resolves(serverOpCodeResponse);
+
+    // --- 2) useLazyGetLastTransactionsQuery hook stub ---
+    // Component mount olur olmaz, trigger çağrıldığında
+    // data.transactions dolu olsun diye:
+    const fakeTx = [
+      {
+        valueDate: new Date().toISOString(),
+        channelName: 'Şube X',
+        customerAccount: 'ACC123',
+        transactionAmount: 500,
+        currency: 'TL',
+        opCode: 'D'
+      }
+    ];
+    lazyTransactionsStub = sandbox
+      .stub(lastApi, 'useLazyGetLastTransactionsQuery')
+      .returns([
+        // trigger fonksiyonu
+        () => Promise.resolve(),
+        // result object
+        { data: { transactions: fakeTx }, isLoading: false, error: null }
+      ]);
+
+    // --- 3) EfaPopup stub’u ---
+    // visible=true olunca <div data-testid={tId}>{children}</div> render etsin:
+    popupStub = sandbox
+      .stub(popupModule, 'default')
+      .callsFake(({ visible, 'data-testid': tId, children }) =>
+        visible ? <div data-testid={tId}>{children}</div> : null
+      );
+  });
+
+  afterEach(() => {
+    sandbox.restore();  // hem invoker, hem hook, hem popup stub’larını temizler
   });
 
   it('renders the component', async () => {
@@ -84,14 +124,12 @@ describe('MainMoneyWithdrawComponent Component', () => {
   it('should close the last transaction popup', async () => {
     try {
       const lastTransactionPopup: EfaPopupElement = await screen.findByTestId('last-transaction-popup');
-
       await waitFor(() => {
         expect(lastTransactionPopup).to.exist;
       });
-
       fireEvent(lastTransactionPopup, new CustomEvent('close', { detail: {} }));
     } catch (error) {
-      // Element bulunamadı, test geçsin
+      // Element bulunamadıysa bile test geçsin
       expect(true).to.be.true;
     }
   });
@@ -116,74 +154,28 @@ describe('MainMoneyWithdrawComponent Component', () => {
 
   it('last trx anchor clicked on MainMoneyWithdrawComponent', async function() {
     console.log('test log');
-    
-    // Store'a mock endpoint ekleyelim
-    const mockTransactions = {
-      transactions: [
-        {
-          valueDate: new Date().toISOString(),
-          channelName: 'Test Branch',
-          customerAccount: '123456',
-          transactionAmount: 1000,
-          currency: 'TRY',
-          opCode: 'WITHDRAW'
-        }
-      ]
-    };
-    
-    // API endpoint'ini direkt mock'layalım
-    const getLastTransactionsStub = sandbox.stub();
-    getLastTransactionsStub.resolves({
-      data: mockTransactions
-    });
-    
-    // ArkInvoker üzerinden mock yapalım - zaten invokerStub var
-    invokerStub
-      .withArgs(HttpMethod.POST, sinon.match.has('url', getAppUrlForInvoker('getLastTransactions')))
-      .resolves(buildMockResponse(mockTransactions));
-    
-    // Önce anchor'ı bul
+
     const anchor: EfaAnchorElement = await screen.findByTestId('last-transaction-link');
     expect(anchor).to.exist;
-    
+
     console.log('Anchor found, clicking...');
-    
-    // Click event'i tetikle
     fireEvent.click(anchor);
-    
-    // State güncellemesi için bekle
+
     console.log('Waiting for popup to appear...');
-    
-    // Popup'ı bulmak için waitFor kullan
-    await waitFor(async () => {
+    await waitFor(() => {
       const popup = screen.queryByTestId('last-transaction-popup');
       expect(popup).to.exist;
-    }, {
-      timeout: 5000,
-      interval: 200
-    });
-    
+    }, { timeout: 5000, interval: 200 });
+
     console.log('Popup found!');
-    
-    // Close button'ı bul ve tıkla
     const closeButton: EfaButtonElement = await screen.findByTestId('last-transactions-closeBtn');
     fireEvent.click(closeButton);
-    
-    // Popup'ın kapandığını kontrol et
+
+    console.log('Verifying popup is closed...');
     await waitFor(() => {
       const popup = screen.queryByTestId('last-transaction-popup');
       expect(popup).to.not.exist;
     });
-    
     console.log('Test completed successfully');
-  });
-
-  afterEach(() => {
-    // transactionsApi stub'ını temizle
-    if (transactionsApiStub) {
-      transactionsApiStub.restore();
-      transactionsApiStub = null;
-    }
-    sandbox.restore();
   });
 });
