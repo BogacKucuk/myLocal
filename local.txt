@@ -16,6 +16,7 @@ import sinon from 'sinon';
 import { retrieveData } from '../../../test/testData/opCode';
 import { setOperationCode } from '../../../store/slices/operationCodeSlice';
 import { EfaAnchorElement } from '@efa-web-components/efa-anchor';
+import * as transactionsApi from '../../../../store/transactionsApi';
 
 const MainMoneyWithdrawComponentWithRoute = (): JSX.Element => (
   <Provider store={store}>
@@ -116,45 +117,66 @@ describe('MainMoneyWithdrawComponent Component', () => {
   it('last trx anchor clicked on MainMoneyWithdrawComponent', async function() {
     console.log('test log');
     
+    // Bu test için özel olarak API'yi mock'la
+    const mockTrigger = sandbox.stub().resolves({ 
+      data: { 
+        transactions: [
+          {
+            valueDate: new Date().toISOString(),
+            channelName: 'Test Branch',
+            customerAccount: '123456',
+            transactionAmount: 1000,
+            currency: 'TRY',
+            opCode: 'WITHDRAW'
+          }
+        ] 
+      } 
+    });
+    
+    // transactionsApi'yi mock'la
+    const transactionsApiStub = sandbox.stub(transactionsApi, 'default').returns([
+      mockTrigger,
+      { 
+        data: { transactions: [] }, 
+        isLoading: false, 
+        error: null 
+      }
+    ]);
+    
+    // Component'i yeniden render et (mock'lu API ile)
+    const { container } = render(<MainMoneyWithdrawComponentWithRoute />);
+    
     // Önce anchor'ın varlığını doğrula
     const anchor: EfaAnchorElement = await screen.findByTestId('last-transaction-link');
-    await waitFor(() => {
-      expect(anchor).to.exist;
-    });
-
+    expect(anchor).to.exist;
+    
+    console.log('Anchor found, clicking...');
+    
     // Click event'i tetikle
     fireEvent.click(anchor);
     
-    // Farklı bir yaklaşım: DOM mutation'ları bekle
-    const popupElement = await new Promise<Element | null>((resolve) => {
-      const observer = new MutationObserver((mutations, obs) => {
-        const popup = document.querySelector('[data-testid="last-transaction-popup"]');
-        if (popup) {
-          obs.disconnect();
-          resolve(popup);
-        }
-      });
-      
-      // Tüm DOM'u izle
-      observer.observe(document.body, {
-        childList: true,
-        subtree: true,
-        attributes: true,
-        attributeFilter: ['data-testid']
-      });
-      
-      // 5 saniye timeout
-      setTimeout(() => {
-        observer.disconnect();
-        resolve(null);
-      }, 5000);
-    });
+    // State güncellemesi için biraz bekle
+    await new Promise(resolve => setTimeout(resolve, 500));
     
-    // Şimdi popup'ı kontrol et
-    const lastTransactionsPopup = popupElement as EfaPopupElement | null;
+    // Popup'ı ara - birkaç yöntem dene
+    let lastTransactionsPopup: EfaPopupElement | null = null;
     
-    // Popup null değilse devam et, null ise test başarısız
+    // Yöntem 1: screen.queryByTestId
+    lastTransactionsPopup = screen.queryByTestId('last-transaction-popup') as EfaPopupElement;
+    
+    // Yöntem 2: DOM'da direkt ara
+    if (!lastTransactionsPopup) {
+      lastTransactionsPopup = container.querySelector('[data-testid="last-transaction-popup"]') as EfaPopupElement;
+    }
+    
+    // Yöntem 3: document üzerinden ara
+    if (!lastTransactionsPopup) {
+      lastTransactionsPopup = document.querySelector('[data-testid="last-transaction-popup"]') as EfaPopupElement;
+    }
+    
+    // Popup bulundu mu kontrol et
     if (lastTransactionsPopup) {
+      console.log('Popup found!');
       expect(lastTransactionsPopup).to.exist;
       
       // Close button'ı bul
@@ -163,29 +185,17 @@ describe('MainMoneyWithdrawComponent Component', () => {
       
       // Popup'ın kapandığını kontrol et
       await waitFor(() => {
-        const popup = document.querySelector('[data-testid="last-transaction-popup"]');
+        const popup = screen.queryByTestId('last-transaction-popup');
         expect(popup).to.not.exist;
       });
     } else {
-      // Popup bulunamadı - daha basit bir yaklaşım deneyelim
-      console.error('Popup not found with MutationObserver, trying direct approach');
-      
-      // Son bir deneme: biraz bekleyip tekrar kontrol et
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      
-      const delayedPopup = screen.queryByTestId('last-transaction-popup');
-      if (delayedPopup) {
-        expect(delayedPopup).to.exist;
-        const closeButton: EfaButtonElement = await screen.findByTestId('last-transactions-closeBtn');
-        fireEvent.click(closeButton);
-      } else {
-        // Test başarısız - descriptive hata mesajı
-        throw new Error('Last transaction popup did not appear after clicking anchor. This might be due to:\n' +
-                       '1. State update delay\n' +
-                       '2. Missing API mock for useLazyGetLastTransactionsQuery\n' +
-                       '3. Component conditional rendering issue');
-      }
+      console.error('Popup still not found after all attempts');
+      // Test'i başarısız olarak işaretle
+      throw new Error('Last transaction popup did not appear. Please check if the component is rendering correctly.');
     }
+    
+    // Mock'ları temizle
+    transactionsApiStub.restore();
   });
 
   afterEach(() => {
