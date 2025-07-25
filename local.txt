@@ -1,72 +1,63 @@
-import React from 'react';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
-import sinon from 'sinon';
-import LastTransactionsPopupComponent from './LastTransactionsPopupComponent';
+import * as popupModule from '@efa-web-components/efa-popup';
+import * as apiModule from '@ark-technical-modules/ark-api-invoker';
+// … diğer import’lar …
 
-describe('LastTransactionsPopupComponent', () => {
-  it('visible=false iken render etmez', () => {
-    render(<LastTransactionsPopupComponent visible={false} dataTestId="lt-popup" onClose={() => {}} />);
-    expect(screen.queryByTestId('lt-popup')).to.be.null;
+describe('MainMoneyWithdrawComponent Component', () => {
+  let sandbox: sinon.SinonSandbox;
+  let invokerStub: sinon.SinonStub;
+  let popupStub: sinon.SinonStub;
+
+  before(async () => {
+    await arkMultiLanguage.init('/locales/');
+    sandbox = sinon.createSandbox();
+
+    invokerStub = sandbox.stub(arkInvoker, 'callMethod');
+    // 1) getOperationCode stub
+    invokerStub
+      .withArgs(
+        HttpMethod.POST,
+        sinon.match.has('url', getAppUrlForInvoker('getOperationCode'))
+      )
+      .resolves(serverOpCodeResponse);
+
+    // 2) getLastTransactions stub
+    const lastTxMock = [ /* yukarıdaki gibi bir obje */ ];
+    const serverLastTxResponse = buildMockResponse({ transactions: lastTxMock });
+    invokerStub
+      .withArgs(
+        HttpMethod.POST,
+        sinon.match.has('url', getAppUrlForInvoker('getLastTransactions'))
+      )
+      .resolves(serverLastTxResponse);
+
+    // 3) EfaPopup stub
+    popupStub = sinon
+      .stub(popupModule, 'default')
+      .callsFake(({ visible, 'data-testid': tId, children }) =>
+        visible ? <div data-testid={tId}>{children}</div> : null
+      );
   });
 
-  it('visible iken popup görünür ve onClose çalışır', async () => {
-    const onClose = sinon.spy();
-    render(<LastTransactionsPopupComponent visible={true} dataTestId="lt-popup" onClose={onClose} />);
+  beforeEach(() => {
+    resetStoreCache();
+    render(<MainMoneyWithdrawComponentWithRoute />);
+  });
 
-    const popup = screen.getByTestId('lt-popup');
+  afterEach(() => {
+    sandbox.restore();
+    popupStub.restore();
+  });
+
+  it('last trx anchor clicked on MainMoneyWithdrawComponent', async () => {
+    const anchor = await screen.findByTestId('last-transaction-link');
+    fireEvent.click(anchor);
+
+    // Popup’un gelmesini bekle:
+    const popup = await screen.findByTestId('last-transaction-popup');
     expect(popup).to.exist;
 
-    // Header kapatma butonu (mock'ta data-testid=efa-popup-close)
-    userEvent.click(screen.getByTestId('efa-popup-close'));
-    expect(onClose.calledOnce).to.be.true;
-
-    // Footer back button
-    const backBtn = screen.getByRole('button', { name: /button~back/i });
-    userEvent.click(backBtn);
-    expect(onClose.calledTwice).to.be.true;
-  });
-
-  it('mount sırasında trigger çağrılır ve loading geçişi yapılır', async () => {
-    render(<LastTransactionsPopupComponent visible={true} dataTestId="lt-popup" onClose={() => {}} />);
-
-    // İlk render'da datatable loading true olmalı (mock datatable'da prop'tan görmüyoruz
-    // ama rows boş -> hiç satır yok, sonra gelecek)
-    const table = await screen.findByTestId('efa-datatable');
-    expect(table).to.exist;
-
-    // Asenkron setTimeout sonrası data render olacak
-    await waitFor(() => {
-      const row = screen.getByTestId('row-0');
-      expect(row).to.exist;
-      expect(row).to.have.text(/DEP/);  // opCode check
-    });
-  });
-
-  it('transaction mapping’i doğru formatlar (tarih, amount)', async () => {
-    render(<LastTransactionsPopupComponent visible={true} dataTestId="lt-popup" onClose={() => {}} />);
-
-    await waitFor(() => screen.getByTestId('row-0'));
-
-    const firstRow = screen.getByTestId('row-0');
-    expect(firstRow).to.have.text(/01\.01\.2024/); // tr-TR format (01.01.2024)
-    expect(firstRow).to.have.text(/1\.234,50 TRY/); // locale string
-    expect(firstRow).to.have.text(/BRANCH-001/);
-    expect(firstRow).to.have.text(/DEP/);
-  });
-
-  it('satır seçildiğinde clearSelection çağrılır (datatable onRowSelect mocku)', async () => {
-    render(<LastTransactionsPopupComponent visible={true} dataTestId="lt-popup" onClose={() => {}} />);
-
-    await waitFor(() => screen.getByTestId('row-0'));
-
-    const firstRow = screen.getByTestId('row-0');
-    // onRowSelect mock'ta tr onClick ile tetikleniyor
-    fireEvent.click(firstRow);
-
-    // Eğer clearSelection ref üstünden çağırdıysa bir side effect test etmek zor.
-    // Mock içinde cleared flag yok ama biz burada en azından click ile crash olmadığını doğruladık.
-    // İstersen EfaDatatable mock'unda cleared flag'i expose edip assertion yapabiliriz.
-    expect(firstRow).to.exist;
+    // Kapanış butonuna tıkla:
+    const closeBtn = await screen.findByTestId('last-transactions-closeBtn');
+    fireEvent.click(closeBtn);
   });
 });
