@@ -1,1 +1,120 @@
-"([a-zA-Z0-9_]+)"(?=\s*:)
+import React, { JSX, useEffect, useMemo, useRef } from 'react';
+import { EfaPopup } from '@efa-web-components/efa-popup';
+import { EfaButton } from '@efa-web-components/efa-button';
+import { t } from '@ark-technical-modules/ark-multilanguage';
+import { EfaLayoutRow, EfaLayoutColumn } from '@efa-web-components/efa-layout-liquid';
+import { EfaDatatable, EfaDatatableElement } from '@efa-web-components/efa-datatable';
+import styles from './LastTransactionsPopupComponent.module.scss';
+import { useLazyGetLastTransactionsQuery } from '../../store/apis/LastTransactionsApi';
+import type { ListTransactions, Transaction } from '../../store/types/Transaction.type';
+
+type Props = {
+  id: string;
+  onClose: () => void;
+  visible: boolean;
+  dataTestId: string;
+};
+
+type Row = {
+  date: string;
+  branch: string;
+  account: string;
+  amount: string;
+  type: string;
+};
+
+const LastTransactionsPopupComponent = ({
+  onClose,
+  dataTestId,
+  visible,
+}: Props): JSX.Element => {
+  const dataTableRef = useRef<EfaDatatableElement>(null);
+
+  // CHANGED: Removed local useState for lastTransactions and rows
+  // CHANGED: Use RTK Query lazy-hook directly
+  const [trigger, { data, isLoading, error }] = useLazyGetLastTransactionsQuery();
+  const dummyCustomerNumber = { customerNumber: 123456789 };
+
+  // CHANGED: Only trigger API call on mount
+  useEffect(() => {
+    trigger(dummyCustomerNumber);
+  }, [trigger]);
+
+  // CHANGED: Derive transactions array from `data`, no extra state
+  const transactions: Transaction[] = data?.transactions ?? [];
+
+  // CHANGED: useMemo to map `transactions` → `rows` and preserve referential stability
+  const rows: Row[] = useMemo(() => {
+    return transactions.map(tx => ({
+      date: new Date(tx.storedRequest).toLocaleDateString('tr-TR'),
+      branch: tx.channel,
+      account: tx.customerAccount,
+      amount: `${tx.transactionAmount.toLocaleString('tr-TR', {
+        minimumFractionDigits: 2,
+      })} ${tx.currency}`,
+      type: tx.opCode,
+    }));
+  }, [transactions]);
+
+  const header = [
+    { label: t('last-transactions-popup|işlemTarihi') },
+    { label: t('last-transactions-popup|şube') },
+    { label: t('last-transactions-popup|hesap') },
+    { label: t('last-transactions-popup|tutar') },
+    { label: t('last-transactions-popup|işlemTipi') },
+  ];
+  const body = [
+    { property: 'date' },
+    { property: 'branch' },
+    { property: 'account' },
+    { property: 'amount' },
+    { property: 'type' },
+  ];
+
+  const closeButtonClicked = (): void => {
+    onClose();
+  };
+
+  return (
+    <EfaPopup
+      header={t('last-transactions-popup|title')}
+      footer={true}
+      visible={visible}
+      data-testid={dataTestId}
+      onClose={closeButtonClicked}
+      className={styles.lastTransactionsPopup}
+    >
+      <EfaLayoutRow>
+        <EfaLayoutColumn gridWidth={24}>
+          <EfaDatatable
+            ref={dataTableRef}
+            header={header}
+            body={body}
+            data={rows}
+            loading={isLoading}
+            selectable
+            selectable-row
+            selectableSelectOne
+          />
+        </EfaLayoutColumn>
+      </EfaLayoutRow>
+
+      <EfaLayoutRow slot="footer">
+        <EfaLayoutColumn css-display="flex" css-justify-content="space-between">
+          <EfaButton
+            type="default"
+            data-testid="last-transactions-closeBtn"
+            onClick={closeButtonClicked}
+          >
+            {t('button-back')}
+          </EfaButton>
+          <EfaButton type="success">
+            {t('last-transactions-popup|use-info-button')}
+          </EfaButton>
+        </EfaLayoutColumn>
+      </EfaLayoutRow>
+    </EfaPopup>
+  );
+};
+
+export default LastTransactionsPopupComponent;
