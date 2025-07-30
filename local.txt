@@ -1,26 +1,40 @@
-package com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.mapper;
+package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.mapper;
 
-import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.mapper.config.GrpcMapperConfig;
-import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.model.request.CreateSinglePdfRequestDto;
-import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.model.response.CreateSinglePdfResponseDto;
-import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.GoldDocumentProto.CreateSinglePdfGrpcRequest;
-import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.GoldDocumentProto.CreateSinglePdfGrpcResponse;
+import com.garanti.ark.base.utility.grpc.mapper.GrpcMapperConfig;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.CreateSinglePdfRequestDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response.CreateSinglePdfResponseDto;
+import com.garantibbva.documentprocessing.documentservicebusiness.proto.DocumentServiceProto.CreatePdfV1GrpcRequest;
+import com.garantibbva.documentprocessing.documentservicebusiness.proto.DocumentServiceProto.CreatePdfV1GrpcResponse;
 import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
 
-/**
- * Mapper for converting between gRPC messages and DTOs for Gold Document services.
- */
 @Mapper(config = GrpcMapperConfig.class)
-public interface GoldDocumentGrpcMapper {
+public interface DocumentBusinessMapper {
 
-    GoldDocumentGrpcMapper INSTANCE = Mappers.getMapper(GoldDocumentGrpcMapper.class);
-    
+    DocumentBusinessMapper INSTANCE = Mappers.getMapper(DocumentBusinessMapper.class);
+
     // DTO to gRPC conversions
-    CreateSinglePdfGrpcRequest toGrpcRequest(CreateSinglePdfRequestDto dto);
-    CreateSinglePdfGrpcResponse toGrpcResponse(CreateSinglePdfResponseDto dto);
+    CreatePdfV1GrpcRequest toGrpcRequest(CreateSinglePdfRequestDto dto);
     
-    // gRPC to DTO conversions
-    CreateSinglePdfRequestDto toDto(CreateSinglePdfGrpcRequest grpcRequest);
-    CreateSinglePdfResponseDto toDto(CreateSinglePdfGrpcResponse grpcResponse);
+    // gRPC to DTO conversions - Nested yapıyı map edelim
+    @Mapping(target = "returnCode", source = "createPdfv1Result.returnCode")
+    @Mapping(target = "returnMsg", source = "createPdfv1Result.returnMsg")
+    @Mapping(target = "documentId", source = "createPdfv1Result.documentId")
+    CreateSinglePdfResponseDto toResponseDto(CreatePdfV1GrpcResponse grpcResponse);
+    
+    // Manuel alternatif (eğer MapStruct mapping çalışmazsa)
+    default CreateSinglePdfResponseDto toResponseDtoManual(CreatePdfV1GrpcResponse grpcResponse) {
+        if (grpcResponse == null || !grpcResponse.hasCreatePdfv1Result()) {
+            return null;
+        }
+        
+        var result = grpcResponse.getCreatePdfv1Result();
+        
+        return CreateSinglePdfResponseDto.builder()
+                .returnCode(result.getReturnCode())
+                .returnMsg(result.getReturnMsg()) 
+                .documentId(result.getDocumentId())
+                .build();
+    }
 }
