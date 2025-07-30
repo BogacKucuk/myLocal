@@ -16,35 +16,11 @@ public interface GoldDocumentGrpcMapper {
 
     GoldDocumentGrpcMapper INSTANCE = Mappers.getMapper(GoldDocumentGrpcMapper.class);
     
-    // gRPC to DTO conversions - MapStruct can handle these automatically
+    // DTO to gRPC conversions
+    CreateSinglePdfGrpcRequest toGrpcRequest(CreateSinglePdfRequestDto dto);
+    CreateSinglePdfGrpcResponse toGrpcResponse(CreateSinglePdfResponseDto dto);
+    
+    // gRPC to DTO conversions
     CreateSinglePdfRequestDto toDto(CreateSinglePdfGrpcRequest grpcRequest);
     CreateSinglePdfResponseDto toDto(CreateSinglePdfGrpcResponse grpcResponse);
-    
-    // DTO to gRPC conversions - Need custom implementation due to Builder pattern
-    default CreateSinglePdfGrpcRequest toGrpcRequest(CreateSinglePdfRequestDto dto) {
-        if (dto == null) {
-            return null;
-        }
-        
-        return CreateSinglePdfGrpcRequest.newBuilder()
-                .setDocumentType(dto.getDocumentType())
-                .setDocumentStatus(dto.getDocumentStatus())
-                .setAsync(dto.getAsync())
-                .setUserId(dto.getUserId())
-                .setAuthUserId(dto.getAuthUserId())
-                .setXmlData(dto.getXmlData())
-                .build();
-    }
-    
-    default CreateSinglePdfGrpcResponse toGrpcResponse(CreateSinglePdfResponseDto dto) {
-        if (dto == null) {
-            return null;
-        }
-        
-        return CreateSinglePdfGrpcResponse.newBuilder()
-                .setReturnCode(dto.getReturnCode())
-                .setReturnMsg(dto.getReturnMsg())
-                .setDocumentId(dto.getDocumentId())
-                .build();
-    }
 }
