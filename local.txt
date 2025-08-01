@@ -1,293 +1,29 @@
-package com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.rest.impl;
+package com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.mapper;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.contract.GoldDocumentService;
 import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.model.request.CreateSinglePdfRequestDto;
 import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.model.request.GetSinglePdfRequestDto;
 import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.model.response.CreateSinglePdfResponseDto;
 import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.model.response.GetPdfResponseDto;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
-import org.springframework.http.MediaType;
-import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.setup.MockMvcBuilders;
-
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
-import static org.junit.jupiter.api.Assertions.*;
-
-@ExtendWith(MockitoExtension.class)
-class GoldDocumentControllerImplTest {
-
-    private MockMvc mockMvc;
-    private ObjectMapper objectMapper;
-
-    @Mock
-    private GoldDocumentService goldDocumentService;
-
-    @InjectMocks
-    private GoldDocumentControllerImpl goldDocumentController;
-
-    @BeforeEach
-    void setUp() {
-        mockMvc = MockMvcBuilders.standaloneSetup(goldDocumentController).build();
-        objectMapper = new ObjectMapper();
-    }
-
-    @Test
-    void createSinglePdf_Success() throws Exception {
-        // Given
-        CreateSinglePdfRequestDto requestDto = CreateSinglePdfRequestDto.builder()
-                .documentType("GOLD_WITHDRAWAL")
-                .documentStatus("ACTIVE")
-                .async("false")
-                .userId("12345")
-                .authUserId("AUTH123")
-                .xmlData("<xml>test</xml>")
-                .build();
-
-        CreateSinglePdfResponseDto responseDto = CreateSinglePdfResponseDto.builder()
-                .returnCode("00")
-                .returnMsg("Success")
-                .documentId("DOC123456")
-                .build();
-
-        when(goldDocumentService.createSinglePdf(any(CreateSinglePdfRequestDto.class)))
-                .thenReturn(responseDto);
-
-        // When & Then
-        mockMvc.perform(post("/deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/withdrawal/create-gold-document")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestDto)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.returnCode").value("00"))
-                .andExpect(jsonPath("$.returnMsg").value("Success"))
-                .andExpect(jsonPath("$.documentId").value("DOC123456"));
-
-        verify(goldDocumentService, times(1)).createSinglePdf(any(CreateSinglePdfRequestDto.class));
-    }
-
-    @Test
-    void createSinglePdf_WithNullFields() throws Exception {
-        // Given
-        CreateSinglePdfRequestDto requestDto = CreateSinglePdfRequestDto.builder()
-                .documentType("GOLD_WITHDRAWAL")
-                .userId("12345")
-                .build();
-
-        CreateSinglePdfResponseDto responseDto = CreateSinglePdfResponseDto.builder()
-                .returnCode("99")
-                .returnMsg("Missing required fields")
-                .build();
-
-        when(goldDocumentService.createSinglePdf(any(CreateSinglePdfRequestDto.class)))
-                .thenReturn(responseDto);
-
-        // When & Then
-        mockMvc.perform(post("/deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/withdrawal/create-gold-document")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestDto)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.returnCode").value("99"))
-                .andExpect(jsonPath("$.returnMsg").value("Missing required fields"));
-    }
-
-    @Test
-    void createSinglePdf_EmptyRequest() throws Exception {
-        // Given
-        CreateSinglePdfRequestDto requestDto = new CreateSinglePdfRequestDto();
-
-        CreateSinglePdfResponseDto responseDto = CreateSinglePdfResponseDto.builder()
-                .returnCode("99")
-                .returnMsg("Invalid request")
-                .build();
-
-        when(goldDocumentService.createSinglePdf(any(CreateSinglePdfRequestDto.class)))
-                .thenReturn(responseDto);
-
-        // When & Then
-        mockMvc.perform(post("/deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/withdrawal/create-gold-document")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestDto)))
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    void getSinglePdf_Success() throws Exception {
-        // Given
-        GetSinglePdfRequestDto requestDto = GetSinglePdfRequestDto.builder()
-                .documentId("DOC123456")
-                .userId("12345")
-                .authUserId("AUTH123")
-                .build();
-
-        GetPdfResponseDto responseDto = GetPdfResponseDto.builder()
-                .returnCode("00")
-                .returnMsg("Success")
-                .printType("DIRECT")
-                .paperTrayText("Tray1")
-                .secPaperTrayText("Tray2")
-                .pdfData("base64EncodedPdfData")
-                .build();
-
-        when(goldDocumentService.getSinglePdf(any(GetSinglePdfRequestDto.class)))
-                .thenReturn(responseDto);
-
-        // When & Then
-        mockMvc.perform(post("/deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/withdrawal/get-gold-document")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestDto)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.returnCode").value("00"))
-                .andExpect(jsonPath("$.returnMsg").value("Success"))
-                .andExpect(jsonPath("$.printType").value("DIRECT"))
-                .andExpect(jsonPath("$.paperTrayText").value("Tray1"))
-                .andExpect(jsonPath("$.secPaperTrayText").value("Tray2"))
-                .andExpect(jsonPath("$.pdfData").value("base64EncodedPdfData"));
-
-        verify(goldDocumentService, times(1)).getSinglePdf(any(GetSinglePdfRequestDto.class));
-    }
-
-    @Test
-    void getSinglePdf_DocumentNotFound() throws Exception {
-        // Given
-        GetSinglePdfRequestDto requestDto = GetSinglePdfRequestDto.builder()
-                .documentId("INVALID_DOC")
-                .userId("12345")
-                .authUserId("AUTH123")
-                .build();
-
-        GetPdfResponseDto responseDto = GetPdfResponseDto.builder()
-                .returnCode("01")
-                .returnMsg("Document not found")
-                .build();
-
-        when(goldDocumentService.getSinglePdf(any(GetSinglePdfRequestDto.class)))
-                .thenReturn(responseDto);
-
-        // When & Then
-        mockMvc.perform(post("/deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/withdrawal/get-gold-document")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestDto)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.returnCode").value("01"))
-                .andExpect(jsonPath("$.returnMsg").value("Document not found"));
-    }
-
-    @Test
-    void getSinglePdf_WithNullDocumentId() throws Exception {
-        // Given
-        GetSinglePdfRequestDto requestDto = GetSinglePdfRequestDto.builder()
-                .userId("12345")
-                .authUserId("AUTH123")
-                .build();
-
-        GetPdfResponseDto responseDto = GetPdfResponseDto.builder()
-                .returnCode("99")
-                .returnMsg("Document ID is required")
-                .build();
-
-        when(goldDocumentService.getSinglePdf(any(GetSinglePdfRequestDto.class)))
-                .thenReturn(responseDto);
-
-        // When & Then
-        mockMvc.perform(post("/deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/withdrawal/get-gold-document")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestDto)))
-                .andExpect(status().isOk())
-                .andExpect(jsonPath("$.returnCode").value("99"))
-                .andExpect(jsonPath("$.returnMsg").value("Document ID is required"));
-    }
-
-    @Test
-    void getSinglePdf_EmptyRequest() throws Exception {
-        // Given
-        GetSinglePdfRequestDto requestDto = new GetSinglePdfRequestDto();
-
-        GetPdfResponseDto responseDto = new GetPdfResponseDto();
-
-        when(goldDocumentService.getSinglePdf(any(GetSinglePdfRequestDto.class)))
-                .thenReturn(responseDto);
-
-        // When & Then
-        mockMvc.perform(post("/deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/withdrawal/get-gold-document")
-                        .contentType(MediaType.APPLICATION_JSON)
-                        .content(objectMapper.writeValueAsString(requestDto)))
-                .andExpect(status().isOk());
-    }
-
-    @Test
-    void testConstructorInjection() {
-        // Test constructor injection
-        GoldDocumentService mockService = mock(GoldDocumentService.class);
-        GoldDocumentControllerImpl controller = new GoldDocumentControllerImpl(mockService);
-        
-        // Verify the service is properly injected
-        CreateSinglePdfRequestDto request = new CreateSinglePdfRequestDto();
-        CreateSinglePdfResponseDto expectedResponse = new CreateSinglePdfResponseDto();
-        when(mockService.createSinglePdf(request)).thenReturn(expectedResponse);
-        
-        var response = controller.createSinglePdf(request);
-        
-        verify(mockService).createSinglePdf(request);
-        assertNotNull(response);
-        assertEquals(200, response.getStatusCodeValue());
-    }
-}
-
-
-
-// ---------------------------------------------------------------------------------
-
-package com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.contract.impl;
-
-import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.mapper.GoldDocumentGrpcMapper;
-import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.model.request.CreateSinglePdfRequestDto;
-import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.model.request.GetSinglePdfRequestDto;
-import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.model.response.CreateSinglePdfResponseDto;
-import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.model.response.GetPdfResponseDto;
-import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.GoldDocumentGrpcServiceGrpc;
 import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.GoldDocumentProto.*;
-import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
 import org.mapstruct.factory.Mappers;
-import org.mockito.Mock;
-import org.mockito.MockedStatic;
-import org.mockito.junit.jupiter.MockitoExtension;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.Mockito.*;
 
-@ExtendWith(MockitoExtension.class)
-class GoldDocumentServiceImplTest {
+class GoldDocumentGrpcMapperTest {
 
-    @Mock
-    private GoldDocumentGrpcServiceGrpc.GoldDocumentGrpcServiceBlockingStub goldDocumentGrpcServiceBlockingStub;
-
-    @Mock
-    private GoldDocumentGrpcMapper goldDocumentGrpcMapper;
-
-    private GoldDocumentServiceImpl goldDocumentService;
+    private GoldDocumentGrpcMapper mapper;
 
     @BeforeEach
     void setUp() {
-        // Service will be created in each test with mocked dependencies
+        mapper = Mappers.getMapper(GoldDocumentGrpcMapper.class);
     }
 
     @Test
-    void createSinglePdf_Success() {
+    void toGrpcRequest_AllFieldsPopulated() {
         // Given
-        CreateSinglePdfRequestDto requestDto = CreateSinglePdfRequestDto.builder()
+        CreateSinglePdfRequestDto dto = CreateSinglePdfRequestDto.builder()
                 .documentType("GOLD_WITHDRAWAL")
                 .documentStatus("ACTIVE")
                 .async("false")
@@ -296,362 +32,238 @@ class GoldDocumentServiceImplTest {
                 .xmlData("<xml>test</xml>")
                 .build();
 
-        CreateSinglePdfGrpcRequest grpcRequest = CreateSinglePdfGrpcRequest.newBuilder()
-                .setDocumentType("GOLD_WITHDRAWAL")
-                .setDocumentStatus("ACTIVE")
-                .setAsync("false")
-                .setUserId("12345")
-                .setAuthUserId("AUTH123")
-                .setXmlData("<xml>test</xml>")
-                .build();
+        // When
+        CreateSinglePdfGrpcRequest grpcRequest = mapper.toGrpcRequest(dto);
 
-        CreateSinglePdfGrpcResponse grpcResponse = CreateSinglePdfGrpcResponse.newBuilder()
-                .setReturnCode("00")
-                .setReturnMsg("Success")
-                .setDocumentId("DOC123456")
-                .build();
+        // Then
+        assertNotNull(grpcRequest);
+        assertEquals("GOLD_WITHDRAWAL", grpcRequest.getDocumentType());
+        assertEquals("ACTIVE", grpcRequest.getDocumentStatus());
+        assertEquals("false", grpcRequest.getAsync());
+        assertEquals("12345", grpcRequest.getUserId());
+        assertEquals("AUTH123", grpcRequest.getAuthUserId());
+        assertEquals("<xml>test</xml>", grpcRequest.getXmlData());
+    }
 
-        CreateSinglePdfResponseDto expectedResponseDto = CreateSinglePdfResponseDto.builder()
+    @Test
+    void toGrpcRequest_NullDto() {
+        // When
+        CreateSinglePdfGrpcRequest grpcRequest = mapper.toGrpcRequest(null);
+
+        // Then
+        assertNull(grpcRequest);
+    }
+
+    @Test
+    void toGrpcRequest_EmptyDto() {
+        // Given
+        CreateSinglePdfRequestDto dto = new CreateSinglePdfRequestDto();
+
+        // When
+        CreateSinglePdfGrpcRequest grpcRequest = mapper.toGrpcRequest(dto);
+
+        // Then
+        assertNotNull(grpcRequest);
+        // Check for default values based on your mapper configuration
+        assertEquals("", grpcRequest.getDocumentType());
+        assertEquals("", grpcRequest.getDocumentStatus());
+        assertEquals("", grpcRequest.getAsync());
+        assertEquals("", grpcRequest.getUserId());
+        assertEquals("", grpcRequest.getAuthUserId());
+        assertEquals("", grpcRequest.getXmlData());
+    }
+
+    @Test
+    void toGrpcResponse_AllFieldsPopulated() {
+        // Given
+        CreateSinglePdfResponseDto dto = CreateSinglePdfResponseDto.builder()
                 .returnCode("00")
                 .returnMsg("Success")
                 .documentId("DOC123456")
                 .build();
 
-        // Mock the mapper with MockedStatic to handle the singleton instance
-        try (MockedStatic<Mappers> mappersMock = mockStatic(Mappers.class)) {
-            mappersMock.when(() -> Mappers.getMapper(GoldDocumentGrpcMapper.class))
-                    .thenReturn(goldDocumentGrpcMapper);
+        // When
+        CreateSinglePdfGrpcResponse grpcResponse = mapper.toGrpcResponse(dto);
 
-            when(goldDocumentGrpcMapper.toGrpcRequest(requestDto)).thenReturn(grpcRequest);
-            when(goldDocumentGrpcServiceBlockingStub.createSinglePdf(grpcRequest)).thenReturn(grpcResponse);
-            when(goldDocumentGrpcMapper.toDto(grpcResponse)).thenReturn(expectedResponseDto);
-
-            // When
-            goldDocumentService = new GoldDocumentServiceImpl(goldDocumentGrpcServiceBlockingStub);
-            CreateSinglePdfResponseDto actualResponse = goldDocumentService.createSinglePdf(requestDto);
-
-            // Then
-            assertNotNull(actualResponse);
-            assertEquals("00", actualResponse.getReturnCode());
-            assertEquals("Success", actualResponse.getReturnMsg());
-            assertEquals("DOC123456", actualResponse.getDocumentId());
-
-            verify(goldDocumentGrpcMapper).toGrpcRequest(requestDto);
-            verify(goldDocumentGrpcServiceBlockingStub).createSinglePdf(grpcRequest);
-            verify(goldDocumentGrpcMapper).toDto(grpcResponse);
-        }
+        // Then
+        assertNotNull(grpcResponse);
+        assertEquals("00", grpcResponse.getReturnCode());
+        assertEquals("Success", grpcResponse.getReturnMsg());
+        assertEquals("DOC123456", grpcResponse.getDocumentId());
     }
 
     @Test
-    void createSinglePdf_WithEmptyFields() {
+    void toDto_CreateSinglePdfGrpcRequest() {
         // Given
-        CreateSinglePdfRequestDto requestDto = new CreateSinglePdfRequestDto();
-
-        CreateSinglePdfGrpcRequest grpcRequest = CreateSinglePdfGrpcRequest.newBuilder().build();
-
-        CreateSinglePdfGrpcResponse grpcResponse = CreateSinglePdfGrpcResponse.newBuilder()
-                .setReturnCode("99")
-                .setReturnMsg("Invalid input")
-                .build();
-
-        CreateSinglePdfResponseDto expectedResponseDto = CreateSinglePdfResponseDto.builder()
-                .returnCode("99")
-                .returnMsg("Invalid input")
-                .build();
-
-        try (MockedStatic<Mappers> mappersMock = mockStatic(Mappers.class)) {
-            mappersMock.when(() -> Mappers.getMapper(GoldDocumentGrpcMapper.class))
-                    .thenReturn(goldDocumentGrpcMapper);
-
-            when(goldDocumentGrpcMapper.toGrpcRequest(requestDto)).thenReturn(grpcRequest);
-            when(goldDocumentGrpcServiceBlockingStub.createSinglePdf(grpcRequest)).thenReturn(grpcResponse);
-            when(goldDocumentGrpcMapper.toDto(grpcResponse)).thenReturn(expectedResponseDto);
-
-            // When
-            goldDocumentService = new GoldDocumentServiceImpl(goldDocumentGrpcServiceBlockingStub);
-            CreateSinglePdfResponseDto actualResponse = goldDocumentService.createSinglePdf(requestDto);
-
-            // Then
-            assertNotNull(actualResponse);
-            assertEquals("99", actualResponse.getReturnCode());
-            assertEquals("Invalid input", actualResponse.getReturnMsg());
-        }
-    }
-
-    @Test
-    void createSinglePdf_GrpcException() {
-        // Given
-        CreateSinglePdfRequestDto requestDto = CreateSinglePdfRequestDto.builder()
-                .documentType("GOLD_WITHDRAWAL")
-                .userId("12345")
-                .build();
-
-        CreateSinglePdfGrpcRequest grpcRequest = CreateSinglePdfGrpcRequest.newBuilder()
-                .setDocumentType("GOLD_WITHDRAWAL")
-                .setUserId("12345")
-                .build();
-
-        StatusRuntimeException grpcException = new StatusRuntimeException(Status.INTERNAL.withDescription("gRPC internal error"));
-
-        try (MockedStatic<Mappers> mappersMock = mockStatic(Mappers.class)) {
-            mappersMock.when(() -> Mappers.getMapper(GoldDocumentGrpcMapper.class))
-                    .thenReturn(goldDocumentGrpcMapper);
-
-            when(goldDocumentGrpcMapper.toGrpcRequest(requestDto)).thenReturn(grpcRequest);
-            when(goldDocumentGrpcServiceBlockingStub.createSinglePdf(grpcRequest)).thenThrow(grpcException);
-
-            // When & Then
-            goldDocumentService = new GoldDocumentServiceImpl(goldDocumentGrpcServiceBlockingStub);
-            assertThrows(StatusRuntimeException.class, () -> goldDocumentService.createSinglePdf(requestDto));
-        }
-    }
-
-    @Test
-    void getSinglePdf_Success() {
-        // Given
-        GetSinglePdfRequestDto requestDto = GetSinglePdfRequestDto.builder()
-                .documentId("DOC123456")
-                .userId("12345")
-                .authUserId("AUTH123")
-                .build();
-
-        GetSinglePdfGrpcRequest grpcRequest = GetSinglePdfGrpcRequest.newBuilder()
-                .setDocumentId("DOC123456")
-                .setUserId("12345")
-                .setAuthUserId("AUTH123")
-                .build();
-
-        GetPdfGrpcResponse grpcResponse = GetPdfGrpcResponse.newBuilder()
-                .setReturnCode("00")
-                .setReturnMsg("Success")
-                .setPdfData("base64EncodedPdfData")
-                .build();
-
-        GetPdfResponseDto expectedResponseDto = GetPdfResponseDto.builder()
-                .returnCode("00")
-                .returnMsg("Success")
-                .pdfData("base64EncodedPdfData")
-                .printType("DIRECT")
-                .paperTrayText("Tray1")
-                .build();
-
-        try (MockedStatic<Mappers> mappersMock = mockStatic(Mappers.class)) {
-            mappersMock.when(() -> Mappers.getMapper(GoldDocumentGrpcMapper.class))
-                    .thenReturn(goldDocumentGrpcMapper);
-
-            when(goldDocumentGrpcMapper.toGetSinglePdfGrpcRequest(requestDto)).thenReturn(grpcRequest);
-            when(goldDocumentGrpcServiceBlockingStub.getSinglePdf(grpcRequest)).thenReturn(grpcResponse);
-            when(goldDocumentGrpcMapper.toGetSinglePdfResponseDto(grpcResponse)).thenReturn(expectedResponseDto);
-
-            // When
-            goldDocumentService = new GoldDocumentServiceImpl(goldDocumentGrpcServiceBlockingStub);
-            GetPdfResponseDto actualResponse = goldDocumentService.getSinglePdf(requestDto);
-
-            // Then
-            assertNotNull(actualResponse);
-            assertEquals("00", actualResponse.getReturnCode());
-            assertEquals("Success", actualResponse.getReturnMsg());
-            assertEquals("base64EncodedPdfData", actualResponse.getPdfData());
-            assertEquals("DIRECT", actualResponse.getPrintType());
-            assertEquals("Tray1", actualResponse.getPaperTrayText());
-
-            verify(goldDocumentGrpcMapper).toGetSinglePdfGrpcRequest(requestDto);
-            verify(goldDocumentGrpcServiceBlockingStub).getSinglePdf(grpcRequest);
-            verify(goldDocumentGrpcMapper).toGetSinglePdfResponseDto(grpcResponse);
-        }
-    }
-
-    @Test
-    void getSinglePdf_DocumentNotFound() {
-        // Given
-        GetSinglePdfRequestDto requestDto = GetSinglePdfRequestDto.builder()
-                .documentId("INVALID_DOC")
-                .userId("12345")
-                .build();
-
-        GetSinglePdfGrpcRequest grpcRequest = GetSinglePdfGrpcRequest.newBuilder()
-                .setDocumentId("INVALID_DOC")
-                .setUserId("12345")
-                .build();
-
-        GetPdfGrpcResponse grpcResponse = GetPdfGrpcResponse.newBuilder()
-                .setReturnCode("01")
-                .setReturnMsg("Document not found")
-                .build();
-
-        GetPdfResponseDto expectedResponseDto = GetPdfResponseDto.builder()
-                .returnCode("01")
-                .returnMsg("Document not found")
-                .build();
-
-        try (MockedStatic<Mappers> mappersMock = mockStatic(Mappers.class)) {
-            mappersMock.when(() -> Mappers.getMapper(GoldDocumentGrpcMapper.class))
-                    .thenReturn(goldDocumentGrpcMapper);
-
-            when(goldDocumentGrpcMapper.toGetSinglePdfGrpcRequest(requestDto)).thenReturn(grpcRequest);
-            when(goldDocumentGrpcServiceBlockingStub.getSinglePdf(grpcRequest)).thenReturn(grpcResponse);
-            when(goldDocumentGrpcMapper.toGetSinglePdfResponseDto(grpcResponse)).thenReturn(expectedResponseDto);
-
-            // When
-            goldDocumentService = new GoldDocumentServiceImpl(goldDocumentGrpcServiceBlockingStub);
-            GetPdfResponseDto actualResponse = goldDocumentService.getSinglePdf(requestDto);
-
-            // Then
-            assertNotNull(actualResponse);
-            assertEquals("01", actualResponse.getReturnCode());
-            assertEquals("Document not found", actualResponse.getReturnMsg());
-            assertNull(actualResponse.getPdfData());
-        }
-    }
-
-    @Test
-    void getSinglePdf_GrpcException() {
-        // Given
-        GetSinglePdfRequestDto requestDto = GetSinglePdfRequestDto.builder()
-                .documentId("DOC123")
-                .build();
-
-        GetSinglePdfGrpcRequest grpcRequest = GetSinglePdfGrpcRequest.newBuilder()
-                .setDocumentId("DOC123")
-                .build();
-
-        StatusRuntimeException grpcException = new StatusRuntimeException(Status.UNAVAILABLE.withDescription("Service unavailable"));
-
-        try (MockedStatic<Mappers> mappersMock = mockStatic(Mappers.class)) {
-            mappersMock.when(() -> Mappers.getMapper(GoldDocumentGrpcMapper.class))
-                    .thenReturn(goldDocumentGrpcMapper);
-
-            when(goldDocumentGrpcMapper.toGetSinglePdfGrpcRequest(requestDto)).thenReturn(grpcRequest);
-            when(goldDocumentGrpcServiceBlockingStub.getSinglePdf(grpcRequest)).thenThrow(grpcException);
-
-            // When & Then
-            goldDocumentService = new GoldDocumentServiceImpl(goldDocumentGrpcServiceBlockingStub);
-            assertThrows(StatusRuntimeException.class, () -> goldDocumentService.getSinglePdf(requestDto));
-        }
-    }
-
-    @Test
-    void getSinglePdf_WithNullRequest() {
-        // Given
-        GetSinglePdfRequestDto requestDto = null;
-
-        try (MockedStatic<Mappers> mappersMock = mockStatic(Mappers.class)) {
-            mappersMock.when(() -> Mappers.getMapper(GoldDocumentGrpcMapper.class))
-                    .thenReturn(goldDocumentGrpcMapper);
-
-            when(goldDocumentGrpcMapper.toGetSinglePdfGrpcRequest(null)).thenReturn(null);
-            when(goldDocumentGrpcServiceBlockingStub.getSinglePdf(null))
-                    .thenThrow(new NullPointerException("Request cannot be null"));
-
-            // When & Then
-            goldDocumentService = new GoldDocumentServiceImpl(goldDocumentGrpcServiceBlockingStub);
-            assertThrows(NullPointerException.class, () -> goldDocumentService.getSinglePdf(requestDto));
-        }
-    }
-
-    @Test
-    void createSinglePdf_AllFieldsPopulated() {
-        // Given - Test with all possible field values
-        CreateSinglePdfRequestDto requestDto = CreateSinglePdfRequestDto.builder()
-                .documentType("TYPE1")
-                .documentStatus("STATUS1")
-                .async("true")
-                .userId("USER1")
-                .authUserId("AUTH1")
-                .xmlData("<xml>full data</xml>")
-                .build();
-
         CreateSinglePdfGrpcRequest grpcRequest = CreateSinglePdfGrpcRequest.newBuilder()
                 .setDocumentType("TYPE1")
                 .setDocumentStatus("STATUS1")
                 .setAsync("true")
                 .setUserId("USER1")
                 .setAuthUserId("AUTH1")
-                .setXmlData("<xml>full data</xml>")
+                .setXmlData("<xml>data</xml>")
                 .build();
 
-        CreateSinglePdfGrpcResponse grpcResponse = CreateSinglePdfGrpcResponse.newBuilder()
-                .setReturnCode("00")
-                .setReturnMsg("Success")
-                .setDocumentId("DOC999")
-                .build();
+        // When
+        CreateSinglePdfRequestDto dto = mapper.toDto(grpcRequest);
 
-        CreateSinglePdfResponseDto expectedResponseDto = CreateSinglePdfResponseDto.builder()
-                .returnCode("00")
-                .returnMsg("Success")
-                .documentId("DOC999")
-                .build();
-
-        try (MockedStatic<Mappers> mappersMock = mockStatic(Mappers.class)) {
-            mappersMock.when(() -> Mappers.getMapper(GoldDocumentGrpcMapper.class))
-                    .thenReturn(goldDocumentGrpcMapper);
-
-            when(goldDocumentGrpcMapper.toGrpcRequest(requestDto)).thenReturn(grpcRequest);
-            when(goldDocumentGrpcServiceBlockingStub.createSinglePdf(grpcRequest)).thenReturn(grpcResponse);
-            when(goldDocumentGrpcMapper.toDto(grpcResponse)).thenReturn(expectedResponseDto);
-
-            // When
-            goldDocumentService = new GoldDocumentServiceImpl(goldDocumentGrpcServiceBlockingStub);
-            CreateSinglePdfResponseDto actualResponse = goldDocumentService.createSinglePdf(requestDto);
-
-            // Then
-            assertNotNull(actualResponse);
-            assertEquals("00", actualResponse.getReturnCode());
-            assertEquals("Success", actualResponse.getReturnMsg());
-            assertEquals("DOC999", actualResponse.getDocumentId());
-        }
+        // Then
+        assertNotNull(dto);
+        assertEquals("TYPE1", dto.getDocumentType());
+        assertEquals("STATUS1", dto.getDocumentStatus());
+        assertEquals("true", dto.getAsync());
+        assertEquals("USER1", dto.getUserId());
+        assertEquals("AUTH1", dto.getAuthUserId());
+        assertEquals("<xml>data</xml>", dto.getXmlData());
     }
 
     @Test
-    void getSinglePdf_AllFieldsInResponse() {
-        // Given - Test all response fields
-        GetSinglePdfRequestDto requestDto = GetSinglePdfRequestDto.builder()
-                .documentId("DOC789")
-                .userId("USER789")
-                .authUserId("AUTH789")
-                .build();
-
-        GetSinglePdfGrpcRequest grpcRequest = GetSinglePdfGrpcRequest.newBuilder()
+    void toDto_CreateSinglePdfGrpcResponse() {
+        // Given
+        CreateSinglePdfGrpcResponse grpcResponse = CreateSinglePdfGrpcResponse.newBuilder()
+                .setReturnCode("00")
+                .setReturnMsg("Success")
                 .setDocumentId("DOC789")
-                .setUserId("USER789")
-                .setAuthUserId("AUTH789")
                 .build();
 
+        // When
+        CreateSinglePdfResponseDto dto = mapper.toDto(grpcResponse);
+
+        // Then
+        assertNotNull(dto);
+        assertEquals("00", dto.getReturnCode());
+        assertEquals("Success", dto.getReturnMsg());
+        assertEquals("DOC789", dto.getDocumentId());
+    }
+
+    @Test
+    void toGetSinglePdfGrpcRequest_AllFieldsPopulated() {
+        // Given
+        GetSinglePdfRequestDto dto = GetSinglePdfRequestDto.builder()
+                .documentId("DOC123456")
+                .userId("12345")
+                .authUserId("AUTH123")
+                .build();
+
+        // When
+        GetSinglePdfGrpcRequest grpcRequest = mapper.toGetSinglePdfGrpcRequest(dto);
+
+        // Then
+        assertNotNull(grpcRequest);
+        assertEquals("DOC123456", grpcRequest.getDocumentId());
+        assertEquals("12345", grpcRequest.getUserId());
+        assertEquals("AUTH123", grpcRequest.getAuthUserId());
+    }
+
+    @Test
+    void toGetSinglePdfGrpcRequest_NullDto() {
+        // When
+        GetSinglePdfGrpcRequest grpcRequest = mapper.toGetSinglePdfGrpcRequest(null);
+
+        // Then
+        assertNull(grpcRequest);
+    }
+
+    @Test
+    void toGetSinglePdfGrpcRequest_EmptyDto() {
+        // Given
+        GetSinglePdfRequestDto dto = new GetSinglePdfRequestDto();
+
+        // When
+        GetSinglePdfGrpcRequest grpcRequest = mapper.toGetSinglePdfGrpcRequest(dto);
+
+        // Then
+        assertNotNull(grpcRequest);
+        assertEquals("", grpcRequest.getDocumentId());
+        assertEquals("", grpcRequest.getUserId());
+        assertEquals("", grpcRequest.getAuthUserId());
+    }
+
+    @Test
+    void toGetSinglePdfResponseDto_AllFieldsPopulated() {
+        // Given
         GetPdfGrpcResponse grpcResponse = GetPdfGrpcResponse.newBuilder()
                 .setReturnCode("00")
                 .setReturnMsg("Success")
-                .setPdfData("fullBase64Data")
+                .setPdfData("base64EncodedData")
                 .build();
 
-        GetPdfResponseDto expectedResponseDto = GetPdfResponseDto.builder()
-                .returnCode("00")
-                .returnMsg("Success")
-                .pdfData("fullBase64Data")
-                .printType("BATCH")
-                .paperTrayText("Tray2")
-                .secPaperTrayText("SecTray1")
+        // When
+        GetPdfResponseDto dto = mapper.toGetSinglePdfResponseDto(grpcResponse);
+
+        // Then
+        assertNotNull(dto);
+        assertEquals("00", dto.getReturnCode());
+        assertEquals("Success", dto.getReturnMsg());
+        assertEquals("base64EncodedData", dto.getPdfData());
+    }
+
+    @Test
+    void toGetSinglePdfResponseDto_NullResponse() {
+        // When
+        GetPdfResponseDto dto = mapper.toGetSinglePdfResponseDto(null);
+
+        // Then
+        assertNull(dto);
+    }
+
+    @Test
+    void toGetSinglePdfResponseDto_EmptyResponse() {
+        // Given
+        GetPdfGrpcResponse grpcResponse = GetPdfGrpcResponse.newBuilder().build();
+
+        // When
+        GetPdfResponseDto dto = mapper.toGetSinglePdfResponseDto(grpcResponse);
+
+        // Then
+        assertNotNull(dto);
+        assertEquals("", dto.getReturnCode());
+        assertEquals("", dto.getReturnMsg());
+        assertEquals("", dto.getPdfData());
+    }
+
+    @Test
+    void testMapperInstance() {
+        // Test that the INSTANCE field is properly initialized
+        assertNotNull(GoldDocumentGrpcMapper.INSTANCE);
+        assertTrue(GoldDocumentGrpcMapper.INSTANCE instanceof GoldDocumentGrpcMapper);
+    }
+
+    @Test
+    void toGrpcRequest_PartiallyPopulatedDto() {
+        // Given - Only some fields populated
+        CreateSinglePdfRequestDto dto = CreateSinglePdfRequestDto.builder()
+                .documentType("GOLD_WITHDRAWAL")
+                .userId("12345")
+                // Other fields are null
                 .build();
 
-        try (MockedStatic<Mappers> mappersMock = mockStatic(Mappers.class)) {
-            mappersMock.when(() -> Mappers.getMapper(GoldDocumentGrpcMapper.class))
-                    .thenReturn(goldDocumentGrpcMapper);
+        // When
+        CreateSinglePdfGrpcRequest grpcRequest = mapper.toGrpcRequest(dto);
 
-            when(goldDocumentGrpcMapper.toGetSinglePdfGrpcRequest(requestDto)).thenReturn(grpcRequest);
-            when(goldDocumentGrpcServiceBlockingStub.getSinglePdf(grpcRequest)).thenReturn(grpcResponse);
-            when(goldDocumentGrpcMapper.toGetSinglePdfResponseDto(grpcResponse)).thenReturn(expectedResponseDto);
+        // Then
+        assertNotNull(grpcRequest);
+        assertEquals("GOLD_WITHDRAWAL", grpcRequest.getDocumentType());
+        assertEquals("12345", grpcRequest.getUserId());
+        // Check default values for null fields based on mapper config
+        assertEquals("", grpcRequest.getDocumentStatus());
+        assertEquals("", grpcRequest.getAsync());
+        assertEquals("", grpcRequest.getAuthUserId());
+        assertEquals("", grpcRequest.getXmlData());
+    }
 
-            // When
-            goldDocumentService = new GoldDocumentServiceImpl(goldDocumentGrpcServiceBlockingStub);
-            GetPdfResponseDto actualResponse = goldDocumentService.getSinglePdf(requestDto);
+    @Test
+    void toDto_CreateSinglePdfGrpcResponse_EmptyResponse() {
+        // Given
+        CreateSinglePdfGrpcResponse grpcResponse = CreateSinglePdfGrpcResponse.newBuilder().build();
 
-            // Then
-            assertNotNull(actualResponse);
-            assertEquals("00", actualResponse.getReturnCode());
-            assertEquals("Success", actualResponse.getReturnMsg());
-            assertEquals("fullBase64Data", actualResponse.getPdfData());
-            assertEquals("BATCH", actualResponse.getPrintType());
-            assertEquals("Tray2", actualResponse.getPaperTrayText());
-            assertEquals("SecTray1", actualResponse.getSecPaperTrayText());
-        }
+        // When
+        CreateSinglePdfResponseDto dto = mapper.toDto(grpcResponse);
+
+        // Then
+        assertNotNull(dto);
+        assertEquals("", dto.getReturnCode());
+        assertEquals("", dto.getReturnMsg());
+        assertEquals("", dto.getDocumentId());
     }
 }
