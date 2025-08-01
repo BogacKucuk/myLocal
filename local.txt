@@ -1,111 +1,82 @@
-package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.external;
+package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.impl;
 
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
 
-import com.garantibbva.depositprocessing.documentservicebusiness.proto.DocumentBusinessGrpcServiceGrpc.DocumentBusinessGrpcServiceBlockingStub;
-import com.garantibbva.depositprocessing.documentservicebusiness.proto.DocumentServiceProto.CreatePdfV1GrpcRequest;
-import com.garantibbva.depositprocessing.documentservicebusiness.proto.DocumentServiceProto.CreatePdfV1GrpcResponse;
-import com.garantibbva.depositprocessing.documentservicebusiness.proto.DocumentServiceProto.CreatePdfV1GrpcResponse.CreatePdfV1Result;
-import com.garantibbva.depositprocessing.documentservicebusiness.proto.DocumentServiceProto.GetPdfGrpcRequest;
-import com.garantibbva.depositprocessing.documentservicebusiness.proto.DocumentServiceProto.GetPdfV1GrpcResponse;
-import com.garantibbva.depositprocessing.documentservicebusiness.proto.DocumentServiceProto.GetPdfV1GrpcResponse.GetPdfV1Result;
-import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.external.DocumentServiceImpl;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.GoldDocumentService;
 import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.CreateSinglePdfRequestDto;
 import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.GetSinglePdfRequestDto;
 import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response.CreateSinglePdfResponseDto;
 import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response.GetPdfResponseDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.external.DocumentService;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.ArgumentCaptor;
-import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class DocumentServiceImplTest {
+class GoldDocumentServiceImplTest {
 
     @Mock
-    private DocumentBusinessGrpcServiceBlockingStub stub;
+    private DocumentService documentService;
 
     @InjectMocks
-    private DocumentServiceImpl documentService;
-
-    @Captor
-    private ArgumentCaptor<CreatePdfV1GrpcRequest> createRequestCaptor;
-
-    @Captor
-    private ArgumentCaptor<GetPdfGrpcRequest> getRequestCaptor;
+    private GoldDocumentServiceImpl goldDocumentService;
 
     @Test
-    void testCreateSinglePdf() {
+    void createSinglePdf_ShouldDelegateToDocumentService() {
         // Given
         CreateSinglePdfRequestDto requestDto = CreateSinglePdfRequestDto.builder()
-                .documentType("type")
-                .documentStatus("status")
+                .documentType("TYPE")
+                .documentStatus("STATUS")
                 .async("1")
                 .userId("user")
                 .authUserId("auth")
                 .xmlData("<xml/>")
                 .build();
 
-        CreatePdfV1Result grpcResult = CreatePdfV1Result.newBuilder()
-                .setReturnCode("00")
-                .setReturnMsg("OK")
-                .setDocumentId("DOC123")
+        CreateSinglePdfResponseDto expectedResponse = CreateSinglePdfResponseDto.builder()
+                .returnCode("00")
+                .returnMsg("OK")
+                .documentId("DOC_ID")
                 .build();
 
-        CreatePdfV1GrpcResponse grpcResponse = CreatePdfV1GrpcResponse.newBuilder()
-                .setCreatePdfV1Result(grpcResult)
-                .build();
-
-        when(stub.createSinglePdf(any(CreatePdfV1GrpcRequest.class))).thenReturn(grpcResponse);
+        when(documentService.createSinglePdf(requestDto)).thenReturn(expectedResponse);
 
         // When
-        CreateSinglePdfResponseDto responseDto = documentService.createSinglePdf(requestDto);
+        CreateSinglePdfResponseDto actualResponse = goldDocumentService.createSinglePdf(requestDto);
 
         // Then
-        verify(stub).createSinglePdf(createRequestCaptor.capture());
-        assertEquals("00", responseDto.getReturnCode());
-        assertEquals("OK", responseDto.getReturnMsg());
-        assertEquals("DOC123", responseDto.getDocumentId());
+        verify(documentService).createSinglePdf(requestDto);
+        assertEquals(expectedResponse, actualResponse);
     }
 
     @Test
-    void testGetSinglePdf() {
+    void getSinglePdf_ShouldDelegateToDocumentService() {
         // Given
         GetSinglePdfRequestDto requestDto = GetSinglePdfRequestDto.builder()
-                .documentId("DOC123")
+                .documentId("DOC_ID")
                 .userId("user")
                 .authUserId("auth")
                 .build();
 
-        GetPdfV1Result grpcResult = GetPdfV1Result.newBuilder()
-                .setReturnCode("00")
-                .setReturnMsg("OK")
-                .setPrintType("PT1")
-                .setPaperTrayText("PTT")
-                .setSecPaperTrayText("SPTT")
-                .setPdfData("data")
+        GetPdfResponseDto expectedResponse = GetPdfResponseDto.builder()
+                .returnCode("00")
+                .returnMsg("OK")
+                .printType("PT")
+                .paperTrayText("PTT")
+                .secPaperTrayText("SPTT")
+                .pdfData("PDFDATA")
                 .build();
 
-        GetPdfV1GrpcResponse grpcResponse = GetPdfV1GrpcResponse.newBuilder()
-                .setGetPdfV1Result(grpcResult)
-                .build();
-
-        when(stub.getSinglePdf(any(GetPdfGrpcRequest.class))).thenReturn(grpcResponse);
+        when(documentService.getSinglePdf(requestDto)).thenReturn(expectedResponse);
 
         // When
-        GetPdfResponseDto responseDto = documentService.getSinglePdf(requestDto);
+        GetPdfResponseDto actualResponse = goldDocumentService.getSinglePdf(requestDto);
 
         // Then
-        verify(stub).getSinglePdf(getRequestCaptor.capture());
-        assertEquals("00", responseDto.getReturnCode());
-        assertEquals("OK", responseDto.getReturnMsg());
-        assertEquals("PT1", responseDto.getPrintType());
-        assertEquals("PTT", responseDto.getPaperTrayText());
-        assertEquals("SPTT", responseDto.getSecPaperTrayText());
-        assertEquals("data", responseDto.getPdfData());
+        verify(documentService).getSinglePdf(requestDto);
+        assertEquals(expectedResponse, actualResponse);
     }
 }
