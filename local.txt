@@ -1,14 +1,22 @@
-package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.impl;
+package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.grpc.impl;
 
+import static org.mockito.ArgumentMatchers.argThat;
 import static org.mockito.Mockito.*;
 import static org.junit.jupiter.api.Assertions.*;
 
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.grpc.impl.GoldDocumentGrpcServiceImpl;
 import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.GoldDocumentService;
 import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.CreateSinglePdfRequestDto;
 import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.GetSinglePdfRequestDto;
 import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response.CreateSinglePdfResponseDto;
 import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response.GetPdfResponseDto;
-import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.external.DocumentService;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.GoldDocumentProto.CreateSinglePdfGrpcRequest;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.GoldDocumentProto.CreateSinglePdfGrpcResponse;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.GoldDocumentProto.GetPdfGrpcResponse;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.GoldDocumentProto.GetSinglePdfGrpcRequest;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.grpc.mapper.GoldDocumentGrpcMapper;
+import io.grpc.stub.StreamObserver;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
@@ -16,67 +24,90 @@ import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
 @ExtendWith(MockitoExtension.class)
-class GoldDocumentServiceImplTest {
+class GoldDocumentGrpcServiceImplTest {
 
     @Mock
-    private DocumentService documentService;
+    private GoldDocumentService goldDocumentService;
 
     @InjectMocks
-    private GoldDocumentServiceImpl goldDocumentService;
+    private GoldDocumentGrpcServiceImpl grpcService;
 
-    @Test
-    void createSinglePdf_ShouldDelegateToDocumentService() {
-        // Given
-        CreateSinglePdfRequestDto requestDto = CreateSinglePdfRequestDto.builder()
-                .documentType("TYPE")
-                .documentStatus("STATUS")
-                .async("1")
-                .userId("user")
-                .authUserId("auth")
-                .xmlData("<xml/>")
-                .build();
+    @Mock
+    private StreamObserver<CreateSinglePdfGrpcResponse> createObserver;
 
-        CreateSinglePdfResponseDto expectedResponse = CreateSinglePdfResponseDto.builder()
+    @Mock
+    private StreamObserver<GetPdfGrpcResponse> getObserver;
+
+    private CreateSinglePdfResponseDto serviceCreateResponse;
+    private GetPdfResponseDto serviceGetResponse;
+
+    @BeforeEach
+    void setUp() {
+        serviceCreateResponse = CreateSinglePdfResponseDto.builder()
                 .returnCode("00")
                 .returnMsg("OK")
-                .documentId("DOC_ID")
+                .documentId("DOC123")
                 .build();
 
-        when(documentService.createSinglePdf(requestDto)).thenReturn(expectedResponse);
-
-        // When
-        CreateSinglePdfResponseDto actualResponse = goldDocumentService.createSinglePdf(requestDto);
-
-        // Then
-        verify(documentService).createSinglePdf(requestDto);
-        assertEquals(expectedResponse, actualResponse);
-    }
-
-    @Test
-    void getSinglePdf_ShouldDelegateToDocumentService() {
-        // Given
-        GetSinglePdfRequestDto requestDto = GetSinglePdfRequestDto.builder()
-                .documentId("DOC_ID")
-                .userId("user")
-                .authUserId("auth")
-                .build();
-
-        GetPdfResponseDto expectedResponse = GetPdfResponseDto.builder()
+        serviceGetResponse = GetPdfResponseDto.builder()
                 .returnCode("00")
                 .returnMsg("OK")
-                .printType("PT")
+                .printType("PT1")
                 .paperTrayText("PTT")
                 .secPaperTrayText("SPTT")
                 .pdfData("PDFDATA")
                 .build();
+    }
 
-        when(documentService.getSinglePdf(requestDto)).thenReturn(expectedResponse);
+    @Test
+    void createSinglePdf_ShouldUsePrepareTestRequestAndReturnGrpcResponse() {
+        // Given
+        when(goldDocumentService.createSinglePdf(any(CreateSinglePdfRequestDto.class)))
+                .thenReturn(serviceCreateResponse);
 
         // When
-        GetPdfResponseDto actualResponse = goldDocumentService.getSinglePdf(requestDto);
+        grpcService.createSinglePdf(mock(CreateSinglePdfGrpcRequest.class), createObserver);
 
-        // Then
-        verify(documentService).getSinglePdf(requestDto);
-        assertEquals(expectedResponse, actualResponse);
+        // Then: verify that the service was called with the hard-coded prepareTestRequest values
+        verify(goldDocumentService).createSinglePdf(argThat(dto ->
+                "ALTIN_SOZLESMESI_TR_EN_IMZA_BARKODLU".equals(dto.getDocumentType()) &&
+                "A".equals(dto.getDocumentStatus()) &&
+                "TEST".equals(dto.getUserId()) &&
+                "TEST".equals(dto.getAuthUserId()) &&
+                "1".equals(dto.getAsync()) &&
+                dto.getXmlData().contains("<test>testXml</test>")
+        ));
+
+        // Verify gRPC response
+        CreateSinglePdfGrpcResponse expectedGrpc = GoldDocumentGrpcMapper.INSTANCE.toGrpcResponse(serviceCreateResponse);
+        verify(createObserver).onNext(expectedGrpc);
+        verify(createObserver).onCompleted();
+    }
+
+    @Test
+    void getSinglePdf_ShouldMapRequestAndReturnGrpcResponse() {
+        // Given
+        GetSinglePdfGrpcRequest grpcRequest = GetSinglePdfGrpcRequest.newBuilder()
+                .setDocumentId("DOC123")
+                .setUserId("USER1")
+                .setAuthUserId("AUTH1")
+                .build();
+        when(goldDocumentService.getSinglePdf(any(GetSinglePdfRequestDto.class)))
+                .thenReturn(serviceGetResponse);
+
+        // When
+        grpcService.getSinglePdf(grpcRequest, getObserver);
+
+        // Then: verify that mapper converted gRPC request correctly
+        verify(goldDocumentService).getSinglePdf(argThat(dto ->
+                "DOC123".equals(dto.getDocumentId()) &&
+                "USER1".equals(dto.getUserId()) &&
+                "AUTH1".equals(dto.getAuthUserId())
+        ));
+
+        // Verify gRPC response
+        GetPdfGrpcResponse expectedGrpc = GoldDocumentGrpcMapper.INSTANCE.toGetSinglePdfGrpcResponse(serviceGetResponse);
+        verify(getObserver).onNext(expectedGrpc);
+        verify(getObserver).onCompleted();
     }
 }
