@@ -1,113 +1,594 @@
+// 1. Enum for Document Types
+package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.document.enums;
+
+public enum GoldDocumentType {
+    ALTIN_SOZLESMESI_TR_EN_IMZA_BARKODLU("ALTIN_SOZLESMESI_TR_EN_IMZA_BARKODLU"),
+    ALTIN_ORTAK_SOZLESME_KKTC_TR_EN_IMZA_BARKODLU("ALTIN_ORTAK_SOZLESME_KKTC_TR_EN_IMZA_BARKODLU"),
+    ALTIN_ORTAK_SOZLESME_TR_EN_IMZA_BARKODLU("ALTIN_ORTAK_SOZLESME_TR_EN_IMZA_BARKODLU");
+    
+    private final String value;
+    
+    GoldDocumentType(String value) {
+        this.value = value;
+    }
+    
+    public String getValue() {
+        return value;
+    }
+}
+
+// 2. Updated DTO with all fields
+package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class CreateSinglePdfRequestDto {
+    // Existing fields
+    private String documentType;
+    private String documentStatus;
+    private String userId;
+    private String authUserId;
+    private String async;
+    private String xmlData;
+    
+    // Business fields from gRPC request
+    private String documentLanguage;
+    private String branch;
+    private Boolean isJointAccount;
+    private String customerNumber;
+    private String customerAddress;
+    private String customerFullName;
+    private String accountType;
+    private String bankAddress;
+    private String branchName;
+    private String commissionRate;
+    private String identityNumber;
+    
+    // Default values for optional fields
+    public String getDocumentLanguage() {
+        return documentLanguage != null ? documentLanguage : "TR";
+    }
+    
+    public String getBranch() {
+        return branch != null ? branch : "";
+    }
+    
+    public boolean isJointAccount() {
+        return isJointAccount != null && isJointAccount;
+    }
+    
+    public String getCustomerNumber() {
+        return customerNumber != null ? customerNumber : "";
+    }
+    
+    public String getCustomerAddress() {
+        return customerAddress != null ? customerAddress : "";
+    }
+    
+    public String getCustomerFullName() {
+        return customerFullName != null ? customerFullName : "";
+    }
+    
+    public String getAccountType() {
+        return accountType != null ? accountType : "G";
+    }
+    
+    public String getBankAddress() {
+        return bankAddress != null ? bankAddress : "";
+    }
+    
+    public String getBranchName() {
+        return branchName != null ? branchName : "";
+    }
+    
+    public String getCommissionRate() {
+        return commissionRate != null ? commissionRate : "0,509";
+    }
+    
+    public String getIdentityNumber() {
+        return identityNumber != null ? identityNumber : "";
+    }
+}
+
+// 3. Document Context - now holds DTO
+package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.document.context;
+
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.CreateSinglePdfRequestDto;
+import lombok.Getter;
+import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
+
+@Getter
+public class DocumentContext {
+    private final CreateSinglePdfRequestDto requestDto;
+    private static final DateTimeFormatter DATE_FORMATTER = DateTimeFormatter.ofPattern("dd/MM/yyyy");
+    
+    public DocumentContext(CreateSinglePdfRequestDto requestDto) {
+        this.requestDto = requestDto;
+    }
+    
+    public String getCurrentDate() {
+        return LocalDate.now().format(DATE_FORMATTER);
+    }
+    
+    public String getVersionNumber() {
+        return "1"; // This could come from config
+    }
+    
+    public String getVersionDate() {
+        return "31/01/2017"; // This could come from config
+    }
+}
+
+// 4. Strategy Interface
+package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.document.strategy;
+
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.document.context.DocumentContext;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.document.enums.GoldDocumentType;
+
+public interface DocumentStrategy {
+    GoldDocumentType getDocumentType();
+    String generateXmlData(DocumentContext context);
+    boolean isApplicable(DocumentContext context);
+}
+
+// 5. Base Abstract Strategy with common XML building logic
+package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.document.strategy;
+
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.document.context.DocumentContext;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.CreateSinglePdfRequestDto;
+
+public abstract class BaseDocumentStrategy implements DocumentStrategy {
+    
+    protected String buildXml(String rootElement, DocumentContext context) {
+        CreateSinglePdfRequestDto dto = context.getRequestDto();
+        
+        StringBuilder xml = new StringBuilder();
+        xml.append("<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n");
+        xml.append("<").append(rootElement).append(">\n");
+        
+        appendXmlElement(xml, "dokumanin_dili", dto.getDocumentLanguage());
+        appendXmlElement(xml, "musteri_numarasi", dto.getCustomerNumber());
+        appendXmlElement(xml, "musteri_adresi", dto.getCustomerAddress());
+        appendXmlElement(xml, "musteri_adi_soyadi", dto.getCustomerFullName());
+        appendXmlElement(xml, "hesap_tipi", dto.getAccountType());
+        appendXmlElement(xml, "banka_adresi", dto.getBankAddress());
+        appendXmlElement(xml, "sube_adi", dto.getBranchName());
+        appendXmlElement(xml, "kulce_altin_yatirma_ucret_orani", dto.getCommissionRate());
+        appendXmlElement(xml, "tckn_ykn_vkn", dto.getIdentityNumber());
+        appendXmlElement(xml, "tarih", context.getCurrentDate());
+        appendXmlElement(xml, "versiyon_numarasi", context.getVersionNumber());
+        appendXmlElement(xml, "versiyon_tarihi", context.getVersionDate());
+        
+        // Add custom fields for specific strategies
+        appendCustomFields(xml, context);
+        
+        xml.append("</").append(rootElement).append(">");
+        return xml.toString();
+    }
+    
+    protected void appendXmlElement(StringBuilder xml, String elementName, String value) {
+        xml.append("    <").append(elementName).append(">")
+           .append(escapeXml(value))
+           .append("</").append(elementName).append(">\n");
+    }
+    
+    protected String escapeXml(String value) {
+        if (value == null) return "";
+        return value.replace("&", "&amp;")
+                   .replace("<", "&lt;")
+                   .replace(">", "&gt;")
+                   .replace("\"", "&quot;")
+                   .replace("'", "&apos;");
+    }
+    
+    // Override this in subclasses to add strategy-specific fields
+    protected void appendCustomFields(StringBuilder xml, DocumentContext context) {
+        // Default: no custom fields
+    }
+}
+
+// 6. Concrete Strategy Implementations
+package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.document.strategy.impl;
+
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.document.context.DocumentContext;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.document.enums.GoldDocumentType;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.document.strategy.BaseDocumentStrategy;
+import org.springframework.stereotype.Component;
+
+@Component
+public class NonTurkishDocumentStrategy extends BaseDocumentStrategy {
+    
+    @Override
+    public GoldDocumentType getDocumentType() {
+        return GoldDocumentType.ALTIN_SOZLESMESI_TR_EN_IMZA_BARKODLU;
+    }
+    
+    @Override
+    public String generateXmlData(DocumentContext context) {
+        return buildXml("ALTIN_SOZLESMESI_TR_EN_IMZA_BARKODLU", context);
+    }
+    
+    @Override
+    public boolean isApplicable(DocumentContext context) {
+        return !"TR".equals(context.getRequestDto().getDocumentLanguage());
+    }
+}
+
+@Component
+public class KktcBranchDocumentStrategy extends BaseDocumentStrategy {
+    
+    @Override
+    public GoldDocumentType getDocumentType() {
+        return GoldDocumentType.ALTIN_ORTAK_SOZLESME_KKTC_TR_EN_IMZA_BARKODLU;
+    }
+    
+    @Override
+    public String generateXmlData(DocumentContext context) {
+        return buildXml("ALTIN_ORTAK_SOZLESME_KKTC_TR_EN_IMZA_BARKODLU", context);
+    }
+    
+    @Override
+    public boolean isApplicable(DocumentContext context) {
+        return "KKTC".equals(context.getRequestDto().getBranch());
+    }
+    
+    @Override
+    protected void appendCustomFields(StringBuilder xml, DocumentContext context) {
+        // KKTC specific fields can be added here
+        appendXmlElement(xml, "kktc_ozel_alan", "KKTC_DEGERI");
+    }
+}
+
+@Component
+public class JointAccountDocumentStrategy extends BaseDocumentStrategy {
+    
+    @Override
+    public GoldDocumentType getDocumentType() {
+        return GoldDocumentType.ALTIN_ORTAK_SOZLESME_TR_EN_IMZA_BARKODLU;
+    }
+    
+    @Override
+    public String generateXmlData(DocumentContext context) {
+        return buildXml("ALTIN_ORTAK_SOZLESME_TR_EN_IMZA_BARKODLU", context);
+    }
+    
+    @Override
+    public boolean isApplicable(DocumentContext context) {
+        return context.getRequestDto().isJointAccount();
+    }
+    
+    @Override
+    protected void appendCustomFields(StringBuilder xml, DocumentContext context) {
+        // Joint account specific fields
+        appendXmlElement(xml, "ortak_hesap", "EVET");
+    }
+}
+
+@Component
+public class DefaultDocumentStrategy extends BaseDocumentStrategy {
+    
+    @Override
+    public GoldDocumentType getDocumentType() {
+        return GoldDocumentType.ALTIN_SOZLESMESI_TR_EN_IMZA_BARKODLU;
+    }
+    
+    @Override
+    public String generateXmlData(DocumentContext context) {
+        return buildXml("ALTIN_SOZLESMESI_TR_EN_IMZA_BARKODLU", context);
+    }
+    
+    @Override
+    public boolean isApplicable(DocumentContext context) {
+        // This is the default strategy - always applicable as fallback
+        return true;
+    }
+}
+
+// 7. Strategy Factory/Selector
+package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.document.factory;
+
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.document.context.DocumentContext;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.document.strategy.DocumentStrategy;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.document.strategy.impl.*;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+import javax.annotation.PostConstruct;
+import java.util.List;
+import java.util.ArrayList;
+
+@Component
+@RequiredArgsConstructor
+public class DocumentStrategyFactory {
+    
+    private final NonTurkishDocumentStrategy nonTurkishStrategy;
+    private final KktcBranchDocumentStrategy kktcStrategy;
+    private final JointAccountDocumentStrategy jointAccountStrategy;
+    private final DefaultDocumentStrategy defaultStrategy;
+    
+    private List<DocumentStrategy> orderedStrategies;
+    
+    @PostConstruct
+    public void init() {
+        this.orderedStrategies = new ArrayList<>();
+        // Order matters! First matching strategy wins
+        this.orderedStrategies.add(nonTurkishStrategy);
+        this.orderedStrategies.add(kktcStrategy);
+        this.orderedStrategies.add(jointAccountStrategy);
+    }
+    
+    public DocumentStrategy selectStrategy(DocumentContext context) {
+        return orderedStrategies.stream()
+                .filter(strategy -> strategy.isApplicable(context))
+                .findFirst()
+                .orElse(defaultStrategy);
+    }
+}
+
+// 8. Document Processor - Main orchestrator
+package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.document;
+
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.CreateSinglePdfRequestDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.document.context.DocumentContext;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.document.factory.DocumentStrategyFactory;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.document.strategy.DocumentStrategy;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.stereotype.Service;
+
+@Slf4j
+@Service
+@RequiredArgsConstructor
+public class GoldDocumentProcessor {
+    
+    private final DocumentStrategyFactory strategyFactory;
+    
+    public void processDocument(CreateSinglePdfRequestDto requestDto) {
+        // Create context from DTO
+        DocumentContext context = new DocumentContext(requestDto);
+        
+        // Select appropriate strategy
+        DocumentStrategy strategy = strategyFactory.selectStrategy(context);
+        
+        log.debug("Selected strategy: {} for customer: {}", 
+                 strategy.getClass().getSimpleName(), 
+                 requestDto.getCustomerNumber());
+        
+        // Generate and set document type and XML data
+        requestDto.setDocumentType(strategy.getDocumentType().getValue());
+        requestDto.setXmlData(strategy.generateXmlData(context));
+        
+        // Set default values if not already set
+        if (requestDto.getDocumentStatus() == null) {
+            requestDto.setDocumentStatus("A");
+        }
+        if (requestDto.getUserId() == null) {
+            requestDto.setUserId("SYSTEM");
+        }
+        if (requestDto.getAuthUserId() == null) {
+            requestDto.setAuthUserId("SYSTEM");
+        }
+        if (requestDto.getAsync() == null) {
+            requestDto.setAsync("1");
+        }
+    }
+}
+
+// 9. Updated gRPC Service Implementation
 package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.grpc.impl;
 
-import static org.mockito.ArgumentMatchers.argThat;
-import static org.mockito.Mockito.*;
-import static org.junit.jupiter.api.Assertions.*;
-
-import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.grpc.impl.GoldDocumentGrpcServiceImpl;
+import com.garanti.ark.online.grpc.server.service.RemoteService;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.grpc.contract.GoldDocumentGrpcService;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.grpc.mapper.GoldDocumentGrpcMapper;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.GoldDocumentGrpcServiceGrpc.GoldDocumentGrpcServiceImplBase;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.GoldDocumentProto.CreateSinglePdfGrpcRequest;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.GoldDocumentProto.CreateSinglePdfGrpcResponse;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.GoldDocumentProto.GetPdfGrpcResponse;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.GoldDocumentProto.GetSinglePdfGrpcRequest;
 import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.GoldDocumentService;
 import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.CreateSinglePdfRequestDto;
 import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.GetSinglePdfRequestDto;
 import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response.CreateSinglePdfResponseDto;
 import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response.GetPdfResponseDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.document.GoldDocumentProcessor;
+import io.grpc.stub.StreamObserver;
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+
+@Slf4j
+@RemoteService
+@RequiredArgsConstructor
+public class GoldDocumentGrpcServiceImpl extends GoldDocumentGrpcServiceImplBase implements GoldDocumentGrpcService {
+
+    private final GoldDocumentService goldDocumentService;
+    private final GoldDocumentProcessor documentProcessor;
+    private final GoldDocumentGrpcMapper grpcMapper;
+
+    @Override
+    public void createSinglePdf(CreateSinglePdfGrpcRequest request, 
+                               StreamObserver<CreateSinglePdfGrpcResponse> responseObserver) {
+        try {
+            // Convert gRPC request to DTO using MapStruct
+            CreateSinglePdfRequestDto requestDto = grpcMapper.toCreateSinglePdfRequestDto(request);
+            
+            // Process the document (sets documentType and xmlData)
+            documentProcessor.processDocument(requestDto);
+            
+            log.info("Creating PDF with documentType: {} for customer: {}", 
+                     requestDto.getDocumentType(), 
+                     requestDto.getCustomerNumber());
+            
+            // Call the service
+            CreateSinglePdfResponseDto responseDto = goldDocumentService.createSinglePdf(requestDto);
+            
+            // Convert and send response
+            responseObserver.onNext(grpcMapper.toGrpcResponse(responseDto));
+            responseObserver.onCompleted();
+            
+        } catch (Exception e) {
+            log.error("Error creating single PDF", e);
+            responseObserver.onError(e);
+        }
+    }
+
+    @Override
+    public void getSinglePdf(GetSinglePdfGrpcRequest request, 
+                           StreamObserver<GetPdfGrpcResponse> responseObserver) {
+        try {
+            GetSinglePdfRequestDto requestDto = grpcMapper.toGetSinglePdfRequestDto(request);
+            GetPdfResponseDto responseDto = goldDocumentService.getSinglePdf(requestDto);
+            
+            responseObserver.onNext(grpcMapper.toGetSinglePdfGrpcResponse(responseDto));
+            responseObserver.onCompleted();
+            
+        } catch (Exception e) {
+            log.error("Error getting single PDF", e);
+            responseObserver.onError(e);
+        }
+    }
+}
+
+// 10. Updated MapStruct Mapper
+package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.grpc.mapper;
+
 import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.GoldDocumentProto.CreateSinglePdfGrpcRequest;
 import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.GoldDocumentProto.CreateSinglePdfGrpcResponse;
 import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.GoldDocumentProto.GetPdfGrpcResponse;
 import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.GoldDocumentProto.GetSinglePdfGrpcRequest;
-import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.grpc.mapper.GoldDocumentGrpcMapper;
-import io.grpc.stub.StreamObserver;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.CreateSinglePdfRequestDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.GetSinglePdfRequestDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response.CreateSinglePdfResponseDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response.GetPdfResponseDto;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.factory.Mappers;
+
+@Mapper(componentModel = "spring")
+public interface GoldDocumentGrpcMapper {
+    
+    GoldDocumentGrpcMapper INSTANCE = Mappers.getMapper(GoldDocumentGrpcMapper.class);
+    
+    @Mapping(target = "documentType", ignore = true) // Will be set by processor
+    @Mapping(target = "xmlData", ignore = true) // Will be set by processor
+    @Mapping(target = "documentStatus", constant = "A")
+    @Mapping(target = "async", constant = "1")
+    CreateSinglePdfRequestDto toCreateSinglePdfRequestDto(CreateSinglePdfGrpcRequest grpcRequest);
+    
+    CreateSinglePdfGrpcResponse toGrpcResponse(CreateSinglePdfResponseDto dto);
+    
+    GetSinglePdfRequestDto toGetSinglePdfRequestDto(GetSinglePdfGrpcRequest grpcRequest);
+    
+    GetPdfGrpcResponse toGetSinglePdfGrpcResponse(GetPdfResponseDto dto);
+}
+
+// 11. Unit Test Example
+package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.document;
+
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.CreateSinglePdfRequestDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.document.factory.DocumentStrategyFactory;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.document.strategy.impl.*;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.extension.ExtendWith;
-import org.mockito.InjectMocks;
-import org.mockito.Mock;
-import org.mockito.junit.jupiter.MockitoExtension;
+import static org.junit.jupiter.api.Assertions.*;
 
-@ExtendWith(MockitoExtension.class)
-class GoldDocumentGrpcServiceImplTest {
-
-    @Mock
-    private GoldDocumentService goldDocumentService;
-
-    @InjectMocks
-    private GoldDocumentGrpcServiceImpl grpcService;
-
-    @Mock
-    private StreamObserver<CreateSinglePdfGrpcResponse> createObserver;
-
-    @Mock
-    private StreamObserver<GetPdfGrpcResponse> getObserver;
-
-    private CreateSinglePdfResponseDto serviceCreateResponse;
-    private GetPdfResponseDto serviceGetResponse;
-
+public class GoldDocumentProcessorTest {
+    
+    private GoldDocumentProcessor processor;
+    
     @BeforeEach
-    void setUp() {
-        serviceCreateResponse = CreateSinglePdfResponseDto.builder()
-                .returnCode("00")
-                .returnMsg("OK")
-                .documentId("DOC123")
-                .build();
-
-        serviceGetResponse = GetPdfResponseDto.builder()
-                .returnCode("00")
-                .returnMsg("OK")
-                .printType("PT1")
-                .paperTrayText("PTT")
-                .secPaperTrayText("SPTT")
-                .pdfData("PDFDATA")
-                .build();
+    public void setUp() {
+        DocumentStrategyFactory factory = new DocumentStrategyFactory(
+            new NonTurkishDocumentStrategy(),
+            new KktcBranchDocumentStrategy(),
+            new JointAccountDocumentStrategy(),
+            new DefaultDocumentStrategy()
+        );
+        factory.init();
+        processor = new GoldDocumentProcessor(factory);
     }
-
+    
     @Test
-    void createSinglePdf_ShouldUsePrepareTestRequestAndReturnGrpcResponse() {
-        // Given
-        when(goldDocumentService.createSinglePdf(any(CreateSinglePdfRequestDto.class)))
-                .thenReturn(serviceCreateResponse);
-
-        // When
-        grpcService.createSinglePdf(mock(CreateSinglePdfGrpcRequest.class), createObserver);
-
-        // Then: verify that the service was called with the hard-coded prepareTestRequest values
-        verify(goldDocumentService).createSinglePdf(argThat(dto ->
-                "ALTIN_SOZLESMESI_TR_EN_IMZA_BARKODLU".equals(dto.getDocumentType()) &&
-                "A".equals(dto.getDocumentStatus()) &&
-                "TEST".equals(dto.getUserId()) &&
-                "TEST".equals(dto.getAuthUserId()) &&
-                "1".equals(dto.getAsync()) &&
-                dto.getXmlData().contains("<test>testXml</test>")
-        ));
-
-        // Verify gRPC response
-        CreateSinglePdfGrpcResponse expectedGrpc = GoldDocumentGrpcMapper.INSTANCE.toGrpcResponse(serviceCreateResponse);
-        verify(createObserver).onNext(expectedGrpc);
-        verify(createObserver).onCompleted();
+    public void shouldUseNonTurkishStrategyWhenLanguageIsNotTR() {
+        CreateSinglePdfRequestDto requestDto = CreateSinglePdfRequestDto.builder()
+            .documentLanguage("EN")
+            .customerNumber("12345")
+            .customerFullName("John Doe")
+            .customerAddress("Test Address")
+            .build();
+            
+        processor.processDocument(requestDto);
+        
+        assertEquals("ALTIN_SOZLESMESI_TR_EN_IMZA_BARKODLU", requestDto.getDocumentType());
+        assertTrue(requestDto.getXmlData().contains("<dokumanin_dili>EN</dokumanin_dili>"));
+        assertTrue(requestDto.getXmlData().contains("<musteri_numarasi>12345</musteri_numarasi>"));
     }
-
+    
     @Test
-    void getSinglePdf_ShouldMapRequestAndReturnGrpcResponse() {
-        // Given
-        GetSinglePdfGrpcRequest grpcRequest = GetSinglePdfGrpcRequest.newBuilder()
-                .setDocumentId("DOC123")
-                .setUserId("USER1")
-                .setAuthUserId("AUTH1")
-                .build();
-        when(goldDocumentService.getSinglePdf(any(GetSinglePdfRequestDto.class)))
-                .thenReturn(serviceGetResponse);
-
-        // When
-        grpcService.getSinglePdf(grpcRequest, getObserver);
-
-        // Then: verify that mapper converted gRPC request correctly
-        verify(goldDocumentService).getSinglePdf(argThat(dto ->
-                "DOC123".equals(dto.getDocumentId()) &&
-                "USER1".equals(dto.getUserId()) &&
-                "AUTH1".equals(dto.getAuthUserId())
-        ));
-
-        // Verify gRPC response
-        GetPdfGrpcResponse expectedGrpc = GoldDocumentGrpcMapper.INSTANCE.toGetSinglePdfGrpcResponse(serviceGetResponse);
-        verify(getObserver).onNext(expectedGrpc);
-        verify(getObserver).onCompleted();
+    public void shouldUseKktcStrategyWhenBranchIsKKTC() {
+        CreateSinglePdfRequestDto requestDto = CreateSinglePdfRequestDto.builder()
+            .documentLanguage("TR")
+            .branch("KKTC")
+            .customerNumber("12345")
+            .customerFullName("Test User")
+            .build();
+            
+        processor.processDocument(requestDto);
+        
+        assertEquals("ALTIN_ORTAK_SOZLESME_KKTC_TR_EN_IMZA_BARKODLU", requestDto.getDocumentType());
+        assertTrue(requestDto.getXmlData().contains("<kktc_ozel_alan>KKTC_DEGERI</kktc_ozel_alan>"));
+    }
+    
+    @Test
+    public void shouldUseJointAccountStrategyWhenIsJointAccountTrue() {
+        CreateSinglePdfRequestDto requestDto = CreateSinglePdfRequestDto.builder()
+            .documentLanguage("TR")
+            .isJointAccount(true)
+            .customerNumber("12345")
+            .customerFullName("Test User")
+            .build();
+            
+        processor.processDocument(requestDto);
+        
+        assertEquals("ALTIN_ORTAK_SOZLESME_TR_EN_IMZA_BARKODLU", requestDto.getDocumentType());
+        assertTrue(requestDto.getXmlData().contains("<ortak_hesap>EVET</ortak_hesap>"));
+    }
+    
+    @Test
+    public void shouldUseDefaultStrategyWhenNoConditionsMet() {
+        CreateSinglePdfRequestDto requestDto = CreateSinglePdfRequestDto.builder()
+            .documentLanguage("TR")
+            .branch("ISTANBUL")
+            .isJointAccount(false)
+            .customerNumber("12345")
+            .customerFullName("Test User")
+            .identityNumber("11111111111")
+            .build();
+            
+        processor.processDocument(requestDto);
+        
+        assertEquals("ALTIN_SOZLESMESI_TR_EN_IMZA_BARKODLU", requestDto.getDocumentType());
+        assertTrue(requestDto.getXmlData().contains("<tckn_ykn_vkn>11111111111</tckn_ykn_vkn>"));
+    }
+    
+    @Test
+    public void shouldSetDefaultValuesWhenNotProvided() {
+        CreateSinglePdfRequestDto requestDto = CreateSinglePdfRequestDto.builder()
+            .customerNumber("12345")
+            .build();
+            
+        processor.processDocument(requestDto);
+        
+        assertEquals("A", requestDto.getDocumentStatus());
+        assertEquals("SYSTEM", requestDto.getUserId());
+        assertEquals("SYSTEM", requestDto.getAuthUserId());
+        assertEquals("1", requestDto.getAsync());
+        assertNotNull(requestDto.getXmlData());
     }
 }
