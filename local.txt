@@ -1,71 +1,27 @@
-// Bu request NonTurkishDocumentStrategy'yi tetikler
-CreateSinglePdfRequestDto request1 = CreateSinglePdfRequestDto.builder()
-    .documentLanguage("EN")  // TR değil - bu strategy'yi tetikler
-    .branch("ISTANBUL")
-    .isJointAccount(false)
-    .customerNumber("12345678")
-    .customerFullName("John Smith")
-    .customerAddress("123 Main St, Istanbul")
-    .identityNumber("98765432100")
-    .accountType("G")
-    .bankAddress("Levent, Istanbul")
-    .branchName("LEVENT")
-    .commissionRate("0,509")
-    .userId("USER123")
-    .authUserId("AUTH123")
-    .build();
-// Üretilecek: ALTIN_SOZLESMESI_TR_EN_IMZA_BARKODLU
+// utils/helper.ts
+export function objectToString(value: unknown, prefix = ''): string {
+  // null/undefined
+  if (value == null) return prefix ? ${prefix}: ${String(value)} : '';
 
-// Bu request KktcBranchDocumentStrategy'yi tetikler
-CreateSinglePdfRequestDto request2 = CreateSinglePdfRequestDto.builder()
-    .documentLanguage("TR")
-    .branch("KKTC")  // KKTC branch - bu strategy'yi tetikler
-    .isJointAccount(false)
-    .customerNumber("22223333")
-    .customerFullName("Mehmet Yılmaz")
-    .customerAddress("Girne Caddesi No:45, Lefkoşa")
-    .identityNumber("11122233344")
-    .accountType("G")
-    .bankAddress("Lefkoşa Merkez, KKTC")
-    .branchName("LEFKOŞA")
-    .commissionRate("0,300")
-    .userId("KKTC_USER")
-    .authUserId("KKTC_AUTH")
-    .build();
-// Üretilecek: ALTIN_ORTAK_SOZLESME_KKTC_TR_EN_IMZA_BARKODLU
+  // Date
+  if (value instanceof Date) return ${prefix}: ${value.toISOString()};
 
-// Bu request JointAccountDocumentStrategy'yi tetikler
-CreateSinglePdfRequestDto request3 = CreateSinglePdfRequestDto.builder()
-    .documentLanguage("TR")
-    .branch("ANKARA")
-    .isJointAccount(Boolean.TRUE)  // Ortak hesap - bu strategy'yi tetikler
-    .customerNumber("33334444")
-    .customerFullName("Ayşe Kaya ve Ahmet Kaya")
-    .customerAddress("Kızılay, Ankara")
-    .identityNumber("55566677788")
-    .accountType("G")
-    .bankAddress("Kızılay Merkez, Ankara")
-    .branchName("KIZILAY")
-    .commissionRate("0,509")
-    .userId("JOINT_USER")
-    .authUserId("JOINT_AUTH")
-    .build();
-// Üretilecek: ALTIN_ORTAK_SOZLESME_TR_EN_IMZA_BARKODLU
+  // Array
+  if (Array.isArray(value)) {
+    return value
+      .map((v, i) => objectToString(v, ${prefix}[${i}]))
+      .filter(Boolean)
+      .join('\n');
+  }
 
-// Bu request DefaultDocumentStrategy'yi tetikler
-CreateSinglePdfRequestDto request4 = CreateSinglePdfRequestDto.builder()
-    .documentLanguage("TR")  // TR dili
-    .branch("ISTANBUL")      // KKTC değil
-    .isJointAccount(Boolean.FALSE)  // Ortak hesap değil
-    .customerNumber("44445555")
-    .customerFullName("Ali Veli")
-    .customerAddress("Beşiktaş, Istanbul")
-    .identityNumber("99988877766")
-    .accountType("G")
-    .bankAddress("Beşiktaş Merkez, Istanbul")
-    .branchName("BEŞİKTAŞ")
-    .commissionRate("0,509")
-    .userId("DEFAULT_USER")
-    .authUserId("DEFAULT_AUTH")
-    .build();
-// Üretilecek: ALTIN_SOZLESMESI_TR_EN_IMZA_BARKODLU
+  // Object
+  if (typeof value === 'object') {
+    return Object.entries(value as Record<string, unknown>)
+      .map(([k, v]) => objectToString(v, prefix ? ${prefix}.${k} : k))
+      .filter(Boolean)
+      .join('\n');
+  }
+
+  // Primitive
+  return ${prefix}: ${String(value)};
+}
