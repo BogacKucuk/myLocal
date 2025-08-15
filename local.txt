@@ -1,46 +1,86 @@
-// src/utils/helper.ts
-type PlainObject = Record<string, unknown>;
+import { createApi } from '@ark-technical-react-components/ank-react-state-management';
+import { HttpMethod } from '@ark-technical-modules/ank-api-invoker';
+import { getId } from '@ark-technical-modules/ank-utils';
+import type { ReadBranchRequest, ReadBranchResponse, BranchInfo } from '../types/branches';
 
-export function objectToString(value: unknown, prefix = ''): string {
-  // null / undefined
-  if (value === null || value === undefined) {
-    return prefix ? `${prefix}: ${String(value)}` : '';
-  }
+// createApi sizde zaten var; sadece endpoint'i gösteriyorum.
+export const branchesApi = createApi({
+  reducerPath: 'branchesApi',
+  baseQuery: arkBaseQuery, // projendeki mevcut baseQuery
+  endpoints: (builder) => ({
+    readBranch: builder.query<BranchInfo, ReadBranchRequest>({
+      query: (payload) => ({
+        method: HttpMethod.POST,
+        requestCallParam: {
+          url: 'https://apiqw-dev.apps-t.fw.garanti.com.tr/branch-management/branch-channel/v0/readBranch',
+          guid: getId(),
+          data: payload,
+        },
+      }),
+      // API'den gelen ham response'u normalize ediyoruz
+      transformResponse: (raw: ReadBranchResponse): BranchInfo => ({
+        branchAddress: raw.addressText ?? [raw.address1Text, raw.address2Text, raw.address3Text]
+          .filter(Boolean)
+          .join(' ')
+          .trim(),
+        branchName: raw.name,
+        referenceNumber: raw.referenceNumber,
+        type: raw.type,
+        typeName: raw.typeName,
+        countryCode: raw.countryCode,
+        branchType: raw.branchType,
+        branchTypeName: raw.branchTypeName,
+        cityName: raw.cityName,
+        districtName: raw.districtName,
+      }),
+    }),
+  }),
+});
 
-  // Date
-  if (value instanceof Date) {
-    return `${prefix}: ${value.toISOString()}`;
-  }
+export const {
+  useReadBranchQuery,
+  useLazyReadBranchQuery,
+} = branchesApi;
 
-  // Array
-  if (Array.isArray(value)) {
-    return value
-      .map((v, i) => objectToString(v, prefix ? `${prefix}[${i}]` : `[${i}]`))
-      .filter(Boolean)
-      .join('\n');
-  }
 
-  // Object (Map/Set dahil küçük ekstralar)
-  if (typeof value === 'object') {
-    if (value instanceof Map) {
-      const lines = Array.from(value.entries())
-        .map(([k, v]) =>
-          objectToString(v, prefix ? `${prefix}.${String(k)}` : String(k)),
-        )
-        .filter(Boolean);
-      return lines.join('\n');
-    }
+import { createSlice, PayloadAction } from '@reduxjs/toolkit';
+import type { BranchInfo } from '../types/branches';
+import { branchesApi } from '../apis/branchesApi';
 
-    if (value instanceof Set) {
-      return objectToString(Array.from(value.values()), prefix);
-    }
+const initialState: BranchInfo = {
+  branchAddress: '',
+  branchName: '',
+  referenceNumber: 0,
+  type: '',
+  typeName: '',
+  countryCode: '',
+  branchType: '',
+  branchTypeName: '',
+  cityName: '',
+  districtName: '',
+};
 
-    return Object.entries(value as PlainObject)
-      .map(([k, v]) => objectToString(v, prefix ? `${prefix}.${k}` : k))
-      .filter(Boolean)
-      .join('\n');
-  }
+export const branchInfoSlice = createSlice({
+  name: 'branch-info',
+  initialState,
+  reducers: {
+    setAll: (state, action: PayloadAction<BranchInfo>) => {
+      Object.assign(state, action.payload); // Immer ile güvenli
+    },
+    clear: (state) => {
+      Object.assign(state, initialState);
+    },
+  },
+  extraReducers: (builder) => {
+    // readBranch başarıyla bittiğinde otomatik hydrate
+    builder.addMatcher(
+      branchesApi.endpoints.readBranch.matchFulfilled,
+      (state, { payload }) => {
+        Object.assign(state, payload);
+      }
+    );
+  },
+});
 
-  // Primitive
-  return `${prefix}: ${String(value)}`;
-}
+export const branchInfoActions = branchInfoSlice.actions;
+export const branchInfoReducer = branchInfoSlice.reducer;
