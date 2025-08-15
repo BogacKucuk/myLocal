@@ -1,4 +1,6 @@
-// utils/helper.ts
+// src/utils/helper.ts
+type PlainObject = Record<string, unknown>;
+
 export function objectToString(value: unknown, prefix = ''): string {
   // null / undefined
   if (value === null || value === undefined) {
@@ -13,14 +15,27 @@ export function objectToString(value: unknown, prefix = ''): string {
   // Array
   if (Array.isArray(value)) {
     return value
-      .map((v, i) => objectToString(v, `${prefix}[${i}]`)) // prefix '' ise "[0]" gibi başlar
+      .map((v, i) => objectToString(v, prefix ? `${prefix}[${i}]` : `[${i}]`))
       .filter(Boolean)
       .join('\n');
   }
 
-  // Object
+  // Object (Map/Set dahil küçük ekstralar)
   if (typeof value === 'object') {
-    return Object.entries(value as Record<string, unknown>)
+    if (value instanceof Map) {
+      const lines = Array.from(value.entries())
+        .map(([k, v]) =>
+          objectToString(v, prefix ? `${prefix}.${String(k)}` : String(k)),
+        )
+        .filter(Boolean);
+      return lines.join('\n');
+    }
+
+    if (value instanceof Set) {
+      return objectToString(Array.from(value.values()), prefix);
+    }
+
+    return Object.entries(value as PlainObject)
       .map(([k, v]) => objectToString(v, prefix ? `${prefix}.${k}` : k))
       .filter(Boolean)
       .join('\n');
