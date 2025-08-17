@@ -1,86 +1,89 @@
-import { createApi } from '@ark-technical-react-components/ank-react-state-management';
-import { HttpMethod } from '@ark-technical-modules/ank-api-invoker';
-import { getId } from '@ark-technical-modules/ank-utils';
-import type { ReadBranchRequest, ReadBranchResponse, BranchInfo } from '../types/branches';
-
-// createApi sizde zaten var; sadece endpoint'i gösteriyorum.
-export const branchesApi = createApi({
-  reducerPath: 'branchesApi',
-  baseQuery: arkBaseQuery, // projendeki mevcut baseQuery
-  endpoints: (builder) => ({
-    readBranch: builder.query<BranchInfo, ReadBranchRequest>({
-      query: (payload) => ({
-        method: HttpMethod.POST,
-        requestCallParam: {
-          url: 'https://apiqw-dev.apps-t.fw.garanti.com.tr/branch-management/branch-channel/v0/readBranch',
-          guid: getId(),
-          data: payload,
-        },
-      }),
-      // API'den gelen ham response'u normalize ediyoruz
-      transformResponse: (raw: ReadBranchResponse): BranchInfo => ({
-        branchAddress: raw.addressText ?? [raw.address1Text, raw.address2Text, raw.address3Text]
-          .filter(Boolean)
-          .join(' ')
-          .trim(),
-        branchName: raw.name,
-        referenceNumber: raw.referenceNumber,
-        type: raw.type,
-        typeName: raw.typeName,
-        countryCode: raw.countryCode,
-        branchType: raw.branchType,
-        branchTypeName: raw.branchTypeName,
-        cityName: raw.cityName,
-        districtName: raw.districtName,
-      }),
-    }),
-  }),
-});
-
-export const {
-  useReadBranchQuery,
-  useLazyReadBranchQuery,
-} = branchesApi;
-
-
-import { createSlice, PayloadAction } from '@reduxjs/toolkit';
-import type { BranchInfo } from '../types/branches';
-import { branchesApi } from '../apis/branchesApi';
-
-const initialState: BranchInfo = {
-  branchAddress: '',
-  branchName: '',
-  referenceNumber: 0,
-  type: '',
-  typeName: '',
-  countryCode: '',
-  branchType: '',
-  branchTypeName: '',
-  cityName: '',
-  districtName: '',
+export type BranchInfo = {
+  branchAddress: string;
+  branchName: string;
+  referenceNumber: number;
+  type: string;
+  typeName: string;
+  countryCode: string;
+  branchType: string;
+  branchTypeName: string;
+  cityName: string;
+  districtName: string;
 };
 
-export const branchInfoSlice = createSlice({
-  name: 'branch-info',
-  initialState,
-  reducers: {
-    setAll: (state, action: PayloadAction<BranchInfo>) => {
-      Object.assign(state, action.payload); // Immer ile güvenli
-    },
-    clear: (state) => {
-      Object.assign(state, initialState);
-    },
-  },
-  extraReducers: (builder) => {
-    // readBranch başarıyla bittiğinde otomatik hydrate
-    builder.addMatcher(
-      branchesApi.endpoints.readBranch.matchFulfilled,
-      (state, { payload }) => {
-        Object.assign(state, payload);
-      }
-    );
-  },
-});
+export type BranchInfoPatch = Partial<BranchInfo>;
 
-export const branchInfoActions = branchInfoSlice.actions;
-export const branchInfoReducer = branchInfoSlice.reducer;
+export type ReadBranchRequest = {
+  referenceNumber: number;
+};
+
+export type ReadBranchResponse = {
+  referenceNumber: number;
+  alphabeticCode: string;
+  type: string;
+  typeName: string;
+  name: string;
+  class1Type: string;
+  class2Type: string;
+  address1Text: string;
+  address2Text: string;
+  address3Text: string;
+  addressText: string;
+  postalCode: string;
+  cityCode: string;
+  regionCode: string;
+  areaCode: string;
+  faxAreaCode: string;
+  cityName: string;
+  districtName: string;
+  countryCode: string;
+  countryName: string;
+  phoneNumber1: string;
+  phoneNumber2: string;
+  faxNumber: string;
+  operationCode: string;
+  operation2Code: string;
+  operation3Code: string;
+  commercialRegionCode: string;
+  createTimestamp: string;
+  updateTimestamp: string;
+  accountingDate: string;
+  branchTypeChangeDate: string;
+  branchStatusDate: string;
+  branchStatusTime: string;
+  branchCloseDate: string;
+  branchCloseTime: string;
+  branchCancelDate: string;
+  branchCancelTime: string;
+  accountingBranchNumber: number;
+  prmsOrgCode: string;
+  ybsRegionNumber: number;
+  tcmbBranchNumber: string;
+  globalBranchNumber: number;
+  informBranchNumber: number;
+  branchStatusNumber: number;
+  terminalNumber: number;
+  personelMarketingSalesRegionNumber: number;
+  personalLoanRegionNumber: number;
+  businessMarketingSalesRegionNumber: number;
+  businessLoanRegionNumber: number;
+  tellerCount: number;
+  mainUnitNumber: number;
+  unitLatitudeNumber: number;
+  unitLongitudeNumber: number;
+  pcomFlag: string;
+  coolgenFlag: string;
+  status: string;
+  branchType: string;
+  branchTypeName: string;
+  result: {
+    guid: string;
+    returnCode: number;
+    code: number;
+    messageText: string;
+    message: string;
+    details?: {
+      guid: string;
+    };
+  };
+};
