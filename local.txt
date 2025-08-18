@@ -1,19 +1,32 @@
-// İhtiyacın olan alanları ekleyebilirsin
 export type ListParameter = {
   prmAttributeName: string;
   prmCode: string;
-  // ... diğer alanlar
+  // ... ihtiyaç olan diğer alanlar
 };
 
 type GetParamError =
-  | 'UNAVAILABLE'    // sessionStorage'da 'params' yok
-  | 'PARSE_ERROR'    // JSON.parse hatası
-  | 'INVALID_SHAPE'  // Beklenen dizi/alanlar yok
-  | 'NOT_FOUND';     // BELGETRM içinde prmCode eşleşmedi
+  | 'UNAVAILABLE'
+  | 'PARSE_ERROR'
+  | 'INVALID_SHAPE'
+  | 'NOT_FOUND';
 
 type Result<T> =
   | { ok: true; data: T }
   | { ok: false; reason: GetParamError };
+
+/** object mi? */
+function isRecord(v: unknown): v is Record<string, unknown> {
+  return typeof v === 'object' && v !== null;
+}
+
+/** tek eleman ListParameter mı? */
+function isListParameter(v: unknown): v is ListParameter {
+  if (!isRecord(v)) return false;
+  return (
+    typeof v.prmAttributeName === 'string' &&
+    typeof v.prmCode === 'string'
+  );
+}
 
 export function getParameterSafe(prmCode: string): Result<ListParameter> {
   const raw = sessionStorage.getItem('params');
@@ -30,22 +43,21 @@ export function getParameterSafe(prmCode: string): Result<ListParameter> {
     return { ok: false, reason: 'INVALID_SHAPE' };
   }
 
-  // Basit tip kontrolü ve arama
   const code = String(prmCode).trim();
-  const found = (parsed as unknown[]).find((it: any) =>
-    it &&
-    typeof it.prmAttributeName === 'string' &&
-    typeof it.prmCode === 'string' &&
-    it.prmAttributeName === 'BELGETRM' &&
-    it.prmCode === code
-  ) as ListParameter | undefined;
+
+  // find içinde type predicate kullanıyoruz -> bulunursa tipi ListParameter
+  const found = parsed.find(
+    (it): it is ListParameter =>
+      isListParameter(it) &&
+      it.prmAttributeName === 'BELGETRM' &&
+      it.prmCode === code
+  );
 
   return found
     ? { ok: true, data: found }
     : { ok: false, reason: 'NOT_FOUND' };
 }
 
-// İstersen doğrudan fallback isteyenler için yardımcı:
 export function getParameterOrDefault(
   prmCode: string,
   defaultValue: ListParameter | null = null
