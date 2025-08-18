@@ -1,40 +1,55 @@
-@Mapper(
-    nullValueCheckStrategy = NullValueCheckStrategy.ALWAYS,
-    nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_DEFAULT,
-    nullValueMappingStrategy = NullValueMappingStrategy.RETURN_DEFAULT,
-    collectionMappingStrategy = CollectionMappingStrategy.ADDER_PREFERRED,
-    config = GrpcMapperConfig.class
-)
-public abstract class GoldDocumentGrpcMapper {
-    
-    public static final GoldDocumentGrpcMapper INSTANCE = 
-        Mappers.getMapper(GoldDocumentGrpcMapper.class);
+// İhtiyacın olan alanları ekleyebilirsin
+export type ListParameter = {
+  prmAttributeName: string;
+  prmCode: string;
+  // ... diğer alanlar
+};
 
-    // DTO to gRPC conversions
-    public abstract CreateSinglePdfGrpcRequest toGrpcRequest(CreateSinglePdfRequestDto dto);
-    public abstract CreateSinglePdfGrpcResponse toGrpcResponse(CreateSinglePdfResponseDto dto);
+type GetParamError =
+  | 'UNAVAILABLE'    // sessionStorage'da 'params' yok
+  | 'PARSE_ERROR'    // JSON.parse hatası
+  | 'INVALID_SHAPE'  // Beklenen dizi/alanlar yok
+  | 'NOT_FOUND';     // BELGETRM içinde prmCode eşleşmedi
 
-    // gRPC to DTO conversions - burayı explicit hale getiriyoruz
-    @Mapping(target = "customerInfo", source = "customerInfoList")
-    public abstract CreateSinglePdfRequestDto toDto(CreateSinglePdfGrpcRequest grpcRequest);
-    
-    public abstract CreateSinglePdfResponseDto toDto(CreateSinglePdfGrpcResponse grpcResponse);
+type Result<T> =
+  | { ok: true; data: T }
+  | { ok: false; reason: GetParamError };
 
-    // CustomerInfo mapping - gRPC'den DTO'ya
-    @Mapping(target = "customerNumber", source = "customerNumber")
-    public abstract CustomerInfo fromGrpcCustomerInfo(
-        com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.GoldDocumentProto.CustomerInfo grpcCustomerInfo);
+export function getParameterSafe(prmCode: string): Result<ListParameter> {
+  const raw = sessionStorage.getItem('params');
+  if (!raw) return { ok: false, reason: 'UNAVAILABLE' };
 
-    // BranchInfo mapping - gRPC'den DTO'ya  
-    @Mapping(target = "referenceNumber", source = "referenceNumber")
-    public abstract BranchInfo fromGrpcBranchInfo(
-        com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.GoldDocumentProto.BranchInfo grpcBranchInfo);
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(raw);
+  } catch {
+    return { ok: false, reason: 'PARSE_ERROR' };
+  }
 
-    // List mapping
-    public abstract List<CustomerInfo> fromGrpcCustomerInfoList(
-        List<com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.GoldDocumentProto.CustomerInfo> grpcCustomerInfoList);
+  if (!Array.isArray(parsed)) {
+    return { ok: false, reason: 'INVALID_SHAPE' };
+  }
 
-    // getPdf service mapping
-    public abstract GetSinglePdfRequestDto toGetSinglePdfRequestDto(GetSinglePdfGrpcRequest grpcRequest);
-    public abstract GetPdfGrpcResponse toGetSinglePdfGrpcResponse(GetPdfResponseDto responseDto);
+  // Basit tip kontrolü ve arama
+  const code = String(prmCode).trim();
+  const found = (parsed as unknown[]).find((it: any) =>
+    it &&
+    typeof it.prmAttributeName === 'string' &&
+    typeof it.prmCode === 'string' &&
+    it.prmAttributeName === 'BELGETRM' &&
+    it.prmCode === code
+  ) as ListParameter | undefined;
+
+  return found
+    ? { ok: true, data: found }
+    : { ok: false, reason: 'NOT_FOUND' };
+}
+
+// İstersen doğrudan fallback isteyenler için yardımcı:
+export function getParameterOrDefault(
+  prmCode: string,
+  defaultValue: ListParameter | null = null
+): ListParameter | null {
+  const res = getParameterSafe(prmCode);
+  return res.ok ? res.data : defaultValue;
 }
