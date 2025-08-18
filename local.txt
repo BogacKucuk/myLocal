@@ -1,24 +1,20 @@
-@Mapper(config = GrpcMapperConfig.class)
-public interface GoldDocumentGrpcMapper {
+@Override
+public CreateSinglePdfResponseDto createSinglePdf(CreateSinglePdfRequestDto requestDto) {
+    System.out.println("=== DEBUG START ===");
+    System.out.println("Input DTO: " + requestDto);
+    System.out.println("Customer Info List Size: " + (requestDto.getCustomerInfo() != null ? requestDto.getCustomerInfo().size() : "null"));
+    
+    CreateSinglePdfGrpcRequest grpcRequest = goldDocumentGrpcMapper.toGrpcRequest(requestDto);
+    
+    System.out.println("=== AFTER MAPPING ===");
+    System.out.println("DocumentType: " + grpcRequest.getDocumentType());
+    System.out.println("UserId: " + grpcRequest.getUserId());
+    System.out.println("TransactionAmount: " + grpcRequest.getTransactionAmount());
+    System.out.println("CustomerInfo Count: " + grpcRequest.getCustomerInfoCount());
+    System.out.println("Has BranchInfo: " + grpcRequest.hasBranchInfo());
+    System.out.println("=== DEBUG END ===");
 
-    GoldDocumentGrpcMapper INSTANCE = Mappers.getMapper(GoldDocumentGrpcMapper.class);
+    CreateSinglePdfGrpcResponse grpcResponse = goldDocumentGrpcServiceBlockingStub.createSinglePdf(grpcRequest);
 
-    // Ana mapping metodu - BigDecimal için BigDecimalMapper'ı otomatik kullanacak
-    @Mapping(target = "customerInfoList", source = "customerInfo") // List ismi farklıysa
-    CreateSinglePdfGrpcRequest toGrpcRequest(CreateSinglePdfRequestDto dto);
-
-    CreateSinglePdfResponseDto toDto(CreateSinglePdfGrpcResponse grpcResponse);
-
-    GetSinglePdfGrpcRequest toGetSinglePdfGrpcRequest(GetSinglePdfRequestDto dto);
-    GetPdfResponseDto toGetSinglePdfResponseDto(GetPdfGrpcResponse grpcResponse);
-
-    // CustomerInfo için explicit mapping
-    @Mapping(target = "customerNumber", source = "customerNumber")
-    com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.GoldDocumentProto.CustomerInfo 
-        toGrpcCustomerInfo(CustomerInfo customerInfo);
-
-    // BranchInfo için explicit mapping
-    @Mapping(target = "referenceNumber", source = "referenceNumber")
-    com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.GoldDocumentProto.BranchInfo 
-        toGrpcBranchInfo(BranchInfo branchInfo);
+    return goldDocumentGrpcMapper.toDto(grpcResponse);
 }
