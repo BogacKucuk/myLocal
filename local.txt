@@ -1,89 +1,24 @@
-export type BranchInfo = {
-  branchAddress: string;
-  branchName: string;
-  referenceNumber: number;
-  type: string;
-  typeName: string;
-  countryCode: string;
-  branchType: string;
-  branchTypeName: string;
-  cityName: string;
-  districtName: string;
-};
+@Mapper(config = GrpcMapperConfig.class)
+public interface GoldDocumentGrpcMapper {
 
-export type BranchInfoPatch = Partial<BranchInfo>;
+    GoldDocumentGrpcMapper INSTANCE = Mappers.getMapper(GoldDocumentGrpcMapper.class);
 
-export type ReadBranchRequest = {
-  referenceNumber: number;
-};
+    // Ana mapping metodu - BigDecimal için BigDecimalMapper'ı otomatik kullanacak
+    @Mapping(target = "customerInfoList", source = "customerInfo") // List ismi farklıysa
+    CreateSinglePdfGrpcRequest toGrpcRequest(CreateSinglePdfRequestDto dto);
 
-export type ReadBranchResponse = {
-  referenceNumber: number;
-  alphabeticCode: string;
-  type: string;
-  typeName: string;
-  name: string;
-  class1Type: string;
-  class2Type: string;
-  address1Text: string;
-  address2Text: string;
-  address3Text: string;
-  addressText: string;
-  postalCode: string;
-  cityCode: string;
-  regionCode: string;
-  areaCode: string;
-  faxAreaCode: string;
-  cityName: string;
-  districtName: string;
-  countryCode: string;
-  countryName: string;
-  phoneNumber1: string;
-  phoneNumber2: string;
-  faxNumber: string;
-  operationCode: string;
-  operation2Code: string;
-  operation3Code: string;
-  commercialRegionCode: string;
-  createTimestamp: string;
-  updateTimestamp: string;
-  accountingDate: string;
-  branchTypeChangeDate: string;
-  branchStatusDate: string;
-  branchStatusTime: string;
-  branchCloseDate: string;
-  branchCloseTime: string;
-  branchCancelDate: string;
-  branchCancelTime: string;
-  accountingBranchNumber: number;
-  prmsOrgCode: string;
-  ybsRegionNumber: number;
-  tcmbBranchNumber: string;
-  globalBranchNumber: number;
-  informBranchNumber: number;
-  branchStatusNumber: number;
-  terminalNumber: number;
-  personelMarketingSalesRegionNumber: number;
-  personalLoanRegionNumber: number;
-  businessMarketingSalesRegionNumber: number;
-  businessLoanRegionNumber: number;
-  tellerCount: number;
-  mainUnitNumber: number;
-  unitLatitudeNumber: number;
-  unitLongitudeNumber: number;
-  pcomFlag: string;
-  coolgenFlag: string;
-  status: string;
-  branchType: string;
-  branchTypeName: string;
-  result: {
-    guid: string;
-    returnCode: number;
-    code: number;
-    messageText: string;
-    message: string;
-    details?: {
-      guid: string;
-    };
-  };
-};
+    CreateSinglePdfResponseDto toDto(CreateSinglePdfGrpcResponse grpcResponse);
+
+    GetSinglePdfGrpcRequest toGetSinglePdfGrpcRequest(GetSinglePdfRequestDto dto);
+    GetPdfResponseDto toGetSinglePdfResponseDto(GetPdfGrpcResponse grpcResponse);
+
+    // CustomerInfo için explicit mapping
+    @Mapping(target = "customerNumber", source = "customerNumber")
+    com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.GoldDocumentProto.CustomerInfo 
+        toGrpcCustomerInfo(CustomerInfo customerInfo);
+
+    // BranchInfo için explicit mapping
+    @Mapping(target = "referenceNumber", source = "referenceNumber")
+    com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.GoldDocumentProto.BranchInfo 
+        toGrpcBranchInfo(BranchInfo branchInfo);
+}
