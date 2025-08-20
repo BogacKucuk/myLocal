@@ -1,136 +1,43 @@
-// types.ts (opsiyonel)
-export interface Person {
-  customerNum: string | number;
-  mernisNum: string | number;
-  taxNum: number;
-  docPersonType: string;
-  transferableDocClass: string;
+public class TransactionDto {
+
+    private String operationType;
+    private Date processDate;
+    private Integer customerNumber;
+    private Integer accountBranchCode;
+    private Integer customerAccountNum;
+    private Integer ownerUnitNum;
+    private Integer approvaUnitNum;
+    private BigDecimal transactionAmount;
+    private String currencyCode;
+    private BigDecimal transactionTLAmount;
+    private BigDecimal currencyRate;
+    private String currencyType;
+    private String rateType;
+    private String channelCode;
+    private String channelType;
+    private String channelDetailText;
+    private String financialDomainCode;
+    private String financialFamilyCode;
+    private String financialSubFamilyCode;
+    private String purposeValueCode;
+    private String receiptInfoId;
+    private String contractInfoId;
+    private String accountingGuid;
+    private String priceInqueryId;
+    private String surveyInfoId;
+    private String gmaticId;
+    private BigDecimal commisionAmount;
+    private String commisionCurrencyCode;
+    private BigDecimal chargeAmount;
+    private String chargeCurrencyCode;
+    private BigDecimal taxAmount;
+    private String taxCurrencyCode;
+    private String statusCode;
+    private String cicsTxnId;
+    private String checkNumber;
+    private String goldValuationId;
+    private String prosecutorNotificationInfo;
+    private String transactionRelationType;
+    private String transactionExplanationText;
+    private String requestText;
 }
-
-export interface DocumentInfo {
-  processMainCode: string;
-  processSubCode: string;
-  documentDisplayName: string;
-  docPersonType: string;
-  levelNum: number;
-}
-
-export interface DocumentScanInfo {
-  processCode: string;
-  processId: string;
-  processLevelNum: string;
-  processText: string;
-  useMaxDisplay: string;
-  maxDisplayPerSet: string;
-}
-
-// EfaCollapseDocumentScannerMultiCustomer komponentinin beklediği shape’e uyacak şekilde:
-export interface CustomerData {
-  customerNum: string | number;
-  fullName: string;
-  documentScannerData: {
-    // DİKKAT: her müşteri için içteki array (Person[])
-    personListJson: Person[];
-    documentListJson: DocumentInfo[];
-    documentScanInfoJson: DocumentScanInfo;
-  };
-}
-
-
-
-
-
-
-
-
-import React, { JSX, useEffect, useMemo, useState } from 'react';
-import { EfaCollapseDocumentScannerMultiCustomer } from '@efa-web-components-multi-cust-doc/efa-collapse-document-scanner-multi-customer';
-import { useAppSelector } from '../..//store';
-import type { TransactionMaker } from '../../store/transactionInfoSlice';
-import type { Person, DocumentInfo, DocumentScanInfo, CustomerData } from './types'; // yolu kendine göre düzelt
-
-const DocumentScannerComponent = (): JSX.Element => {
-  // 1) Store’dan sadece ihtiyacımız olan alanı okuyalım
-  const transactionMakers = useAppSelector(
-    (state) => state.transactionInfo.transactionMaker
-  );
-
-  // 2) personListJson = Person[][] (dışta array, içte array-of-object)
-  const [personListJson, setPersonListJson] = useState<Person[][]>([]);
-
-  useEffect(() => {
-    // Her maker için: [{ ...Person }] şeklinde bir İÇ dizi oluştur
-    const next: Person[][] = transactionMakers.map((tm: TransactionMaker) => ([
-      {
-        customerNum: tm.customerNumber,
-        mernisNum: tm.mernisNum,
-        taxNum: 0,
-        docPersonType: '01',
-        transferableDocClass: '',
-      }
-    ]));
-    setPersonListJson(next);
-  }, [transactionMakers]);
-
-  // 3) Sabit doküman setleri (DocumentInfo[][]). İstersen bunları da store’dan getirebilirsin.
-  const documentListJson: DocumentInfo[][] = useMemo(() => ([
-    [
-      {
-        processMainCode: 'GENELGISE',
-        processSubCode: 'GISESET3',
-        documentDisplayName: '',
-        docPersonType: '01',
-        levelNum: 0,
-      }
-    ],
-    [
-      {
-        processMainCode: 'GENELGISE',
-        processSubCode: 'GISESET9', // GISESEALT... örnek açıklaman kalmıştı, yorum satırı yerine net kod yazdım
-        documentDisplayName: '',
-        docPersonType: '01',
-        levelNum: 0,
-      }
-    ],
-  ]), []);
-
-  const documentScanInfoJson: DocumentScanInfo = useMemo(() => ({
-    processCode: 'GENELADRES',
-    processId: 'MN000000045003398', // auto generated ise burada placeholder
-    processLevelNum: '0',
-    processText: '',
-    useMaxDisplay: 'false',
-    maxDisplayPerSet: '0',
-  }), []);
-
-  // 4) compData = maker sayısı kadar dinamik
-  //    - personListJson[i] => Person[] (içteki array’i veriyoruz)
-  //    - documentListJson kısa kalırsa i % documentListJson.length ile döndür
-  const compData: CustomerData[] = useMemo(() => {
-    const sets = documentListJson.length || 1;
-
-    return transactionMakers.map((tm, i) => {
-      const fullNameCandidate = `${tm.name ?? ''} ${tm.surname ?? ''}`.trim();
-      const fullName = fullNameCandidate || `User ${i + 1}`;
-
-      const personArr: Person[] = personListJson[i] ?? [];           // Person[]
-      const docListArr: DocumentInfo[] = documentListJson[i % sets] ?? [];
-
-      return {
-        customerNum: tm.customerNumber ?? 0,
-        fullName,
-        documentScannerData: {
-          personListJson: personArr,
-          documentListJson: docListArr,
-          documentScanInfoJson,
-        },
-      };
-    });
-  }, [transactionMakers, personListJson, documentListJson, documentScanInfoJson]);
-
-  return (
-    <EfaCollapseDocumentScannerMultiCustomer data={compData} />
-  );
-};
-
-export default DocumentScannerComponent;
