@@ -1,42 +1,44 @@
-export type TransactionDto = {
-  operationType: string;
-  processDate: string;  // Java'da String'e çevrilmişti
-  customerNumber: number | null;
-  accountBranchCode: number | null;
-  customerAccountNum: number | null;
-  ownerUnitNum: number | null;
-  approvaUnitNum: number | null;
-  transactionAmount: string;   // BigDecimal -> string
-  currencyCode: string;
-  transactionTLAmount: string; // BigDecimal -> string
-  currencyRate: string;        // BigDecimal -> string
-  currencyType: string;
-  rateType: string;
-  channelCode: string;
-  channelType: string;
-  channelDetailText: string;
-  financialDomainCode: string;
-  financialFamilyCode: string;
-  financialSubFamilyCode: string;
-  purposeValueCode: string;
-  receiptInfoId: string;
-  contractInfoId: string;
-  accountingGuid: string;
-  priceInqueryId: string;
-  surveyInfoId: string;
-  gmaticId: string;
-  commisionAmount: string;      // BigDecimal -> string
-  commisionCurrencyCode: string;
-  chargeAmount: string;         // BigDecimal -> string
-  chargeCurrencyCode: string;
-  taxAmount: string;            // BigDecimal -> string
-  taxCurrencyCode: string;
-  statusCode: string;
-  cicsTxnId: string;
-  checkNumber: string;
-  goldValuationId: string;
-  prosecutorNotificationInfo: string;
-  transactionRelationType: string;
-  transactionExplanationText: string;
-  requestText: string;
-};
+syntax = "proto3";
+
+message Transaction {
+  string operationType = 1;
+  string processDate = 2;
+  int32 customerNumber = 3;
+  int32 accountBranchCode = 4;
+  int32 customerAccountNum = 5;
+  int32 ownerUnitNum = 6;
+  int32 approvaUnitNum = 7;
+  BigDecimal transactionAmount = 8;
+  string currencyCode = 9;
+  BigDecimal transactionTLAmount = 10;
+  BigDecimal currencyRate = 11;
+  string currencyType = 12;
+  string rateType = 13;
+  string channelCode = 14;
+  string channelType = 15;
+  string channelDetailText = 16;
+  string financialDomainCode = 17;
+  string financialFamilyCode = 18;
+  string financialSubFamilyCode = 19;
+  string purposeValueCode = 20;
+  string receiptInfoId = 21;
+  string contractInfoId = 22;
+  string accountingGuid = 23;
+  string priceInqueryId = 24;
+  string surveyInfoId = 25;
+  string gmaticId = 26;
+  BigDecimal commisionAmount = 27;
+  string commisionCurrencyCode = 28;
+  BigDecimal chargeAmount = 29;
+  string chargeCurrencyCode = 30;
+  BigDecimal taxAmount = 31;
+  string taxCurrencyCode = 32;
+  string statusCode = 33;
+  string cicsTxnId = 34;
+  string checkNumber = 35;
+  string goldValuationId = 36;
+  string prosecutorNotificationInfo = 37;
+  string transactionRelationType = 38;
+  string transactionExplanationText = 39;
+  string requestText = 40;
+}
