@@ -1,43 +1,42 @@
-public class TransactionDto {
-
-    private String operationType;
-    private Date processDate;
-    private Integer customerNumber;
-    private Integer accountBranchCode;
-    private Integer customerAccountNum;
-    private Integer ownerUnitNum;
-    private Integer approvaUnitNum;
-    private BigDecimal transactionAmount;
-    private String currencyCode;
-    private BigDecimal transactionTLAmount;
-    private BigDecimal currencyRate;
-    private String currencyType;
-    private String rateType;
-    private String channelCode;
-    private String channelType;
-    private String channelDetailText;
-    private String financialDomainCode;
-    private String financialFamilyCode;
-    private String financialSubFamilyCode;
-    private String purposeValueCode;
-    private String receiptInfoId;
-    private String contractInfoId;
-    private String accountingGuid;
-    private String priceInqueryId;
-    private String surveyInfoId;
-    private String gmaticId;
-    private BigDecimal commisionAmount;
-    private String commisionCurrencyCode;
-    private BigDecimal chargeAmount;
-    private String chargeCurrencyCode;
-    private BigDecimal taxAmount;
-    private String taxCurrencyCode;
-    private String statusCode;
-    private String cicsTxnId;
-    private String checkNumber;
-    private String goldValuationId;
-    private String prosecutorNotificationInfo;
-    private String transactionRelationType;
-    private String transactionExplanationText;
-    private String requestText;
-}
+export type TransactionDto = {
+  operationType: string;
+  processDate: string;  // Java'da String'e çevrilmişti
+  customerNumber: number | null;
+  accountBranchCode: number | null;
+  customerAccountNum: number | null;
+  ownerUnitNum: number | null;
+  approvaUnitNum: number | null;
+  transactionAmount: string;   // BigDecimal -> string
+  currencyCode: string;
+  transactionTLAmount: string; // BigDecimal -> string
+  currencyRate: string;        // BigDecimal -> string
+  currencyType: string;
+  rateType: string;
+  channelCode: string;
+  channelType: string;
+  channelDetailText: string;
+  financialDomainCode: string;
+  financialFamilyCode: string;
+  financialSubFamilyCode: string;
+  purposeValueCode: string;
+  receiptInfoId: string;
+  contractInfoId: string;
+  accountingGuid: string;
+  priceInqueryId: string;
+  surveyInfoId: string;
+  gmaticId: string;
+  commisionAmount: string;      // BigDecimal -> string
+  commisionCurrencyCode: string;
+  chargeAmount: string;         // BigDecimal -> string
+  chargeCurrencyCode: string;
+  taxAmount: string;            // BigDecimal -> string
+  taxCurrencyCode: string;
+  statusCode: string;
+  cicsTxnId: string;
+  checkNumber: string;
+  goldValuationId: string;
+  prosecutorNotificationInfo: string;
+  transactionRelationType: string;
+  transactionExplanationText: string;
+  requestText: string;
+};
