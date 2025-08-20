@@ -1,44 +1,342 @@
-syntax = "proto3";
+// src/store/transactionInfoSlice.ts
+import { createSlice, PayloadAction } from "@reduxjs/toolkit";
 
-message Transaction {
-  string operationType = 1;
-  string processDate = 2;
-  int32 customerNumber = 3;
-  int32 accountBranchCode = 4;
-  int32 customerAccountNum = 5;
-  int32 ownerUnitNum = 6;
-  int32 approvaUnitNum = 7;
-  BigDecimal transactionAmount = 8;
-  string currencyCode = 9;
-  BigDecimal transactionTLAmount = 10;
-  BigDecimal currencyRate = 11;
-  string currencyType = 12;
-  string rateType = 13;
-  string channelCode = 14;
-  string channelType = 15;
-  string channelDetailText = 16;
-  string financialDomainCode = 17;
-  string financialFamilyCode = 18;
-  string financialSubFamilyCode = 19;
-  string purposeValueCode = 20;
-  string receiptInfoId = 21;
-  string contractInfoId = 22;
-  string accountingGuid = 23;
-  string priceInqueryId = 24;
-  string surveyInfoId = 25;
-  string gmaticId = 26;
-  BigDecimal commisionAmount = 27;
-  string commisionCurrencyCode = 28;
-  BigDecimal chargeAmount = 29;
-  string chargeCurrencyCode = 30;
-  BigDecimal taxAmount = 31;
-  string taxCurrencyCode = 32;
-  string statusCode = 33;
-  string cicsTxnId = 34;
-  string checkNumber = 35;
-  string goldValuationId = 36;
-  string prosecutorNotificationInfo = 37;
-  string transactionRelationType = 38;
-  string transactionExplanationText = 39;
-  string requestText = 40;
+export type TransactionMaker = {
+  name: string;
+  surname: string;
+  address: string;
+  customerNumber: string; // örnek verine göre string
+  mernisNum: string;
+};
+
+export type TransactionInfo = {
+  opCode: string;
+  transactionMaker: TransactionMaker[];
+  documentSetDebit: string;  // ör: "B:GISESET2;I:KIMLIK1;"
+  documentSetCredit: string;
+  // YENİ: butonla eklenen setleri müşteri bazında tutacağız
+  extraDocSetsByCustomer: Record<string, string[]>;
+};
+
+export type TransactionInfoPatch = Partial<TransactionInfo>;
+
+const initialState: TransactionInfo = {
+  opCode: "",
+  transactionMaker: [],
+  documentSetDebit: "",
+  documentSetCredit: "",
+  extraDocSetsByCustomer: {},
+};
+
+export const transactionInfoSlice = createSlice({
+  name: "transactionInfo",
+  initialState,
+  reducers: {
+    setAll: (state, action: PayloadAction<TransactionInfo>) => {
+      Object.assign(state, action.payload);
+    },
+    patch: (state, action: PayloadAction<TransactionInfoPatch>) => {
+      Object.assign(state, action.payload);
+    },
+
+    // mevcut yardımcıların varsa koru
+    addTransactionMaker: (state, action: PayloadAction<TransactionMaker>) => {
+      state.transactionMaker.push(action.payload);
+    },
+    setTransactionMaker: (state, action: PayloadAction<TransactionMaker[]>) => {
+      state.transactionMaker = [...action.payload];
+    },
+
+    // ---- YENİ: ek doküman setleri yönetimi (GISESET9 vb.) ----
+    addExtraDocSet: (
+      state,
+      action: PayloadAction<{ customerNumber: string; setCode: string }>
+    ) => {
+      const { customerNumber, setCode } = action.payload;
+      const arr = state.extraDocSetsByCustomer[customerNumber] ?? [];
+      if (!arr.includes(setCode)) {
+        state.extraDocSetsByCustomer[customerNumber] = [...arr, setCode];
+      }
+    },
+    removeExtraDocSet: (
+      state,
+      action: PayloadAction<{ customerNumber: string; setCode: string }>
+    ) => {
+      const { customerNumber, setCode } = action.payload;
+      const arr = state.extraDocSetsByCustomer[customerNumber] ?? [];
+      state.extraDocSetsByCustomer[customerNumber] = arr.filter(
+        (c) => c !== setCode
+      );
+    },
+    clearExtraDocSetsFor: (
+      state,
+      action: PayloadAction<{ customerNumber: string }>
+    ) => {
+      delete state.extraDocSetsByCustomer[action.payload.customerNumber];
+    },
+    clearAllExtraDocSets: (state) => {
+      state.extraDocSetsByCustomer = {};
+    },
+
+    clear: (state) => {
+      Object.assign(state, initialState);
+    },
+  },
+});
+
+export const transactionInfoActions = transactionInfoSlice.actions;
+export const transactionInfoReducer = transactionInfoSlice.reducer;
+
+
+
+----------------------------------------------------------------------------------------------------
+
+
+// src/features/documents/utils/documentSets.ts
+export type DocumentInfo = {
+  processMainCode: string;
+  processSubCode: string;
+  documentDisplayName: string;
+  docPersonType: string;
+  levelNum: number;
+};
+
+/**
+ * "B:GISESET2;I:KIMLIK1;" -> { I: ['KIMLIK1'], B: ['GISESET2'] }
+ */
+export function parseDebitSets(setStr: string): { I: string[]; B: string[] } {
+  const res = { I: [] as string[], B: [] as string[] };
+  (setStr ?? "")
+    .split(";")
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .forEach((tok) => {
+      const [prefix, code] = tok.split(":");
+      if (!code) return;
+      if (prefix === "I") res.I.push(code);
+      else if (prefix === "B") res.B.push(code);
+    });
+  return res;
 }
+
+/**
+ * Katalogsuz, tamamen dinamik DocumentInfo üretimi.
+ * Gerekirse burada basit kurallar tanımlayıp genişletebilirsin.
+ */
+export function makeDocumentInfoFromCode(code: string): DocumentInfo {
+  const upper = (code ?? "").toUpperCase();
+
+  // Örnek bir kural seti; genişletilebilir:
+  // - "GISE..." ile başlıyorsa "GENELGISE"
+  // - aksi halde (ör. "KIMLIK1") yine "GENELGISE" (istersen farklı ana koda ayırabilirsin)
+  const processMainCode = upper.startsWith("GISE") ? "GENELGISE" : "GENELGISE";
+
+  return {
+    processMainCode,
+    processSubCode: upper,
+    documentDisplayName: "",
+    docPersonType: "01",
+    levelNum: 0,
+  };
+}
+
+
+
+
+
+----------------------------------------------------------------------------------------------
+
+
+
+// src/features/documents/DocumentScannerComponent.tsx
+import React, { JSX, useEffect, useMemo, useState } from "react";
+import { useAppSelector } from "../../store";
+import { EfaCollapseDocumentScannerMultiCustomer } from "@efa-web-components-multi-cust-doc/efa-collapse-document-scanner-multi-customer";
+import type { TransactionMaker } from "../../store/transactionInfoSlice";
+import {
+  parseDebitSets,
+  makeDocumentInfoFromCode,
+  type DocumentInfo,
+} from "./utils/documentSets";
+
+type Person = {
+  customerNum: string;
+  mernisNum: string;
+  taxNum: number;
+  docPersonType: string;
+  transferableDocClass: string;
+};
+
+type DocumentScanInfo = {
+  processCode: string;
+  processId: string;
+  processLevelNum: string;
+  processText: string;
+  useMaxDisplay: string;
+  maxDisplayPerSet: string;
+};
+
+type CustomerData = {
+  customerNum: string;
+  fullName: string;
+  documentScannerData: {
+    personListJson: Person[];         // inner array (tek obje)
+    documentListJson: DocumentInfo[]; // inner array (birden fazla set olabilir)
+    documentScanInfoJson: DocumentScanInfo;
+  };
+};
+
+const DocumentScannerComponent = (): JSX.Element => {
+  const {
+    transactionMaker,
+    documentSetDebit,
+    extraDocSetsByCustomer,
+  } = useAppSelector((s) => s.transactionInfo);
+
+  // İşlem yapan müşteri numarası başka slice'ta tutuluyor
+  const actingCustomerNumber = useAppSelector(
+    (s) => s.customerInfo?.actingCustomerNumber as string | undefined
+  );
+
+  // PersonListJson (outer: maker index, inner: [Person])
+  const [personListJson, setPersonListJson] = useState<Person[][]>([]);
+  useEffect(() => {
+    const next: Person[][] = transactionMaker.map((tm: TransactionMaker) => [
+      {
+        customerNum: tm.customerNumber,
+        mernisNum: tm.mernisNum,
+        taxNum: 0,
+        docPersonType: "01",
+        transferableDocClass: "",
+      },
+    ]);
+    setPersonListJson(next);
+  }, [transactionMaker]);
+
+  // I/B setlerini ayrıştır
+  const baseSets = useMemo(
+    () => parseDebitSets(documentSetDebit ?? ""),
+    [documentSetDebit]
+  );
+
+  // sabit scan info
+  const documentScanInfoJson: DocumentScanInfo = useMemo(
+    () => ({
+      processCode: "GENELADRES",
+      processId: "MN000000045003398",
+      processLevelNum: "0",
+      processText: "",
+      useMaxDisplay: "false",
+      maxDisplayPerSet: "0",
+    }),
+    []
+  );
+
+  // compData (tamamen dinamik)
+  const compData: CustomerData[] = useMemo(() => {
+    return transactionMaker.map((tm, i) => {
+      const isActing =
+        !!actingCustomerNumber && tm.customerNumber === actingCustomerNumber;
+
+      // baz kodlar: işlem yapan I, diğerleri B
+      const baseCodes = isActing ? baseSets.I : baseSets.B;
+
+      // butonla eklenen kodlar (GISESET9 vb.) – aynı slice’ta tutuluyor
+      const extraCodes = extraDocSetsByCustomer[tm.customerNumber] ?? [];
+
+      // birleşik kodlar
+      const allCodes = [...baseCodes, ...extraCodes];
+
+      // DocumentInfo'ya dinamik çeviri
+      const docs: DocumentInfo[] = allCodes.map((code) =>
+        makeDocumentInfoFromCode(code)
+      );
+
+      const personArr = personListJson[i] ?? [];
+      const fullName =
+        `${tm.name ?? ""} ${tm.surname ?? ""}`.trim() || `User ${i + 1}`;
+
+      return {
+        customerNum: tm.customerNumber,
+        fullName,
+        documentScannerData: {
+          personListJson: personArr,
+          documentListJson: docs,
+          documentScanInfoJson,
+        },
+      };
+    });
+  }, [
+    transactionMaker,
+    actingCustomerNumber,
+    baseSets,
+    extraDocSetsByCustomer,
+    personListJson,
+    documentScanInfoJson,
+  ]);
+
+  return <EfaCollapseDocumentScannerMultiCustomer data={compData} />;
+};
+
+export default DocumentScannerComponent;
+
+
+----------------------------------------------------------------------------------------------------------
+
+
+
+// src/features/money-withdraw/MainMoneyWithdraw.tsx
+import React from "react";
+import { useAppDispatch, useAppSelector } from "../../store";
+import { transactionInfoActions } from "../../store/transactionInfoSlice";
+import DocumentScannerComponent from "../documents/DocumentScannerComponent";
+// import { triggerCreateGoldDocument, triggerGetGoldDocument } ... RTK Query hook'larını import et
+
+const MainMoneyWithdraw = (): JSX.Element => {
+  const dispatch = useAppDispatch();
+
+  const actingCustomerNumber = useAppSelector(
+    (s) => s.customerInfo?.actingCustomerNumber as string
+  );
+
+  // RTK Query hook'ları vs. burada olsun
+  // const [triggerCreateGoldDocument] = useCreateMutation();
+  // const [triggerGetGoldDocument] = useGetMutation();
+
+  const createAndGetDocument = async () => {
+    try {
+      // ... RTK Query create + get istekleri ...
+      // const createGoldDocResponse = await triggerCreateGoldDocument(createRequest).unwrap();
+      // const getDocResponse = await triggerGetGoldDocument(getRequest).unwrap();
+
+      // if (getDocResponse.pdfData) {
+      //   ...pdf indir...
+      //   --- EK: GISESET9'u işlem yapan için ekle ---
+      // }
+
+      // DEMO: getDocResponse.pdfData geldiğini varsayalım:
+      const pdfArrived = true;
+      if (pdfArrived && actingCustomerNumber) {
+        dispatch(
+          transactionInfoActions.addExtraDocSet({
+            customerNumber: actingCustomerNumber,
+            setCode: "GISESET9",
+          })
+        );
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  return (
+    <>
+      <button onClick={createAndGetDocument}>Create & Get Document</button>
+
+      {/* DocumentScannerComponent store'dan okur, props gerekmez */}
+      <DocumentScannerComponent />
+    </>
+  );
+};
+
+export default MainMoneyWithdraw;
