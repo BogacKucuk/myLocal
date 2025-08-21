@@ -1,18 +1,16 @@
-const nationalityValue =
-  item?.citizenText
-    ? item.citizenText === "KTC" ? "KKTC" : item.citizenText
-    : item?.nationality === "KTC" ? "KKTC" : item?.nationality;
+// ESKİ
+const baseSets = useMemo(
+  () => parseDebitSets(documentSetDebit ?? ""),
+  [documentSetDebit]
+);
 
-dispatch(customerInfoActions.setNationality(nationalityValue));
-
-
-
-let nationalityValue: string | undefined;
-
-if (item?.citizenText) {
-  nationalityValue = item.citizenText === "KTC" ? "KKTC" : item.citizenText;
-} else if (item?.nationality) {
-  nationalityValue = item.nationality === "KTC" ? "KKTC" : item.nationality;
-}
-
-dispatch(customerInfoActions.setNationality(nationalityValue));
+// YENİ
+const baseSets = useMemo(() => {
+  const parsed = parseDebitSets(documentSetDebit ?? "");
+  if (opCode === "PR-HES-KAS-FIS-T") {
+    // Aynı set kodu birden çok geliyorsa tekilleştir
+    const uniq = <T extends string>(arr: T[]) => Array.from(new Set(arr));
+    return { I: uniq(parsed.I), B: uniq(parsed.B) };
+  }
+  return parsed;
+}, [documentSetDebit, opCode]);
