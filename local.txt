@@ -4,3 +4,15 @@ const nationalityValue =
     : item?.nationality === "KTC" ? "KKTC" : item?.nationality;
 
 dispatch(customerInfoActions.setNationality(nationalityValue));
+
+
+
+let nationalityValue: string | undefined;
+
+if (item?.citizenText) {
+  nationalityValue = item.citizenText === "KTC" ? "KKTC" : item.citizenText;
+} else if (item?.nationality) {
+  nationalityValue = item.nationality === "KTC" ? "KKTC" : item.nationality;
+}
+
+dispatch(customerInfoActions.setNationality(nationalityValue));
