@@ -1,218 +1,24 @@
-// ÇÖZÜM 1: Constructor'da initialize et (EN İYİ ÇÖZÜM)
-package com.garantibbva.depositwithdrawlmngt.moneywithdrawbusiness.service.util;
+type FinancialCode = {
+  financialFamilyCode: string;
+  financialFamilySubCode: string;
+};
 
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
-import java.util.List;
-import java.util.Arrays;
+function getDescription(obj: FinancialCode): string | undefined {
+  const mapping: Record<string, string> = {
+    "PC KAS-KEN": "Para Çekme Kendisi",
+    "PC KAS-FIS": "Para Çekme Fiş ile (3.şahıs)",
+    "PR HES-KAS-KEN": "Provizyon Kasadan Kendisi",
+    "PR HES-KAS-FIS": "Provizyon Fiş ile (3.şahıs)"
+  };
 
-@Component
-@RequiredArgsConstructor
-public class DocumentStrategyFactory {
-
-    private final NonTurkishDocumentStrategy nonTurkishStrategy;
-    private final KktcBranchDocumentStrategy kktcStrategy;
-    private final JointAccountDocumentStrategy jointAccountStrategy;
-    private final DefaultGoldDocumentStrategy defaultStrategy;
-    
-    // Final list - SonarQube compliant
-    private final List<DocumentStrategy> orderedStrategies;
-
-    // Constructor injection ile initialize
-    public DocumentStrategyFactory(
-            NonTurkishDocumentStrategy nonTurkishStrategy,
-            KktcBranchDocumentStrategy kktcStrategy,
-            JointAccountDocumentStrategy jointAccountStrategy,
-            DefaultGoldDocumentStrategy defaultStrategy) {
-        
-        this.nonTurkishStrategy = nonTurkishStrategy;
-        this.kktcStrategy = kktcStrategy;
-        this.jointAccountStrategy = jointAccountStrategy;
-        this.defaultStrategy = defaultStrategy;
-        
-        // Constructor'da initialize et
-        this.orderedStrategies = Arrays.asList(
-            nonTurkishStrategy,
-            kktcStrategy,
-            jointAccountStrategy
-        );
-    }
-
-    public DocumentStrategy selectStrategy(DocumentContext context) {
-        return orderedStrategies.stream()
-                .filter(strategy -> strategy.isApplicable(context))
-                .findFirst()
-                .orElse(defaultStrategy);
-    }
+  const key = `${obj.financialFamilyCode} ${obj.financialFamilySubCode}`;
+  return mapping[key];
 }
 
-// ÇÖZÜM 2: Lombok @RequiredArgsConstructor kullanarak (DAHA TEMİZ)
-package com.garantibbva.depositwithdrawlmngt.moneywithdrawbusiness.service.util;
+// Kullanım örneği:
+const obj = {
+  financialFamilyCode: "PC",
+  financialFamilySubCode: "KAS-KEN"
+};
 
-import org.springframework.stereotype.Component;
-import java.util.List;
-
-@Component
-public class DocumentStrategyFactory {
-
-    private final NonTurkishDocumentStrategy nonTurkishStrategy;
-    private final KktcBranchDocumentStrategy kktcStrategy;
-    private final JointAccountDocumentStrategy jointAccountStrategy;
-    private final DefaultGoldDocumentStrategy defaultStrategy;
-    private final List<DocumentStrategy> orderedStrategies;
-
-    public DocumentStrategyFactory(
-            NonTurkishDocumentStrategy nonTurkishStrategy,
-            KktcBranchDocumentStrategy kktcStrategy,
-            JointAccountDocumentStrategy jointAccountStrategy,
-            DefaultGoldDocumentStrategy defaultStrategy) {
-        
-        this.nonTurkishStrategy = nonTurkishStrategy;
-        this.kktcStrategy = kktcStrategy;
-        this.jointAccountStrategy = jointAccountStrategy;
-        this.defaultStrategy = defaultStrategy;
-        
-        // Final list initialization in constructor
-        this.orderedStrategies = List.of(
-            nonTurkishStrategy,
-            kktcStrategy,
-            jointAccountStrategy
-        );
-    }
-
-    public DocumentStrategy selectStrategy(DocumentContext context) {
-        return orderedStrategies.stream()
-                .filter(strategy -> strategy.isApplicable(context))
-                .findFirst()
-                .orElse(defaultStrategy);
-    }
-}
-
-// ÇÖZÜM 3: Lazy initialization ile (Alternatif)
-package com.garantibbva.depositwithdrawlmngt.moneywithdrawbusiness.service.util;
-
-import lombok.RequiredArgsConstructor;
-import org.springframework.stereotype.Component;
-import java.util.List;
-
-@Component
-@RequiredArgsConstructor
-public class DocumentStrategyFactory {
-
-    private final NonTurkishDocumentStrategy nonTurkishStrategy;
-    private final KktcBranchDocumentStrategy kktcStrategy;
-    private final JointAccountDocumentStrategy jointAccountStrategy;
-    private final DefaultGoldDocumentStrategy defaultStrategy;
-
-    public DocumentStrategy selectStrategy(DocumentContext context) {
-        // Her seferinde list oluştur (performans açısından ideal değil ama SonarQube compliant)
-        List<DocumentStrategy> strategies = List.of(
-            nonTurkishStrategy,
-            kktcStrategy,
-            jointAccountStrategy
-        );
-        
-        return strategies.stream()
-                .filter(strategy -> strategy.isApplicable(context))
-                .findFirst()
-                .orElse(defaultStrategy);
-    }
-}
-
-// ÇÖZÜM 4: Static final list with @Autowired setter (Daha karmaşık)
-package com.garantibbva.depositwithdrawlmngt.moneywithdrawbusiness.service.util;
-
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Component;
-import java.util.List;
-import java.util.ArrayList;
-import java.util.Collections;
-
-@Component
-public class DocumentStrategyFactory {
-
-    private final NonTurkishDocumentStrategy nonTurkishStrategy;
-    private final KktcBranchDocumentStrategy kktcStrategy;
-    private final JointAccountDocumentStrategy jointAccountStrategy;
-    private final DefaultGoldDocumentStrategy defaultStrategy;
-    
-    // Unmodifiable list to ensure immutability
-    private final List<DocumentStrategy> orderedStrategies;
-
-    @Autowired
-    public DocumentStrategyFactory(
-            NonTurkishDocumentStrategy nonTurkishStrategy,
-            KktcBranchDocumentStrategy kktcStrategy,
-            JointAccountDocumentStrategy jointAccountStrategy,
-            DefaultGoldDocumentStrategy defaultStrategy) {
-        
-        this.nonTurkishStrategy = nonTurkishStrategy;
-        this.kktcStrategy = kktcStrategy;
-        this.jointAccountStrategy = jointAccountStrategy;
-        this.defaultStrategy = defaultStrategy;
-        
-        // Create immutable list
-        List<DocumentStrategy> tempList = new ArrayList<>();
-        tempList.add(nonTurkishStrategy);
-        tempList.add(kktcStrategy);
-        tempList.add(jointAccountStrategy);
-        this.orderedStrategies = Collections.unmodifiableList(tempList);
-    }
-
-    public DocumentStrategy selectStrategy(DocumentContext context) {
-        return orderedStrategies.stream()
-                .filter(strategy -> strategy.isApplicable(context))
-                .findFirst()
-                .orElse(defaultStrategy);
-    }
-}
-
-// ÇÖZÜM 5: Configuration class ile (En esnek çözüm)
-package com.garantibbva.depositwithdrawlmngt.moneywithdrawbusiness.service.util;
-
-import org.springframework.context.annotation.Bean;
-import org.springframework.context.annotation.Configuration;
-import java.util.List;
-
-@Configuration
-public class DocumentStrategyConfig {
-    
-    @Bean
-    public List<DocumentStrategy> orderedStrategies(
-            NonTurkishDocumentStrategy nonTurkishStrategy,
-            KktcBranchDocumentStrategy kktcStrategy,
-            JointAccountDocumentStrategy jointAccountStrategy) {
-        return List.of(nonTurkishStrategy, kktcStrategy, jointAccountStrategy);
-    }
-}
-
-// Ve Factory sınıfı:
-@Component
-@RequiredArgsConstructor
-public class DocumentStrategyFactory {
-    
-    private final List<DocumentStrategy> orderedStrategies;
-    private final DefaultGoldDocumentStrategy defaultStrategy;
-
-    public DocumentStrategy selectStrategy(DocumentContext context) {
-        return orderedStrategies.stream()
-                .filter(strategy -> strategy.isApplicable(context))
-                .findFirst()
-                .orElse(defaultStrategy);
-    }
-}
-
-
-
-
-********************************************************************
-@BeforeEach
-void setUp() {
-    factory = new DocumentStrategyFactory(
-        nonTurkishStrategy,
-        kktcStrategy,
-        jointAccountStrategy,
-        defaultStrategy
-    );
-    // factory.init(); // ARTIK GEREK YOK
-}
+console.log(getDescription(obj)); // "Para Çekme Kendisi"
