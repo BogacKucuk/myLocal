@@ -1,24 +1,6 @@
-type FinancialCode = {
-  financialFamilyCode: string;
-  financialFamilySubCode: string;
-};
+const nationalityValue =
+  item?.citizenText
+    ? item.citizenText === "KTC" ? "KKTC" : item.citizenText
+    : item?.nationality === "KTC" ? "KKTC" : item?.nationality;
 
-function getDescription(obj: FinancialCode): string | undefined {
-  const mapping: Record<string, string> = {
-    "PC KAS-KEN": "Para Çekme Kendisi",
-    "PC KAS-FIS": "Para Çekme Fiş ile (3.şahıs)",
-    "PR HES-KAS-KEN": "Provizyon Kasadan Kendisi",
-    "PR HES-KAS-FIS": "Provizyon Fiş ile (3.şahıs)"
-  };
-
-  const key = `${obj.financialFamilyCode} ${obj.financialFamilySubCode}`;
-  return mapping[key];
-}
-
-// Kullanım örneği:
-const obj = {
-  financialFamilyCode: "PC",
-  financialFamilySubCode: "KAS-KEN"
-};
-
-console.log(getDescription(obj)); // "Para Çekme Kendisi"
+dispatch(customerInfoActions.setNationality(nationalityValue));
