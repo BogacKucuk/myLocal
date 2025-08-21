@@ -1,702 +1,218 @@
-// 1. Test for DocumentStrategyFactory - WITHOUT MOCKITO
+// ÇÖZÜM 1: Constructor'da initialize et (EN İYİ ÇÖZÜM)
 package com.garantibbva.depositwithdrawlmngt.moneywithdrawbusiness.service.util;
 
-import com.garantibbva.depositwithdrawlmngt.moneywithdrawbusiness.service.contract.model.BranchInfo;
-import com.garantibbva.depositwithdrawlmngt.moneywithdrawbusiness.service.contract.model.CustomerInfo;
-import com.garantibbva.depositwithdrawlmngt.moneywithdrawbusiness.service.contract.model.request.CreateSinglePdfRequestDto;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.DisplayName;
-import java.util.Collections;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+import java.util.List;
+import java.util.Arrays;
 
-import static org.junit.jupiter.api.Assertions.*;
+@Component
+@RequiredArgsConstructor
+public class DocumentStrategyFactory {
 
-class DocumentStrategyFactoryTest {
+    private final NonTurkishDocumentStrategy nonTurkishStrategy;
+    private final KktcBranchDocumentStrategy kktcStrategy;
+    private final JointAccountDocumentStrategy jointAccountStrategy;
+    private final DefaultGoldDocumentStrategy defaultStrategy;
+    
+    // Final list - SonarQube compliant
+    private final List<DocumentStrategy> orderedStrategies;
 
-    private DocumentStrategyFactory factory;
-    private NonTurkishDocumentStrategy nonTurkishStrategy;
-    private KktcBranchDocumentStrategy kktcStrategy;
-    private JointAccountDocumentStrategy jointAccountStrategy;
-    private DefaultGoldDocumentStrategy defaultStrategy;
-
-    @BeforeEach
-    void setUp() {
-        nonTurkishStrategy = new NonTurkishDocumentStrategy();
-        kktcStrategy = new KktcBranchDocumentStrategy();
-        jointAccountStrategy = new JointAccountDocumentStrategy();
-        defaultStrategy = new DefaultGoldDocumentStrategy();
+    // Constructor injection ile initialize
+    public DocumentStrategyFactory(
+            NonTurkishDocumentStrategy nonTurkishStrategy,
+            KktcBranchDocumentStrategy kktcStrategy,
+            JointAccountDocumentStrategy jointAccountStrategy,
+            DefaultGoldDocumentStrategy defaultStrategy) {
         
-        factory = new DocumentStrategyFactory(
+        this.nonTurkishStrategy = nonTurkishStrategy;
+        this.kktcStrategy = kktcStrategy;
+        this.jointAccountStrategy = jointAccountStrategy;
+        this.defaultStrategy = defaultStrategy;
+        
+        // Constructor'da initialize et
+        this.orderedStrategies = Arrays.asList(
             nonTurkishStrategy,
             kktcStrategy,
-            jointAccountStrategy,
-            defaultStrategy
+            jointAccountStrategy
         );
-        factory.init();
     }
 
-    @Test
-    @DisplayName("Should select NonTurkishDocumentStrategy when nationality is not TUR")
-    void shouldSelectNonTurkishStrategy() {
-        // Arrange
-        CustomerInfo customer = CustomerInfo.builder()
-                .nationality("USA")
-                .accountType("G")
-                .customerNumber(12345L)
-                .build();
-
-        BranchInfo branch = BranchInfo.builder()
-                .countryCode("TR")
-                .branchName("TEST")
-                .build();
-
-        CreateSinglePdfRequestDto requestDto = CreateSinglePdfRequestDto.builder()
-                .customerInfo(Collections.singletonList(customer))
-                .branchInfo(branch)
-                .commissionRate(0.5)
-                .build();
-
-        DocumentContext context = new DocumentContext(requestDto);
-
-        // Act
-        DocumentStrategy selectedStrategy = factory.selectStrategy(context);
-
-        // Assert
-        assertTrue(selectedStrategy instanceof NonTurkishDocumentStrategy);
-        assertEquals(nonTurkishStrategy, selectedStrategy);
-    }
-
-    @Test
-    @DisplayName("Should select KktcBranchDocumentStrategy when country code is KKTC")
-    void shouldSelectKktcStrategy() {
-        // Arrange
-        CustomerInfo customer = CustomerInfo.builder()
-                .nationality("TUR")
-                .accountType("G")
-                .customerNumber(12345L)
-                .build();
-
-        BranchInfo branch = BranchInfo.builder()
-                .countryCode("KKTC")
-                .branchName("LEFKOŞA")
-                .build();
-
-        CreateSinglePdfRequestDto requestDto = CreateSinglePdfRequestDto.builder()
-                .customerInfo(Collections.singletonList(customer))
-                .branchInfo(branch)
-                .commissionRate(0.3)
-                .build();
-
-        DocumentContext context = new DocumentContext(requestDto);
-
-        // Act
-        DocumentStrategy selectedStrategy = factory.selectStrategy(context);
-
-        // Assert
-        assertTrue(selectedStrategy instanceof KktcBranchDocumentStrategy);
-        assertEquals(kktcStrategy, selectedStrategy);
-    }
-
-    @Test
-    @DisplayName("Should select JointAccountDocumentStrategy when account type is ORTAK")
-    void shouldSelectJointAccountStrategy() {
-        // Arrange
-        CustomerInfo customer = CustomerInfo.builder()
-                .nationality("TUR")
-                .accountType("ORTAK")
-                .customerNumber(12345L)
-                .build();
-
-        BranchInfo branch = BranchInfo.builder()
-                .countryCode("TR")
-                .branchName("ANKARA")
-                .build();
-
-        CreateSinglePdfRequestDto requestDto = CreateSinglePdfRequestDto.builder()
-                .customerInfo(Collections.singletonList(customer))
-                .branchInfo(branch)
-                .commissionRate(0.5)
-                .build();
-
-        DocumentContext context = new DocumentContext(requestDto);
-
-        // Act
-        DocumentStrategy selectedStrategy = factory.selectStrategy(context);
-
-        // Assert
-        assertTrue(selectedStrategy instanceof JointAccountDocumentStrategy);
-        assertEquals(jointAccountStrategy, selectedStrategy);
-    }
-
-    @Test
-    @DisplayName("Should select DefaultStrategy when no other strategy is applicable")
-    void shouldSelectDefaultStrategy() {
-        // Arrange
-        CustomerInfo customer = CustomerInfo.builder()
-                .nationality("TUR")
-                .accountType("G")
-                .customerNumber(12345L)
-                .build();
-
-        BranchInfo branch = BranchInfo.builder()
-                .countryCode("TR")
-                .branchName("ISTANBUL")
-                .build();
-
-        CreateSinglePdfRequestDto requestDto = CreateSinglePdfRequestDto.builder()
-                .customerInfo(Collections.singletonList(customer))
-                .branchInfo(branch)
-                .commissionRate(0.5)
-                .build();
-
-        DocumentContext context = new DocumentContext(requestDto);
-
-        // Act
-        DocumentStrategy selectedStrategy = factory.selectStrategy(context);
-
-        // Assert
-        assertTrue(selectedStrategy instanceof DefaultGoldDocumentStrategy);
-        assertEquals(defaultStrategy, selectedStrategy);
-    }
-
-    @Test
-    @DisplayName("Should respect strategy order - first match wins")
-    void shouldRespectStrategyOrder() {
-        // Arrange - Non-Turkish customer with KKTC branch and ORTAK account
-        // NonTurkishStrategy should win because it's first in order
-        CustomerInfo customer = CustomerInfo.builder()
-                .nationality("USA")
-                .accountType("ORTAK")
-                .customerNumber(12345L)
-                .build();
-
-        BranchInfo branch = BranchInfo.builder()
-                .countryCode("KKTC")
-                .branchName("TEST")
-                .build();
-
-        CreateSinglePdfRequestDto requestDto = CreateSinglePdfRequestDto.builder()
-                .customerInfo(Collections.singletonList(customer))
-                .branchInfo(branch)
-                .commissionRate(0.5)
-                .build();
-
-        DocumentContext context = new DocumentContext(requestDto);
-
-        // Act
-        DocumentStrategy selectedStrategy = factory.selectStrategy(context);
-
-        // Assert
-        assertTrue(selectedStrategy instanceof NonTurkishDocumentStrategy);
-    }
-
-    @Test
-    @DisplayName("Should handle null values and select default strategy")
-    void shouldHandleNullValuesAndSelectDefault() {
-        // Arrange
-        CustomerInfo customer = CustomerInfo.builder()
-                .nationality(null)
-                .accountType(null)
-                .build();
-
-        BranchInfo branch = BranchInfo.builder()
-                .countryCode(null)
-                .build();
-
-        CreateSinglePdfRequestDto requestDto = CreateSinglePdfRequestDto.builder()
-                .customerInfo(Collections.singletonList(customer))
-                .branchInfo(branch)
-                .build();
-
-        DocumentContext context = new DocumentContext(requestDto);
-
-        // Act
-        DocumentStrategy selectedStrategy = factory.selectStrategy(context);
-
-        // Assert
-        assertTrue(selectedStrategy instanceof DefaultGoldDocumentStrategy);
+    public DocumentStrategy selectStrategy(DocumentContext context) {
+        return orderedStrategies.stream()
+                .filter(strategy -> strategy.isApplicable(context))
+                .findFirst()
+                .orElse(defaultStrategy);
     }
 }
 
-// 2. Test for GoldDocumentProcessor - WITHOUT MOCKITO
+// ÇÖZÜM 2: Lombok @RequiredArgsConstructor kullanarak (DAHA TEMİZ)
 package com.garantibbva.depositwithdrawlmngt.moneywithdrawbusiness.service.util;
 
-import com.garantibbva.depositwithdrawlmngt.moneywithdrawbusiness.service.contract.model.BranchInfo;
-import com.garantibbva.depositwithdrawlmngt.moneywithdrawbusiness.service.contract.model.CustomerInfo;
-import com.garantibbva.depositwithdrawlmngt.moneywithdrawbusiness.service.contract.model.request.CreateSinglePdfRequestDto;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.DisplayName;
-import java.util.Collections;
+import org.springframework.stereotype.Component;
+import java.util.List;
 
-import static org.junit.jupiter.api.Assertions.*;
+@Component
+public class DocumentStrategyFactory {
 
-class GoldDocumentProcessorTest {
+    private final NonTurkishDocumentStrategy nonTurkishStrategy;
+    private final KktcBranchDocumentStrategy kktcStrategy;
+    private final JointAccountDocumentStrategy jointAccountStrategy;
+    private final DefaultGoldDocumentStrategy defaultStrategy;
+    private final List<DocumentStrategy> orderedStrategies;
 
-    private GoldDocumentProcessor processor;
-    private DocumentStrategyFactory strategyFactory;
-
-    @BeforeEach
-    void setUp() {
-        // Create real instances instead of mocks
-        NonTurkishDocumentStrategy nonTurkishStrategy = new NonTurkishDocumentStrategy();
-        KktcBranchDocumentStrategy kktcStrategy = new KktcBranchDocumentStrategy();
-        JointAccountDocumentStrategy jointAccountStrategy = new JointAccountDocumentStrategy();
-        DefaultGoldDocumentStrategy defaultStrategy = new DefaultGoldDocumentStrategy();
+    public DocumentStrategyFactory(
+            NonTurkishDocumentStrategy nonTurkishStrategy,
+            KktcBranchDocumentStrategy kktcStrategy,
+            JointAccountDocumentStrategy jointAccountStrategy,
+            DefaultGoldDocumentStrategy defaultStrategy) {
         
-        strategyFactory = new DocumentStrategyFactory(
+        this.nonTurkishStrategy = nonTurkishStrategy;
+        this.kktcStrategy = kktcStrategy;
+        this.jointAccountStrategy = jointAccountStrategy;
+        this.defaultStrategy = defaultStrategy;
+        
+        // Final list initialization in constructor
+        this.orderedStrategies = List.of(
             nonTurkishStrategy,
             kktcStrategy,
-            jointAccountStrategy,
-            defaultStrategy
+            jointAccountStrategy
         );
-        strategyFactory.init();
-        
-        processor = new GoldDocumentProcessor(strategyFactory);
     }
 
-    @Test
-    @DisplayName("Should process document with default strategy")
-    void shouldProcessDocumentWithDefaultStrategy() {
-        // Arrange
-        CustomerInfo customer = CustomerInfo.builder()
-                .nationality("TUR")
-                .customerNumber(12345L)
-                .customerFullName("Test User")
-                .customerAddress("Test Address")
-                .accountType("G")
-                .tckn("12345678900")
-                .build();
-
-        BranchInfo branch = BranchInfo.builder()
-                .branchName("TEST")
-                .branchAddress("Branch Address")
-                .countryCode("TR")
-                .build();
-
-        CreateSinglePdfRequestDto requestDto = CreateSinglePdfRequestDto.builder()
-                .customerInfo(Collections.singletonList(customer))
-                .branchInfo(branch)
-                .commissionRate(0.5)
-                .build();
-
-        // Act
-        processor.processDocument(requestDto);
-
-        // Assert
-        assertNotNull(requestDto.getDocumentType());
-        assertEquals("ALTIN_SOZLESMESI_TR_EN_IMZA_BARKODLU", requestDto.getDocumentType());
-        assertNotNull(requestDto.getXmlData());
-        assertTrue(requestDto.getXmlData().contains("<ALTIN_SOZLESMESI_TR_EN_IMZA_BARKODLU>"));
-        assertTrue(requestDto.getXmlData().contains("<tckn_ykn_vkn>12345678900</tckn_ykn_vkn>"));
-    }
-
-    @Test
-    @DisplayName("Should set default values when not provided")
-    void shouldSetDefaultValuesWhenNotProvided() {
-        // Arrange
-        CreateSinglePdfRequestDto requestDto = CreateSinglePdfRequestDto.builder()
-                .customerInfo(Collections.singletonList(CustomerInfo.builder()
-                        .nationality("TUR")
-                        .accountType("G")
-                        .build()))
-                .branchInfo(BranchInfo.builder().countryCode("TR").build())
-                .commissionRate(0.5)
-                .build();
-
-        // Act
-        processor.processDocument(requestDto);
-
-        // Assert
-        assertEquals("A", requestDto.getDocumentStatus());
-        assertEquals("SYSTEM", requestDto.getUserId());
-        assertEquals("SYSTEM", requestDto.getAuthUserId());
-        assertEquals("1", requestDto.getAsync());
-    }
-
-    @Test
-    @DisplayName("Should not override existing values")
-    void shouldNotOverrideExistingValues() {
-        // Arrange
-        CreateSinglePdfRequestDto requestDto = CreateSinglePdfRequestDto.builder()
-                .customerInfo(Collections.singletonList(CustomerInfo.builder()
-                        .nationality("TUR")
-                        .build()))
-                .branchInfo(BranchInfo.builder().build())
-                .documentStatus("B")
-                .userId("USER123")
-                .authUserId("AUTH456")
-                .async("0")
-                .commissionRate(0.5)
-                .build();
-
-        // Act
-        processor.processDocument(requestDto);
-
-        // Assert
-        assertEquals("B", requestDto.getDocumentStatus());
-        assertEquals("USER123", requestDto.getUserId());
-        assertEquals("AUTH456", requestDto.getAuthUserId());
-        assertEquals("0", requestDto.getAsync());
-    }
-
-    @Test
-    @DisplayName("Should process document with KKTC strategy")
-    void shouldProcessDocumentWithKktcStrategy() {
-        // Arrange
-        CustomerInfo customer = CustomerInfo.builder()
-                .nationality("TUR")
-                .customerNumber(22223333L)
-                .customerFullName("KKTC User")
-                .tckn("11122233344")
-                .accountType("G")
-                .build();
-
-        BranchInfo branch = BranchInfo.builder()
-                .countryCode("KKTC")
-                .branchName("LEFKOŞA")
-                .branchCity("Lefkoşa")
-                .build();
-
-        CreateSinglePdfRequestDto requestDto = CreateSinglePdfRequestDto.builder()
-                .customerInfo(Collections.singletonList(customer))
-                .branchInfo(branch)
-                .commissionRate(0.3)
-                .build();
-
-        // Act
-        processor.processDocument(requestDto);
-
-        // Assert
-        assertEquals("ALTIN_ORTAK_SOZLESME_KKTC_TR_EN_IMZA_BARKODLU", requestDto.getDocumentType());
-        assertTrue(requestDto.getXmlData().contains("<ALTIN_ORTAK_SOZLESME_KKTC_TR_EN_IMZA_BARKODLU>"));
-        assertTrue(requestDto.getXmlData().contains("<sahit_imza_flag>E</sahit_imza_flag>"));
-        assertTrue(requestDto.getXmlData().contains("<kktckn_tckn_ykn_vkn>11122233344</kktckn_tckn_ykn_vkn>"));
-    }
-
-    @Test
-    @DisplayName("Should process document with Joint Account strategy")
-    void shouldProcessDocumentWithJointAccountStrategy() {
-        // Arrange
-        CustomerInfo customer = CustomerInfo.builder()
-                .nationality("TUR")
-                .accountType("ORTAK")
-                .customerNumber(33334444L)
-                .customerFullName("Joint User")
-                .tckn("55566677788")
-                .customerAddress("Joint Address")
-                .build();
-
-        BranchInfo branch = BranchInfo.builder()
-                .countryCode("TR")
-                .branchName("ANKARA")
-                .branchAddress("Ankara Branch")
-                .build();
-
-        CreateSinglePdfRequestDto requestDto = CreateSinglePdfRequestDto.builder()
-                .customerInfo(Collections.singletonList(customer))
-                .branchInfo(branch)
-                .commissionRate(0.5)
-                .build();
-
-        // Act
-        processor.processDocument(requestDto);
-
-        // Assert
-        assertEquals("ALTIN_ORTAK_SOZLESME_TR_EN_IMZA_BARKODLU", requestDto.getDocumentType());
-        assertTrue(requestDto.getXmlData().contains("<ALTIN_ORTAK_SOZLESME_TR_EN_IMZA_BARKODLU>"));
-        assertTrue(requestDto.getXmlData().contains("<musteri_kimlik_no>55566677788</musteri_kimlik_no>"));
-        assertTrue(requestDto.getXmlData().contains("<ortak_hesap_numarasi>3338692</ortak_hesap_numarasi>"));
-    }
-
-    @Test
-    @DisplayName("Should handle null commission rate")
-    void shouldHandleNullCommissionRate() {
-        // Arrange
-        CreateSinglePdfRequestDto requestDto = CreateSinglePdfRequestDto.builder()
-                .customerInfo(Collections.singletonList(CustomerInfo.builder()
-                        .nationality("TUR")
-                        .build()))
-                .branchInfo(BranchInfo.builder().build())
-                .commissionRate(null)
-                .build();
-
-        // Act & Assert
-        assertDoesNotThrow(() -> processor.processDocument(requestDto));
-        assertNotNull(requestDto.getDocumentType());
-        assertNotNull(requestDto.getXmlData());
+    public DocumentStrategy selectStrategy(DocumentContext context) {
+        return orderedStrategies.stream()
+                .filter(strategy -> strategy.isApplicable(context))
+                .findFirst()
+                .orElse(defaultStrategy);
     }
 }
 
-// 3. Test for BaseDocumentStrategy
+// ÇÖZÜM 3: Lazy initialization ile (Alternatif)
 package com.garantibbva.depositwithdrawlmngt.moneywithdrawbusiness.service.util;
 
-import com.garantibbva.depositwithdrawlmngt.moneywithdrawbusiness.service.constants.GoldDocumentType;
-import com.garantibbva.depositwithdrawlmngt.moneywithdrawbusiness.service.contract.model.BranchInfo;
-import com.garantibbva.depositwithdrawlmngt.moneywithdrawbusiness.service.contract.model.CustomerInfo;
-import com.garantibbva.depositwithdrawlmngt.moneywithdrawbusiness.service.contract.model.request.CreateSinglePdfRequestDto;
-import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.DisplayName;
+import lombok.RequiredArgsConstructor;
+import org.springframework.stereotype.Component;
+import java.util.List;
+
+@Component
+@RequiredArgsConstructor
+public class DocumentStrategyFactory {
+
+    private final NonTurkishDocumentStrategy nonTurkishStrategy;
+    private final KktcBranchDocumentStrategy kktcStrategy;
+    private final JointAccountDocumentStrategy jointAccountStrategy;
+    private final DefaultGoldDocumentStrategy defaultStrategy;
+
+    public DocumentStrategy selectStrategy(DocumentContext context) {
+        // Her seferinde list oluştur (performans açısından ideal değil ama SonarQube compliant)
+        List<DocumentStrategy> strategies = List.of(
+            nonTurkishStrategy,
+            kktcStrategy,
+            jointAccountStrategy
+        );
+        
+        return strategies.stream()
+                .filter(strategy -> strategy.isApplicable(context))
+                .findFirst()
+                .orElse(defaultStrategy);
+    }
+}
+
+// ÇÖZÜM 4: Static final list with @Autowired setter (Daha karmaşık)
+package com.garantibbva.depositwithdrawlmngt.moneywithdrawbusiness.service.util;
+
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Component;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.Collections;
 
-import static org.junit.jupiter.api.Assertions.*;
+@Component
+public class DocumentStrategyFactory {
 
-class BaseDocumentStrategyTest {
+    private final NonTurkishDocumentStrategy nonTurkishStrategy;
+    private final KktcBranchDocumentStrategy kktcStrategy;
+    private final JointAccountDocumentStrategy jointAccountStrategy;
+    private final DefaultGoldDocumentStrategy defaultStrategy;
+    
+    // Unmodifiable list to ensure immutability
+    private final List<DocumentStrategy> orderedStrategies;
 
-    private TestableBaseDocumentStrategy strategy;
-    private DocumentContext context;
-
-    // Concrete implementation for testing
-    private static class TestableBaseDocumentStrategy extends BaseDocumentStrategy {
+    @Autowired
+    public DocumentStrategyFactory(
+            NonTurkishDocumentStrategy nonTurkishStrategy,
+            KktcBranchDocumentStrategy kktcStrategy,
+            JointAccountDocumentStrategy jointAccountStrategy,
+            DefaultGoldDocumentStrategy defaultStrategy) {
         
-        private boolean customFieldsAppended = false;
+        this.nonTurkishStrategy = nonTurkishStrategy;
+        this.kktcStrategy = kktcStrategy;
+        this.jointAccountStrategy = jointAccountStrategy;
+        this.defaultStrategy = defaultStrategy;
         
-        @Override
-        public GoldDocumentType getDocumentType() {
-            return GoldDocumentType.ALTIN_SOZLESMESI_TR_EN_IMZA_BARKODLU;
-        }
-
-        @Override
-        public String generateXmlData(DocumentContext context) {
-            return buildXml("TEST_ROOT", context);
-        }
-
-        @Override
-        public boolean isApplicable(DocumentContext context) {
-            return true;
-        }
-        
-        @Override
-        protected void appendCustomFields(StringBuilder xml, DocumentContext context) {
-            customFieldsAppended = true;
-            appendXmlElement(xml, "custom_field", "custom_value");
-        }
-        
-        public boolean isCustomFieldsAppended() {
-            return customFieldsAppended;
-        }
+        // Create immutable list
+        List<DocumentStrategy> tempList = new ArrayList<>();
+        tempList.add(nonTurkishStrategy);
+        tempList.add(kktcStrategy);
+        tempList.add(jointAccountStrategy);
+        this.orderedStrategies = Collections.unmodifiableList(tempList);
     }
 
-    @BeforeEach
-    void setUp() {
-        strategy = new TestableBaseDocumentStrategy();
+    public DocumentStrategy selectStrategy(DocumentContext context) {
+        return orderedStrategies.stream()
+                .filter(strategy -> strategy.isApplicable(context))
+                .findFirst()
+                .orElse(defaultStrategy);
     }
+}
 
-    @Test
-    @DisplayName("Should build XML with correct structure")
-    void shouldBuildXmlWithCorrectStructure() {
-        // Arrange
-        CustomerInfo customer = CustomerInfo.builder()
-                .nationality("TUR")
-                .accountType("G")
-                .customerNumber(12345L)
-                .build();
+// ÇÖZÜM 5: Configuration class ile (En esnek çözüm)
+package com.garantibbva.depositwithdrawlmngt.moneywithdrawbusiness.service.util;
 
-        BranchInfo branch = BranchInfo.builder()
-                .branchAddress("Test Address")
-                .build();
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import java.util.List;
 
-        CreateSinglePdfRequestDto requestDto = CreateSinglePdfRequestDto.builder()
-                .customerInfo(Collections.singletonList(customer))
-                .branchInfo(branch)
-                .commissionRate(0.5)
-                .build();
-
-        context = new DocumentContext(requestDto);
-
-        // Act
-        String xml = strategy.generateXmlData(context);
-
-        // Assert
-        assertNotNull(xml);
-        assertTrue(xml.startsWith("<?xml version=\"1.0\" encoding=\"UTF-8\"?>"));
-        assertTrue(xml.contains("<TEST_ROOT>"));
-        assertTrue(xml.contains("</TEST_ROOT>"));
-        assertTrue(xml.contains("<dokumanin_dili>TUR</dokumanin_dili>"));
-        assertTrue(xml.contains("<hesap_tipi>G</hesap_tipi>"));
-        assertTrue(xml.contains("<banka_adresi>Test Address</banka_adresi>"));
-        assertTrue(xml.contains("<kulce_altin_yatirma_ucret_orani>0.5</kulce_altin_yatirma_ucret_orani>"));
+@Configuration
+public class DocumentStrategyConfig {
+    
+    @Bean
+    public List<DocumentStrategy> orderedStrategies(
+            NonTurkishDocumentStrategy nonTurkishStrategy,
+            KktcBranchDocumentStrategy kktcStrategy,
+            JointAccountDocumentStrategy jointAccountStrategy) {
+        return List.of(nonTurkishStrategy, kktcStrategy, jointAccountStrategy);
     }
+}
 
-    @Test
-    @DisplayName("Should include version information")
-    void shouldIncludeVersionInformation() {
-        // Arrange
-        CreateSinglePdfRequestDto requestDto = CreateSinglePdfRequestDto.builder()
-                .customerInfo(Collections.singletonList(CustomerInfo.builder().nationality("TUR").build()))
-                .branchInfo(BranchInfo.builder().build())
-                .commissionRate(0.5)
-                .build();
+// Ve Factory sınıfı:
+@Component
+@RequiredArgsConstructor
+public class DocumentStrategyFactory {
+    
+    private final List<DocumentStrategy> orderedStrategies;
+    private final DefaultGoldDocumentStrategy defaultStrategy;
 
-        context = new DocumentContext(requestDto);
-
-        // Act
-        String xml = strategy.generateXmlData(context);
-
-        // Assert
-        assertTrue(xml.contains("<versiyon_numarasi>1</versiyon_numarasi>"));
-        assertTrue(xml.contains("<versiyon_tarihi>31/01/2017</versiyon_tarihi>"));
+    public DocumentStrategy selectStrategy(DocumentContext context) {
+        return orderedStrategies.stream()
+                .filter(strategy -> strategy.isApplicable(context))
+                .findFirst()
+                .orElse(defaultStrategy);
     }
+}
 
-    @Test
-    @DisplayName("Should call appendCustomFields")
-    void shouldCallAppendCustomFields() {
-        // Arrange
-        CreateSinglePdfRequestDto requestDto = CreateSinglePdfRequestDto.builder()
-                .customerInfo(Collections.singletonList(CustomerInfo.builder().nationality("TUR").build()))
-                .branchInfo(BranchInfo.builder().build())
-                .commissionRate(0.5)
-                .build();
 
-        context = new DocumentContext(requestDto);
 
-        // Act
-        String xml = strategy.generateXmlData(context);
 
-        // Assert
-        assertTrue(strategy.isCustomFieldsAppended());
-        assertTrue(xml.contains("<custom_field>custom_value</custom_field>"));
-    }
-
-    @Test
-    @DisplayName("Should escape XML special characters")
-    void shouldEscapeXmlSpecialCharacters() {
-        // Arrange
-        CustomerInfo customer = CustomerInfo.builder()
-                .nationality("T&R")
-                .accountType("<TYPE>")
-                .build();
-
-        BranchInfo branch = BranchInfo.builder()
-                .branchAddress("Address > Test")
-                .build();
-
-        CreateSinglePdfRequestDto requestDto = CreateSinglePdfRequestDto.builder()
-                .customerInfo(Collections.singletonList(customer))
-                .branchInfo(branch)
-                .commissionRate(0.5)
-                .build();
-
-        context = new DocumentContext(requestDto);
-
-        // Act
-        String xml = strategy.generateXmlData(context);
-
-        // Assert
-        assertTrue(xml.contains("T&amp;R"));
-        assertTrue(xml.contains("&lt;TYPE&gt;"));
-        assertTrue(xml.contains("Address &gt; Test"));
-        assertFalse(xml.contains("<TYPE>"));
-        assertFalse(xml.contains("> Test</"));
-    }
-
-    @Test
-    @DisplayName("Should handle null values gracefully")
-    void shouldHandleNullValues() {
-        // Arrange
-        CustomerInfo customer = CustomerInfo.builder()
-                .nationality(null)
-                .accountType(null)
-                .build();
-
-        BranchInfo branch = BranchInfo.builder()
-                .branchAddress(null)
-                .build();
-
-        CreateSinglePdfRequestDto requestDto = CreateSinglePdfRequestDto.builder()
-                .customerInfo(Collections.singletonList(customer))
-                .branchInfo(branch)
-                .commissionRate(null)
-                .build();
-
-        context = new DocumentContext(requestDto);
-
-        // Act & Assert
-        assertDoesNotThrow(() -> strategy.generateXmlData(context));
-        String xml = strategy.generateXmlData(context);
-        
-        assertTrue(xml.contains("<dokumanin_dili></dokumanin_dili>"));
-        assertTrue(xml.contains("<hesap_tipi></hesap_tipi>"));
-        assertTrue(xml.contains("<banka_adresi></banka_adresi>"));
-    }
-
-    @Test
-    @DisplayName("Should include current date")
-    void shouldIncludeCurrentDate() {
-        // Arrange
-        CreateSinglePdfRequestDto requestDto = CreateSinglePdfRequestDto.builder()
-                .customerInfo(Collections.singletonList(CustomerInfo.builder().nationality("TUR").build()))
-                .branchInfo(BranchInfo.builder().build())
-                .commissionRate(0.5)
-                .build();
-
-        context = new DocumentContext(requestDto);
-
-        // Act
-        String xml = strategy.generateXmlData(context);
-
-        // Assert
-        assertTrue(xml.contains("<tarih>"));
-        assertTrue(xml.contains("</tarih>"));
-        // Check date format (dd/MM/yyyy)
-        assertTrue(xml.matches(".*<tarih>\\d{2}/\\d{2}/\\d{4}</tarih>.*"));
-    }
-
-    @Test
-    @DisplayName("escapeXml should handle empty and null strings")
-    void escapeXmlShouldHandleEmptyAndNullStrings() {
-        // Test through XML generation with null values
-        CustomerInfo customer = CustomerInfo.builder()
-                .nationality("")
-                .accountType(null)
-                .build();
-
-        CreateSinglePdfRequestDto requestDto = CreateSinglePdfRequestDto.builder()
-                .customerInfo(Collections.singletonList(customer))
-                .branchInfo(BranchInfo.builder().build())
-                .commissionRate(0.5)
-                .build();
-
-        context = new DocumentContext(requestDto);
-
-        // Act
-        String xml = strategy.generateXmlData(context);
-
-        // Assert
-        assertNotNull(xml);
-        assertTrue(xml.contains("<dokumanin_dili></dokumanin_dili>"));
-        assertTrue(xml.contains("<hesap_tipi></hesap_tipi>"));
-    }
-
-    @Test
-    @DisplayName("Should handle multiple customers in list")
-    void shouldHandleMultipleCustomersInList() {
-        // Arrange
-        CustomerInfo customer1 = CustomerInfo.builder()
-                .nationality("TUR")
-                .accountType("G")
-                .build();
-        
-        CustomerInfo customer2 = CustomerInfo.builder()
-                .nationality("USA")
-                .accountType("ORTAK")
-                .build();
-
-        CreateSinglePdfRequestDto requestDto = CreateSinglePdfRequestDto.builder()
-                .customerInfo(java.util.Arrays.asList(customer1, customer2))
-                .branchInfo(BranchInfo.builder().build())
-                .commissionRate(0.5)
-                .build();
-
-        context = new DocumentContext(requestDto);
-
-        // Act
-        String xml = strategy.generateXmlData(context);
-
-        // Assert - Should use first customer
-        assertNotNull(xml);
-        assertTrue(xml.contains("<dokumanin_dili>TUR</dokumanin_dili>"));
-        assertTrue(xml.contains("<hesap_tipi>G</hesap_tipi>"));
-    }
+********************************************************************
+@BeforeEach
+void setUp() {
+    factory = new DocumentStrategyFactory(
+        nonTurkishStrategy,
+        kktcStrategy,
+        jointAccountStrategy,
+        defaultStrategy
+    );
+    // factory.init(); // ARTIK GEREK YOK
 }
