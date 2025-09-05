@@ -1,77 +1,77 @@
 // var6 zaten oluşturulmuş:
 // Imp3IdolTransaction var6 = new Imp3IdolTransaction();
 
-var6.setCustomerNumAS("CUST-0001");
+var6.setCustomerNumAs("CUST-0001");
 var6.setCustomerNum(1001);
 
-var6.setCreatorUnitNumAS("CRU-001");
+var6.setCreatorUnitNumAs("CRU-001");
 var6.setCreatorUnitNum(1);
 
-var6.setOwnerUnitNumAS("OWN-010");
+var6.setOwnerUnitNumAs("OWN-010");
 var6.setOwnerUnitNum(10);
 
-var6.setAccountNumAS("ACC-12345678");
+var6.setAccountNumAs("ACC-12345678");
 var6.setAccountNum(12345678);
 
-var6.setTxnDateAS("2025-09-05");
-var6.setTxnDate(20250905);           // YYYYMMDD gibi düşünülebilir
+var6.setTxnDateAs("2025-09-05");
+var6.setTxnDate(20250905);
 
-var6.setTxnTimeAS("13:37:00");
-var6.setTxnTime(133700);             // HHMMSS gibi düşünülebilir
+var6.setTxnTimeAs("13:37:00");
+var6.setTxnTime(133700);
 
-var6.setTxnAmountAS("123.45");
+var6.setTxnAmountAs("123.45");
 var6.setTxnAmount(new BigDecimal("123.45"));
 
-var6.setProcessMainCodeAS("PM001");
+var6.setProcessMainCodeAs("PM001");
 var6.setProcessMainCode("PM001");
 
-var6.setProcessSubCodeAS("PS010");
+var6.setProcessSubCodeAs("PS010");
 var6.setProcessSubCode("PS010");
 
-var6.setRltdProductCodeAS("RLT-P-01");
+var6.setRltdProductCodeAs("RLT-P-01");
 var6.setRltdProductCode("RLT-P-01");
 
-var6.setLastPrintDateAS("2025-09-05");
+var6.setLastPrintDateAs("2025-09-05");
 var6.setLastPrintDate(20250905);
 
-var6.setTotalPrintNumAS("2");
+var6.setTotalPrintNumAs("2");
 var6.setTotalPrintNum((short) 2);
 
-var6.setTxnReferenceIdAS("TXN-REF-AS-001");
+var6.setTxnReferenceIdAs("TXN-REF-AS-001");
 var6.setTxnReferenceId("TXN-REF-001");
 
-var6.setDocumentSeqNumAS("42");
+var6.setDocumentSeqNumAs("42");
 var6.setDocumentSeqNum(42);
 
-var6.setActiveIndAS("Y");
+var6.setActiveIndAs("Y");
 var6.setActiveInd("Y");
 
-var6.setVoucherNumAS("9001");
+var6.setVoucherNumAs("9001");
 var6.setVoucherNum(9001);
 
-var6.setCicsTxnIdAS("CICS-AS-777");
+var6.setCicsTxnIdAs("CICS-AS-777");
 var6.setCicsTxnId("CICS-777");
 
-var6.setSourceIdAS("SRC-AS-01");
+var6.setSourceIdAs("SRC-AS-01");
 var6.setSourceId("SRC-01");
 
-var6.setDocumentIdAS("DOC-AS-ABC123");
+var6.setDocumentIdAs("DOC-AS-ABC123");
 var6.setDocumentId("DOC-ABC123");
 
-var6.setDbCrIdAS("DBCR-AS-1");
+var6.setDbCrIdAs("DBCR-AS-1");
 var6.setDbCrId("DBCR-1");
 
-var6.setPrcsDefinedFieldAS("PRCS-AS");
+var6.setPrcsDefinedFieldAs("PRCS-AS");
 var6.setPrcsDefinedField("PRCS");
 
-var6.setPhoneNumAS("+90-555-000-0000");
+var6.setPhoneNumAs("+90-555-000-0000");
 var6.setPhoneNum(905550000000L);
 
-var6.setDescriptionTextAS("Açıklama (AS)");
+var6.setDescriptionTextAs("Açıklama (AS)");
 var6.setDescriptionText("Açıklama");
 
-var6.setAccountUnitNumAS("100");
+var6.setAccountUnitNumAs("100");
 var6.setAccountUnitNum(100);
 
-var6.setCurrCodeAS("TRY");
+var6.setCurrCodeAs("TRY");
 var6.setCurrCode("TRY");
