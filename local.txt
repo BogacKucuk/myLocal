@@ -1,16 +1,77 @@
-// ESKİ
-const baseSets = useMemo(
-  () => parseDebitSets(documentSetDebit ?? ""),
-  [documentSetDebit]
-);
+// var6 zaten oluşturulmuş:
+// Imp3IdolTransaction var6 = new Imp3IdolTransaction();
 
-// YENİ
-const baseSets = useMemo(() => {
-  const parsed = parseDebitSets(documentSetDebit ?? "");
-  if (opCode === "PR-HES-KAS-FIS-T") {
-    // Aynı set kodu birden çok geliyorsa tekilleştir
-    const uniq = <T extends string>(arr: T[]) => Array.from(new Set(arr));
-    return { I: uniq(parsed.I), B: uniq(parsed.B) };
-  }
-  return parsed;
-}, [documentSetDebit, opCode]);
+var6.setCustomerNumAS("CUST-0001");
+var6.setCustomerNum(1001);
+
+var6.setCreatorUnitNumAS("CRU-001");
+var6.setCreatorUnitNum(1);
+
+var6.setOwnerUnitNumAS("OWN-010");
+var6.setOwnerUnitNum(10);
+
+var6.setAccountNumAS("ACC-12345678");
+var6.setAccountNum(12345678);
+
+var6.setTxnDateAS("2025-09-05");
+var6.setTxnDate(20250905);           // YYYYMMDD gibi düşünülebilir
+
+var6.setTxnTimeAS("13:37:00");
+var6.setTxnTime(133700);             // HHMMSS gibi düşünülebilir
+
+var6.setTxnAmountAS("123.45");
+var6.setTxnAmount(new BigDecimal("123.45"));
+
+var6.setProcessMainCodeAS("PM001");
+var6.setProcessMainCode("PM001");
+
+var6.setProcessSubCodeAS("PS010");
+var6.setProcessSubCode("PS010");
+
+var6.setRltdProductCodeAS("RLT-P-01");
+var6.setRltdProductCode("RLT-P-01");
+
+var6.setLastPrintDateAS("2025-09-05");
+var6.setLastPrintDate(20250905);
+
+var6.setTotalPrintNumAS("2");
+var6.setTotalPrintNum((short) 2);
+
+var6.setTxnReferenceIdAS("TXN-REF-AS-001");
+var6.setTxnReferenceId("TXN-REF-001");
+
+var6.setDocumentSeqNumAS("42");
+var6.setDocumentSeqNum(42);
+
+var6.setActiveIndAS("Y");
+var6.setActiveInd("Y");
+
+var6.setVoucherNumAS("9001");
+var6.setVoucherNum(9001);
+
+var6.setCicsTxnIdAS("CICS-AS-777");
+var6.setCicsTxnId("CICS-777");
+
+var6.setSourceIdAS("SRC-AS-01");
+var6.setSourceId("SRC-01");
+
+var6.setDocumentIdAS("DOC-AS-ABC123");
+var6.setDocumentId("DOC-ABC123");
+
+var6.setDbCrIdAS("DBCR-AS-1");
+var6.setDbCrId("DBCR-1");
+
+var6.setPrcsDefinedFieldAS("PRCS-AS");
+var6.setPrcsDefinedField("PRCS");
+
+var6.setPhoneNumAS("+90-555-000-0000");
+var6.setPhoneNum(905550000000L);
+
+var6.setDescriptionTextAS("Açıklama (AS)");
+var6.setDescriptionText("Açıklama");
+
+var6.setAccountUnitNumAS("100");
+var6.setAccountUnitNum(100);
+
+var6.setCurrCodeAS("TRY");
+var6.setCurrCode("TRY");
