@@ -1,24 +1,128 @@
-{
-  "txnReferenceId": "TXN123456789",
-  "voucherNum": 987654,
-  "currencyCode": "TRY",
-  "transactionAmount": 1500.75,
-  "customerName": "Ahmet",
-  "customerSurname": "Yılmaz",
-  "customerTckn": "12345678901",
-  "accountBalanceAmount": 25000.00,
-  "addressLine1": "İstiklal Cad. No:45",
-  "addressLine2": "Kat:2 Daire:5",
-  "regionName": "Marmara",
-  "districtName": "Beyoğlu",
-  "cityName": "İstanbul",
-  "postalCode": "34435",
-  "customerNumber": 100200300400,
-  "accountNumber": 123456789012,
-  "txnDate": "2025-09-09T14:30:00",
-  "processMainCode": "PRC001",
-  "processSubCode": "SUB002",
-  "cicsTxnId": "CICS987654",
-  "sourceId": "SRC001",
-  "phoneNumber": "+905551112233"
+# -*- coding: utf-8 -*-
+from __future__ import print_function
+import sys
+import os
+import io
+import argparse
+import base64  # kullanılmıyor ama 2.7 ile sorun olmasın diye bırakılabilir
+import qrcode
+from qrcode.constants import ERROR_CORRECT_L, ERROR_CORRECT_M, ERROR_CORRECT_Q, ERROR_CORRECT_H
+from PIL import Image
+
+ECC_MAP = {
+    'L': ERROR_CORRECT_L,
+    'M': ERROR_CORRECT_M,
+    'Q': ERROR_CORRECT_Q,
+    'H': ERROR_CORRECT_H,
 }
+
+def read_text(args):
+    # 1) --text öncelikli
+    if args.text is not None:
+        if isinstance(args.text, unicode):
+            return args.text
+        return args.text.decode('utf-8', 'replace')
+    # 2) --input dosyadan
+    if args.input:
+        with io.open(args.input, 'r', encoding='utf-8', errors='replace') as f:
+            return f.read()
+    # 3) stdin (pipe)
+    if not sys.stdin.isatty():
+        data = sys.stdin.read()
+        if isinstance(data, unicode):
+            return data
+        return data.decode('utf-8', 'replace')
+    # 4) boş
+    return u""
+
+def make_qr_image(text, ecc, box_size, border):
+    qr = qrcode.QRCode(
+        version=None,  # otomatik
+        error_correction=ecc,
+        box_size=box_size,
+        border=border
+    )
+    qr.add_data(text)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    # bazı sürümlerde img PIL Image değil; garantiye al
+    if not isinstance(img, Image.Image):
+        img = img.get_image()
+    return img
+
+def chunk_text(text, chunk_size):
+    return [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
+
+def main():
+    parser = argparse.ArgumentParser(description="Metni QR koda çevirir (Python 2.7).")
+    parser.add_argument("-i", "--input", help="Girdi dosyası (UTF-8). Belirtmezsen stdin veya --text kullanılır.")
+    parser.add_argument("-t", "--text", help="Doğrudan metin ver (tırnak içinde).")
+    parser.add_argument("-o", "--output-prefix", default="code_qr",
+                        help="Çıkış dosya adı ön eki (varsayılan: code_qr)")
+    parser.add_argument("--chunk", action="store_true",
+                        help="Metin uzunsa parçalara bölüp çoklu QR üret.")
+    parser.add_argument("--chunk-size", type=int, default=1200,
+                        help="Parça boyutu (vars: 1200 karakter).")
+    parser.add_argument("--ecc", choices=['L','M','Q','H'], default='Q',
+                        help="Hata düzeltme seviyesi (L/M/Q/H). Vars: Q")
+    parser.add_argument("--box-size", type=int, default=10, help="Kare kutu boyutu (vars: 10)")
+    parser.add_argument("--border", type=int, default=4, help="Kenar boşluğu (vars: 4)")
+    parser.add_argument("--threshold", type=int, default=1400,
+                        help="Parçalama eşiği (chunk yoksa ve metin bu değeri aşarsa uyarı). Vars: 1400")
+    args = parser.parse_args()
+
+    text = read_text(args)
+    if not text:
+        print("Hata: Metin bulunamadı. --text, --input veya stdin kullanın.", file=sys.stderr)
+        parser.print_help()
+        sys.exit(1)
+
+    # Unicode garanti
+    if not isinstance(text, unicode):
+        try:
+            text = text.decode('utf-8', 'replace')
+        except Exception:
+            text = unicode(text, errors='replace')
+
+    ecc = ECC_MAP[args.ecc]
+
+    out_files = []
+    if args.chunk and len(text) > args.threshold:
+        pieces = chunk_text(text, args.chunk_size)
+        total = len(pieces)
+        width = len(str(total))
+        for i, p in enumerate(pieces, 1):
+            payload = u"[{idx}/{tot}]\n{body}".format(idx=i, tot=total, body=p)
+            img = make_qr_image(payload, ecc, args.box_size, args.border)
+            fname = u"{prefix}_{num:0{w}d}.png".format(prefix=args.output_prefix, num=i, w=width)
+            img.save(fname)
+            out_files.append(fname)
+        print("✓ {} parça üretildi: {}".format(total, ", ".join(out_files)))
+    else:
+        if len(text) > args.threshold and not args.chunk:
+            print("Uyarı: Metin uzun ({} karakter). Okunabilirlik için --chunk kullanmanız önerilir."
+                  .format(len(text)), file=sys.stderr)
+        img = make_qr_image(text, ecc, args.box_size, args.border)
+        fname = u"{prefix}.png".format(prefix=args.output_prefix)
+        img.save(fname)
+        out_files.append(fname)
+        print("✓ QR kaydedildi:", fname)
+
+if __name__ == "__main__":
+    main()
+
+
+
+
+
+
+
+
+
+python qr_from_code.py -i kodum.py
+
+
+
+
+python qr_from_code.py -i uzun_kod.txt --chunk --chunk-size 1200 --output-prefix myqr
+# myqr_01.png, myqr_02.png, ...
