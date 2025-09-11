@@ -1,5 +1,5 @@
 @Test
-void testCreateAndSaveOperationInfo_MultiplePersons() {
+void testCreateAndSaveOperationInfo_Success() {
     // Context mock'ları
     when(contextBuilder.getContext()).thenReturn(serviceContext);
     when(contextBuilder.getContext().getGuid()).thenReturn("test-guid-123");
@@ -42,29 +42,42 @@ void testCreateAndSaveOperationInfo_MultiplePersons() {
     when(receiptService.createReceipt(any())).thenReturn(mockReceiptResponse);
 
     // Arrange
-    TrnxCompleteWithdrawalRequestDto requestDto = createMultiplePersonRequestDto();
+    TrnxCompleteWithdrawalRequestDto requestDto = createValidRequestDto();
+    requestDto.setCreateUserId("testUser");
+
+    ProcessingPersonInfoRequest personInfo = new ProcessingPersonInfoRequest();
+    personInfo.setProcessCustomerNum("12345");
+    personInfo.setStatusCode("ACTIVE");
+
+    List<ProcessingPersonInfoRequest> personInfoList = List.of(personInfo);
+    requestDto.setProcessingPersonInfo(personInfoList);
+
+    String trnxInstanceId = "2025-08-20 20:52:19.507005";
 
     when(transactionDao.saveMoneyDepositTransaction(any(TransactionEntity.class)))
-            .thenReturn("2025-08-20 20:52:19.507005");
+            .thenReturn(trnxInstanceId);
     when(moneyTrnxOperationInfoDao.save(any(MoneyTrnxOperationInfoEntity.class)))
             .thenReturn(new MoneyTrnxOperationInfoEntity());
 
     // Act
-    transactionService.trnxCompleteWithdrawal(requestDto);
+    TrnxCompleteWithdrawalResponseDto response = transactionService.trnxCompleteWithdrawal(requestDto);
 
     // Assert
-    verify(moneyTrnxOperationInfoDao, times(2)).save(any(MoneyTrnxOperationInfoEntity.class));
+    assertNotNull(response);
+    assertEquals(trnxInstanceId, response.getInstanceId());
+
+    verify(moneyTrnxOperationInfoDao, times(1)).save(any(MoneyTrnxOperationInfoEntity.class));
 
     ArgumentCaptor<MoneyTrnxOperationInfoEntity> captor =
             ArgumentCaptor.forClass(MoneyTrnxOperationInfoEntity.class);
-    verify(moneyTrnxOperationInfoDao, times(2)).save(captor.capture());
+    verify(moneyTrnxOperationInfoDao).save(captor.capture());
 
-    List<MoneyTrnxOperationInfoEntity> savedEntities = captor.getAllValues();
-    assertEquals(2, savedEntities.size());
-
-    assertEquals(Integer.valueOf(12345), savedEntities.get(0).getCustomerNum());
-    assertEquals("ACTIVE", savedEntities.get(0).getStatusCode());
-
-    assertEquals(Integer.valueOf(67890), savedEntities.get(1).getCustomerNum());
-    assertEquals("PENDING", savedEntities.get(1).getStatusCode());
+    MoneyTrnxOperationInfoEntity savedEntity = captor.getValue();
+    assertEquals("testUser", savedEntity.getCreateUserId());
+    assertEquals("testUser", savedEntity.getUpdateUserId());
+    assertEquals(Integer.valueOf(12345), savedEntity.getCustomerNum());
+    assertEquals("I", savedEntity.getPartyType());
+    assertEquals("ACTIVE", savedEntity.getStatusCode());
+    assertNotNull(savedEntity.getMoneyTransactionId());
+    assertEquals(Timestamp.valueOf(trnxInstanceId), savedEntity.getMoneyTransactionId());
 }
