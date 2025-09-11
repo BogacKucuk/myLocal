@@ -340,7 +340,7 @@ class ReceiptServiceImplTest {
     }
 
     private MoneyDepositWithDrawelReceiptResponse createMockMfdcResponse() {
-        MoneyDepositWithDrawelReceiptResponse response = new MoneyDepositWithDrawelReceiptResponse();
+        WsServiceResponse wsResponse = new WsServiceResponse();
         
         ExpIdo1Transaction expTransaction = new ExpIdo1Transaction();
         expTransaction.setInstanceIdAs("Instance ID");
@@ -350,13 +350,13 @@ class ReceiptServiceImplTest {
         expTransaction.setTxnReferenceIdAs("Transaction Reference");
         expTransaction.setTxnReferenceId("TXN-REF-789");
         
-        response.setExpIdo1Transaction(expTransaction);
+        wsResponse.setExpIdo1Transaction(expTransaction);
         
-        return response;
+        return new MoneyDepositWithDrawelReceiptResponse(wsResponse);
     }
 
     private MoneyDepositWithDrawelReceiptResponse createMockMfdcResponseWithError() {
-        MoneyDepositWithDrawelReceiptResponse response = new MoneyDepositWithDrawelReceiptResponse();
+        WsServiceResponse wsResponse = new WsServiceResponse();
         
         ExpErrorIdo1Component errorComponent = new ExpErrorIdo1Component();
         errorComponent.setSeverityCodeAs("Severity");
@@ -369,8 +369,8 @@ class ReceiptServiceImplTest {
         errorComponent.setReasonCodeAs("Reason Code");
         errorComponent.setReasonCode(1001);
         
-        response.setExpErrorIdo1Component(errorComponent);
+        wsResponse.setExpErrorIdo1Component(errorComponent);
         
-        return response;
+        return new MoneyDepositWithDrawelReceiptResponse(wsResponse);
     }
 }
