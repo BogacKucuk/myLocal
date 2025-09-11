@@ -1,83 +1,376 @@
-@Test
-void testCreateAndSaveOperationInfo_Success() {
-    // Context mock'ları
-    when(contextBuilder.getContext()).thenReturn(serviceContext);
-    when(contextBuilder.getContext().getGuid()).thenReturn("test-guid-123");
-    when(serviceContext.getUser()).thenReturn(user);
+package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.impl;
 
-    // Account balance mock
-    Money usableBalance = Money.newBuilder()
-            .setUnits(2000)
-            .setNanos(0)
-            .build();
-    when(accountsBusinessService.getAccountDetail(any(Integer.class), any(Integer.class)))
-            .thenReturn(createMockAccountBalance(usableBalance, "TEST"));
+import com.garanti.mfservice.financialstatementsmanagement.ido15014.contract.MoneyDepositWithDrawelReceiptService;
+import com.garanti.mfservice.financialstatementsmanagement.ido15014.coxb.ExpErrorIdo1Component;
+import com.garanti.mfservice.financialstatementsmanagement.ido15014.coxb.ExpIdo1Transaction;
+import com.garanti.mfservice.financialstatementsmanagement.ido15014.coxb.Imp1Ido1Party;
+import com.garanti.mfservice.financialstatementsmanagement.ido15014.coxb.Imp2Ido1Address;
+import com.garanti.mfservice.financialstatementsmanagement.ido15014.coxb.Imp3Ido1Transaction;
+import com.garanti.mfservice.financialstatementsmanagement.ido15014.coxb.ImpIdo1Interface;
+import com.garanti.mfservice.financialstatementsmanagement.ido15014.coxb.ImpOverdraftIdo1Transaction;
+import com.garanti.mfservice.financialstatementsmanagement.ido15014.coxb.ImpReferenceIdo1ServerData;
+import com.garanti.mfservice.financialstatementsmanagement.ido15014.model.MoneyDepositWithDrawelReceiptResponse;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.data.util.BaseDaoUtil;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.ReceiptCreateMfdcContainer;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.CreateReceiptRequestDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response.CreateReceiptResponseDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response.CreateReceiptTransactionDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response.CreateReceiptErrorComponentDto;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
 
-    // Branch service mock
-    BranchServiceResponseDto branchResponse = new BranchServiceResponseDto();
-    branchResponse.setBranchType("T");
-    when(branchService.getBranchDetail(any(Integer.class))).thenReturn(branchResponse);
+import java.math.BigDecimal;
 
-    // Parameter service mock
-    ResponseParameterList responseParameterList = new ResponseParameterList();
-    ResponseReadParameter parameter = new ResponseReadParameter();
-    parameter.setPrmAttributeName("PCMUHASEBE");
-    parameter.setPrmValue("TEST_CODE");
-    responseParameterList.setParameterList(List.of(parameter));
-    when(parameterService.getParameterList(any())).thenReturn(responseParameterList);
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
+import static org.mockito.Mockito.*;
 
-    // Accounting service mock
-    AccountingResponseDto mockAccountingResponse = new AccountingResponseDto();
-    mockAccountingResponse.setFinancialServiceGuid("test-guid-123");
-    mockAccountingResponse.setVoucherNum(12345);
-    mockAccountingResponse.setTxnReferenceId("TXN-REF-123");
-    when(acountingTrxManagement.createFinancialTransaction(any())).thenReturn(mockAccountingResponse);
+@ExtendWith(MockitoExtension.class)
+class ReceiptServiceImplTest {
 
-    // Receipt service mock
-    CreateReceiptResponseDto mockReceiptResponse = new CreateReceiptResponseDto();
-    CreateReceiptTransactionDto mockReceiptTransaction = new CreateReceiptTransactionDto();
-    mockReceiptTransaction.setInstanceId("receipt-instance-123");
-    mockReceiptTransaction.setReferenceId1("receipt-ref-123");
-    mockReceiptResponse.setCreateReceiptTransaction(mockReceiptTransaction);
-    when(receiptService.createReceipt(any())).thenReturn(mockReceiptResponse);
+    @Mock
+    private MoneyDepositWithDrawelReceiptService receiptMfdcService;
 
-    // Arrange
-    TrnxCompleteWithdrawalRequestDto requestDto = createValidRequestDto();
-    requestDto.setCreateUserId("testUser");
+    @Mock
+    private BaseDaoUtil baseDaoUtil;
 
-    ProcessingPersonInfoRequest personInfo = new ProcessingPersonInfoRequest();
-    personInfo.setProcessCustomerNum("12345");
-    personInfo.setStatusCode("ACTIVE");
+    @InjectMocks
+    private ReceiptServiceImpl receiptService;
 
-    List<ProcessingPersonInfoRequest> personInfoList = List.of(personInfo);
-    requestDto.setProcessingPersonInfo(personInfoList);
+    private CreateReceiptRequestDto createReceiptRequestDto;
+    private MoneyDepositWithDrawelReceiptResponse mfdcResponse;
 
-    String trnxInstanceId = "2025-08-20 20:52:19.507005";
+    @BeforeEach
+    void setUp() {
+        createReceiptRequestDto = createValidReceiptRequestDto();
+        mfdcResponse = createMockMfdcResponse();
+    }
 
-    when(transactionDao.saveMoneyDepositTransaction(any(TransactionEntity.class)))
-            .thenReturn(trnxInstanceId);
-    when(moneyTrnxOperationInfoDao.save(any(MoneyTrnxOperationInfoEntity.class)))
-            .thenReturn(new MoneyTrnxOperationInfoEntity());
+    @Test
+    void testCreateReceipt_Success() {
+        // Given
+        when(baseDaoUtil.getUserIdFromToken()).thenReturn("testUser123");
+        when(baseDaoUtil.getUserBranch()).thenReturn(100);
+        when(receiptMfdcService.execute(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(mfdcResponse);
 
-    // Act
-    TrnxCompleteWithdrawalResponseDto response = transactionService.trnxCompleteWithdrawal(requestDto);
+        // When
+        CreateReceiptResponseDto result = receiptService.createReceipt(createReceiptRequestDto);
 
-    // Assert
-    assertNotNull(response);
-    assertEquals(trnxInstanceId, response.getInstanceId());
+        // Then
+        assertNotNull(result);
+        assertNotNull(result.getCreateReceiptTransaction());
+        assertEquals("TXN-123", result.getCreateReceiptTransaction().getInstanceId());
+        assertEquals("REF-456", result.getCreateReceiptTransaction().getReferenceId1());
+        assertEquals("TXN-REF-789", result.getCreateReceiptTransaction().getTxnReferenceId());
+        
+        verify(receiptMfdcService, times(1)).execute(any(), any(), any(), any(), any(), any(), any());
+        verify(baseDaoUtil, times(1)).getUserIdFromToken();
+        verify(baseDaoUtil, times(3)).getUserBranch(); // Called 3 times in prepareMfdcObjects
+    }
 
-    verify(moneyTrnxOperationInfoDao, times(1)).save(any(MoneyTrnxOperationInfoEntity.class));
+    @Test
+    void testCreateReceipt_WithError() {
+        // Given
+        MoneyDepositWithDrawelReceiptResponse errorResponse = createMockMfdcResponseWithError();
+        when(baseDaoUtil.getUserIdFromToken()).thenReturn("testUser123");
+        when(baseDaoUtil.getUserBranch()).thenReturn(100);
+        when(receiptMfdcService.execute(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(errorResponse);
 
-    ArgumentCaptor<MoneyTrnxOperationInfoEntity> captor =
-            ArgumentCaptor.forClass(MoneyTrnxOperationInfoEntity.class);
-    verify(moneyTrnxOperationInfoDao).save(captor.capture());
+        // When
+        CreateReceiptResponseDto result = receiptService.createReceipt(createReceiptRequestDto);
 
-    MoneyTrnxOperationInfoEntity savedEntity = captor.getValue();
-    assertEquals("testUser", savedEntity.getCreateUserId());
-    assertEquals("testUser", savedEntity.getUpdateUserId());
-    assertEquals(Integer.valueOf(12345), savedEntity.getCustomerNum());
-    assertEquals("I", savedEntity.getPartyType());
-    assertEquals("ACTIVE", savedEntity.getStatusCode());
-    assertNotNull(savedEntity.getMoneyTransactionId());
-    assertEquals(Timestamp.valueOf(trnxInstanceId), savedEntity.getMoneyTransactionId());
+        // Then
+        assertNotNull(result);
+        assertNotNull(result.getCreateReceiptErrorComponent());
+        assertEquals("ERROR", result.getCreateReceiptErrorComponent().getSeverityCode());
+        assertEquals(500, result.getCreateReceiptErrorComponent().getReturnCode());
+        assertEquals(1001, result.getCreateReceiptErrorComponent().getReasonCode());
+    }
+
+    @Test
+    void testCreateReceipt_VerifyMfdcServiceParameters() {
+        // Given
+        when(baseDaoUtil.getUserIdFromToken()).thenReturn("testUser123");
+        when(baseDaoUtil.getUserBranch()).thenReturn(100);
+        when(receiptMfdcService.execute(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(mfdcResponse);
+
+        // When
+        receiptService.createReceipt(createReceiptRequestDto);
+
+        // Then
+        ArgumentCaptor<ImpReferenceIdo1ServerData> serverDataCaptor = 
+                ArgumentCaptor.forClass(ImpReferenceIdo1ServerData.class);
+        ArgumentCaptor<ImpIdo1Interface> interfaceCaptor = 
+                ArgumentCaptor.forClass(ImpIdo1Interface.class);
+        ArgumentCaptor<Imp1Ido1Party> partyCaptor = 
+                ArgumentCaptor.forClass(Imp1Ido1Party.class);
+        ArgumentCaptor<Imp2Ido1Address> addressCaptor = 
+                ArgumentCaptor.forClass(Imp2Ido1Address.class);
+        ArgumentCaptor<Imp3Ido1Transaction> transactionCaptor = 
+                ArgumentCaptor.forClass(Imp3Ido1Transaction.class);
+        ArgumentCaptor<ImpOverdraftIdo1Transaction> overdraftCaptor = 
+                ArgumentCaptor.forClass(ImpOverdraftIdo1Transaction.class);
+
+        verify(receiptMfdcService).execute(
+                serverDataCaptor.capture(),
+                interfaceCaptor.capture(),
+                partyCaptor.capture(),
+                addressCaptor.capture(),
+                any(), // ImpGroup - mapped by MapStruct
+                transactionCaptor.capture(),
+                overdraftCaptor.capture()
+        );
+
+        // Verify server data
+        ImpReferenceIdo1ServerData serverData = serverDataCaptor.getValue();
+        assertEquals("testUser123", serverData.getUserid());
+
+        // Verify interface
+        ImpIdo1Interface impInterface = interfaceCaptor.getValue();
+        assertEquals(100, impInterface.getTellerUnitNum());
+
+        // Verify transaction
+        Imp3Ido1Transaction transaction = transactionCaptor.getValue();
+        assertEquals(100, transaction.getOwnerUnitNum());
+        assertEquals(100, transaction.getCreatorUnitNum());
+        assertEquals("E", transaction.getActiveInd());
+    }
+
+    @Test
+    void testCreateReceipt_WithNullValues() {
+        // Given
+        CreateReceiptRequestDto requestWithNulls = new CreateReceiptRequestDto();
+        requestWithNulls.setTxnReferenceId("TXN-REF-123");
+        requestWithNulls.setVoucherNum(12345);
+        // Other fields are null
+
+        when(baseDaoUtil.getUserIdFromToken()).thenReturn("testUser123");
+        when(baseDaoUtil.getUserBranch()).thenReturn(100);
+        when(receiptMfdcService.execute(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(mfdcResponse);
+
+        // When & Then - Should not throw exception
+        assertDoesNotThrow(() -> {
+            CreateReceiptResponseDto result = receiptService.createReceipt(requestWithNulls);
+            assertNotNull(result);
+        });
+    }
+
+    @Test
+    void testCreateReceipt_WithZeroValues() {
+        // Given
+        CreateReceiptRequestDto requestWithZeros = createValidReceiptRequestDto();
+        requestWithZeros.setVoucherNum(0);
+        requestWithZeros.setTransactionAmount(BigDecimal.ZERO);
+        requestWithZeros.setAccountBalanceAmount(BigDecimal.ZERO);
+        requestWithZeros.setCustomerNumber(0L);
+        requestWithZeros.setAccountNumber(0L);
+
+        when(baseDaoUtil.getUserIdFromToken()).thenReturn("testUser123");
+        when(baseDaoUtil.getUserBranch()).thenReturn(100);
+        when(receiptMfdcService.execute(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(mfdcResponse);
+
+        // When
+        CreateReceiptResponseDto result = receiptService.createReceipt(requestWithZeros);
+
+        // Then
+        assertNotNull(result);
+        verify(receiptMfdcService, times(1)).execute(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void testCreateReceipt_WithSpecialCharacters() {
+        // Given
+        CreateReceiptRequestDto requestWithSpecialChars = createValidReceiptRequestDto();
+        requestWithSpecialChars.setCustomerName("Müşteri Adı Özel Karakterler");
+        requestWithSpecialChars.setCustomerSurname("Soyadı Çğıöşü");
+        requestWithSpecialChars.setAddressLine1("Adres Satırı 1 & < > \" '");
+        requestWithSpecialChars.setCityName("İstanbul");
+
+        when(baseDaoUtil.getUserIdFromToken()).thenReturn("testUser123");
+        when(baseDaoUtil.getUserBranch()).thenReturn(100);
+        when(receiptMfdcService.execute(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(mfdcResponse);
+
+        // When
+        CreateReceiptResponseDto result = receiptService.createReceipt(requestWithSpecialChars);
+
+        // Then
+        assertNotNull(result);
+        verify(receiptMfdcService, times(1)).execute(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void testCreateReceipt_DifferentCurrencyCodes() {
+        // Test with USD
+        CreateReceiptRequestDto usdRequest = createValidReceiptRequestDto();
+        usdRequest.setCurrencyCode("USD");
+        
+        when(baseDaoUtil.getUserIdFromToken()).thenReturn("testUser123");
+        when(baseDaoUtil.getUserBranch()).thenReturn(100);
+        when(receiptMfdcService.execute(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(mfdcResponse);
+
+        CreateReceiptResponseDto result = receiptService.createReceipt(usdRequest);
+        assertNotNull(result);
+
+        // Test with EUR
+        CreateReceiptRequestDto eurRequest = createValidReceiptRequestDto();
+        eurRequest.setCurrencyCode("EUR");
+        
+        result = receiptService.createReceipt(eurRequest);
+        assertNotNull(result);
+
+        verify(receiptMfdcService, times(2)).execute(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void testPrepareMfdcObjects_AllFieldsSet() {
+        // Given
+        when(baseDaoUtil.getUserIdFromToken()).thenReturn("testUser123");
+        when(baseDaoUtil.getUserBranch()).thenReturn(100);
+        when(receiptMfdcService.execute(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(mfdcResponse);
+
+        // When
+        receiptService.createReceipt(createReceiptRequestDto);
+
+        // Then - Verify all MFDC objects are created and configured
+        verify(receiptMfdcService).execute(
+                argThat(serverData -> serverData.getUserid().equals("testUser123")),
+                argThat(impInterface -> impInterface.getTellerUnitNum() == 100),
+                any(Imp1Ido1Party.class), // This gets overwritten in the method
+                argThat(address -> address != null),
+                any(), // ImpGroup
+                argThat(transaction -> 
+                    transaction.getOwnerUnitNum() == 100 && 
+                    transaction.getCreatorUnitNum() == 100 && 
+                    "E".equals(transaction.getActiveInd())),
+                argThat(overdraft -> overdraft != null)
+        );
+    }
+
+    @Test
+    void testCreateReceipt_BaseDaoUtilExceptionHandling() {
+        // Given
+        when(baseDaoUtil.getUserIdFromToken()).thenThrow(new RuntimeException("Token error"));
+        when(baseDaoUtil.getUserBranch()).thenReturn(100);
+
+        // When & Then
+        assertThrows(RuntimeException.class, () -> {
+            receiptService.createReceipt(createReceiptRequestDto);
+        });
+
+        verify(receiptMfdcService, never()).execute(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    @Test
+    void testCreateReceipt_MfdcServiceExceptionHandling() {
+        // Given
+        when(baseDaoUtil.getUserIdFromToken()).thenReturn("testUser123");
+        when(baseDaoUtil.getUserBranch()).thenReturn(100);
+        when(receiptMfdcService.execute(any(), any(), any(), any(), any(), any(), any()))
+                .thenThrow(new RuntimeException("MFDC service error"));
+
+        // When & Then
+        assertThrows(RuntimeException.class, () -> {
+            receiptService.createReceipt(createReceiptRequestDto);
+        });
+    }
+
+    @Test
+    void testCreateReceipt_LargeValues() {
+        // Given
+        CreateReceiptRequestDto requestWithLargeValues = createValidReceiptRequestDto();
+        requestWithLargeValues.setTransactionAmount(new BigDecimal("999999999.99"));
+        requestWithLargeValues.setAccountBalanceAmount(new BigDecimal("888888888.88"));
+        requestWithLargeValues.setCustomerNumber(9999999999L);
+        requestWithLargeValues.setAccountNumber(8888888888L);
+
+        when(baseDaoUtil.getUserIdFromToken()).thenReturn("testUser123");
+        when(baseDaoUtil.getUserBranch()).thenReturn(100);
+        when(receiptMfdcService.execute(any(), any(), any(), any(), any(), any(), any()))
+                .thenReturn(mfdcResponse);
+
+        // When
+        CreateReceiptResponseDto result = receiptService.createReceipt(requestWithLargeValues);
+
+        // Then
+        assertNotNull(result);
+        verify(receiptMfdcService, times(1)).execute(any(), any(), any(), any(), any(), any(), any());
+    }
+
+    // Helper methods
+    private CreateReceiptRequestDto createValidReceiptRequestDto() {
+        return CreateReceiptRequestDto.builder()
+                .txnReferenceId("TXN-REF-123")
+                .voucherNum(12345)
+                .currencyCode("TRY")
+                .transactionAmount(new BigDecimal("1000.00"))
+                .customerName("John")
+                .customerSurname("Doe")
+                .customerTckn("12345678901")
+                .accountBalanceAmount(new BigDecimal("5000.00"))
+                .addressLine1("Address Line 1")
+                .addressLine2("Address Line 2")
+                .regionName("Region")
+                .districtName("District")
+                .cityName("City")
+                .postalCode("12345")
+                .customerNumber(123456L)
+                .accountNumber(654321L)
+                .txnDate("2025-01-01")
+                .processMainCode("PC")
+                .processSubCode("KAS")
+                .cicsTxnId("CICS123")
+                .sourceId("WEB")
+                .phoneNumber("5551234567")
+                .unitNum(100)
+                .sbcReferenceNum(999)
+                .build();
+    }
+
+    private MoneyDepositWithDrawelReceiptResponse createMockMfdcResponse() {
+        MoneyDepositWithDrawelReceiptResponse response = new MoneyDepositWithDrawelReceiptResponse();
+        
+        ExpIdo1Transaction expTransaction = new ExpIdo1Transaction();
+        expTransaction.setInstanceIdAs("Instance ID");
+        expTransaction.setInstanceId("TXN-123");
+        expTransaction.setReferenceIdAs("Reference ID");
+        expTransaction.setReferenceId1("REF-456");
+        expTransaction.setTxnReferenceIdAs("Transaction Reference");
+        expTransaction.setTxnReferenceId("TXN-REF-789");
+        
+        response.setExpIdo1Transaction(expTransaction);
+        
+        return response;
+    }
+
+    private MoneyDepositWithDrawelReceiptResponse createMockMfdcResponseWithError() {
+        MoneyDepositWithDrawelReceiptResponse response = new MoneyDepositWithDrawelReceiptResponse();
+        
+        ExpErrorIdo1Component errorComponent = new ExpErrorIdo1Component();
+        errorComponent.setSeverityCodeAs("Severity");
+        errorComponent.setSeverityCode("ERROR");
+        errorComponent.setRollbackIndicatorAs("Rollback");
+        errorComponent.setRollbackIndicator("Y");
+        errorComponent.setOriginServIdAs("Origin Service");
+        errorComponent.setReturnCodeAs("Return Code");
+        errorComponent.setReturnCode(500);
+        errorComponent.setReasonCodeAs("Reason Code");
+        errorComponent.setReasonCode(1001);
+        
+        response.setExpErrorIdo1Component(errorComponent);
+        
+        return response;
+    }
 }
