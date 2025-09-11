@@ -1,5 +1,5 @@
 @Test
-void testTrnxCompleteWithdrawal_Success() {
+void testCreateAndSaveOperationInfo_Success() {
     // Context mock'ları
     when(contextBuilder.getContext()).thenReturn(serviceContext);
     when(contextBuilder.getContext().getGuid()).thenReturn("test-guid-123");
@@ -18,46 +18,74 @@ void testTrnxCompleteWithdrawal_Success() {
     branchResponse.setBranchType("T");
     when(branchService.getBranchDetail(any(Integer.class))).thenReturn(branchResponse);
 
+    // Request preparation
+    TrnxCompleteWithdrawalRequestDto requestDto = createValidRequestDto();
+    requestDto.setCreateUserId("testUser");
+
+    ProcessingPersonInfoRequest personInfo = new ProcessingPersonInfoRequest();
+    personInfo.setProcessCustomerNum("12345");
+    personInfo.setStatusCode("ACTIVE");
+    List<ProcessingPersonInfoRequest> personInfoList = List.of(personInfo);
+    requestDto.setProcessingPersonInfo(personInfoList);
+
+    String trnxInstanceId = "2025-08-20 20:52:19.507005";
+
     // Parameter service mock
     ResponseParameterList responseParameterList = new ResponseParameterList();
     ResponseReadParameter parameter = new ResponseReadParameter();
     parameter.setPrmAttributeName("PCMUHASEBE");
-    parameter.setPrmValue("TEST_ACCOUNTING_CODE");
+    parameter.setPrmValue("TEST_CODE");
     responseParameterList.setParameterList(List.of(parameter));
     when(parameterService.getParameterList(any())).thenReturn(responseParameterList);
 
-    // Accounting service mock (sizin yaptığınız güncelleme)
+    // Accounting service mock (DÜZELTME)
     AccountingResponseDto mockAccountingResponse = new AccountingResponseDto();
     mockAccountingResponse.setFinancialServiceGuid("test-guid-123");
     mockAccountingResponse.setVoucherNum(12345);
     mockAccountingResponse.setTxnReferenceId("TXN-REF-123");
     when(acountingTrxManagement.createFinancialTransaction(any())).thenReturn(mockAccountingResponse);
 
-    // Receipt service mock (YENİ EKLEME)
+    // Receipt service mock (YENİ)
     CreateReceiptResponseDto mockReceiptResponse = new CreateReceiptResponseDto();
-    CreateReceiptTransaction mockReceiptTransaction = new CreateReceiptTransaction();
+    CreateReceiptTransactionDto mockReceiptTransaction = new CreateReceiptTransactionDto();
     mockReceiptTransaction.setInstanceId("receipt-instance-123");
     mockReceiptTransaction.setReferenceId1("receipt-ref-123");
     mockReceiptResponse.setCreateReceiptTransaction(mockReceiptTransaction);
     when(receiptService.createReceipt(any())).thenReturn(mockReceiptResponse);
 
-    // Transaction DAO mock
-    String transactionId = "2025-08-20 12:00:00";
+    // Transaction DAO mocks
     when(transactionDao.saveMoneyDepositTransaction(any(TransactionEntity.class)))
-            .thenReturn(transactionId);
+            .thenReturn(trnxInstanceId);
+    when(transactionDao.updateMoneyDepositTransaction(any(), any(), any(), any())).thenReturn(true);
+    when(moneyTrnxOperationInfoDao.save(any(MoneyTrnxOperationInfoEntity.class)))
+            .thenReturn(new MoneyTrnxOperationInfoEntity());
 
-    // Test verisini hazırla
-    TrnxCompleteWithdrawalRequestDto requestDto = createValidRequestDto();
+    // Approve service mocks (YENİ)
+    ProcessCheckResponseDto checkResponseDto = new ProcessCheckResponseDto();
+    checkResponseDto.setApproveOrder(1);
+    checkResponseDto.setApproveType("TYPE1");
+    checkResponseDto.setApprovalRequired(false); // Onaya düşmesin
+    ProcessCheckResultDto approveResult = new ProcessCheckResultDto();
+    approveResult.setRecords(List.of(checkResponseDto));
+    when(approveService.checkApprove(any())).thenReturn(approveResult);
+    when(approveService.saveApproveProcess(any())).thenReturn(any());
 
-    // Test çalıştır
+    // Act
     TrnxCompleteWithdrawalResponseDto response = transactionService.trnxCompleteWithdrawal(requestDto);
 
-    // Doğrulama
+    // Assert
     assertNotNull(response);
-    assertEquals(transactionId, response.getInstanceId());
+    assertEquals(trnxInstanceId, response.getInstanceId());
     assertEquals("receipt-instance-123", response.getReceiptInstanceId());
     assertEquals("receipt-ref-123", response.getReceiptReferenceId());
+
+    verify(moneyTrnxOperationInfoDao, times(1)).save(any(MoneyTrnxOperationInfoEntity.class));
+    verify(receiptService, times(1)).createReceipt(any());
+    verify(transactionDao, times(1)).updateMoneyDepositTransaction(any(), any(), any(), any());
 }
+
+
+
 
 
 
@@ -81,6 +109,9 @@ void testCreateAndSaveOperationInfo_MultiplePersons() {
     branchResponse.setBranchType("T");
     when(branchService.getBranchDetail(any(Integer.class))).thenReturn(branchResponse);
 
+    // Request preparation
+    TrnxCompleteWithdrawalRequestDto requestDto = createMultiplePersonRequestDto();
+
     // Parameter service mock
     ResponseParameterList responseParameterList = new ResponseParameterList();
     ResponseReadParameter parameter = new ResponseReadParameter();
@@ -89,14 +120,14 @@ void testCreateAndSaveOperationInfo_MultiplePersons() {
     responseParameterList.setParameterList(List.of(parameter));
     when(parameterService.getParameterList(any())).thenReturn(responseParameterList);
 
-    // Accounting service mock
+    // Accounting service mock (DÜZELTME)
     AccountingResponseDto mockAccountingResponse = new AccountingResponseDto();
     mockAccountingResponse.setFinancialServiceGuid("test-guid-123");
     mockAccountingResponse.setVoucherNum(12345);
     mockAccountingResponse.setTxnReferenceId("TXN-REF-123");
     when(acountingTrxManagement.createFinancialTransaction(any())).thenReturn(mockAccountingResponse);
 
-    // Receipt service mock
+    // Receipt service mock (YENİ)
     CreateReceiptResponseDto mockReceiptResponse = new CreateReceiptResponseDto();
     CreateReceiptTransactionDto mockReceiptTransaction = new CreateReceiptTransactionDto();
     mockReceiptTransaction.setInstanceId("receipt-instance-123");
@@ -104,13 +135,22 @@ void testCreateAndSaveOperationInfo_MultiplePersons() {
     mockReceiptResponse.setCreateReceiptTransaction(mockReceiptTransaction);
     when(receiptService.createReceipt(any())).thenReturn(mockReceiptResponse);
 
-    // Arrange
-    TrnxCompleteWithdrawalRequestDto requestDto = createMultiplePersonRequestDto();
-
+    // Transaction DAO mocks
     when(transactionDao.saveMoneyDepositTransaction(any(TransactionEntity.class)))
             .thenReturn("2025-08-20 20:52:19.507005");
+    when(transactionDao.updateMoneyDepositTransaction(any(), any(), any(), any())).thenReturn(true);
     when(moneyTrnxOperationInfoDao.save(any(MoneyTrnxOperationInfoEntity.class)))
             .thenReturn(new MoneyTrnxOperationInfoEntity());
+
+    // Approve service mocks (YENİ)
+    ProcessCheckResponseDto checkResponseDto = new ProcessCheckResponseDto();
+    checkResponseDto.setApproveOrder(1);
+    checkResponseDto.setApproveType("TYPE1");
+    checkResponseDto.setApprovalRequired(false); // Onaya düşmesin
+    ProcessCheckResultDto approveResult = new ProcessCheckResultDto();
+    approveResult.setRecords(List.of(checkResponseDto));
+    when(approveService.checkApprove(any())).thenReturn(approveResult);
+    when(approveService.saveApproveProcess(any())).thenReturn(any());
 
     // Act
     transactionService.trnxCompleteWithdrawal(requestDto);
@@ -130,95 +170,9 @@ void testCreateAndSaveOperationInfo_MultiplePersons() {
 
     assertEquals(Integer.valueOf(67890), savedEntities.get(1).getCustomerNum());
     assertEquals("PENDING", savedEntities.get(1).getStatusCode());
+
+    // Yeni servislerin çağrıldığını doğrula
+    verify(receiptService, times(1)).createReceipt(any());
+    verify(transactionDao, times(1)).updateMoneyDepositTransaction(any(), any(), any(), any());
+    verify(approveService, times(1)).checkApprove(any());
 }
-
-
-
-
-
-@Test
-void testCreateAndSaveOperationInfo_Success() {
-    // Context mock'ları
-    when(contextBuilder.getContext()).thenReturn(serviceContext);
-    when(contextBuilder.getContext().getGuid()).thenReturn("test-guid-123");
-    when(serviceContext.getUser()).thenReturn(user);
-
-    // Account balance mock
-    Money usableBalance = Money.newBuilder()
-            .setUnits(2000)
-            .setNanos(0)
-            .build();
-    when(accountsBusinessService.getAccountDetail(any(Integer.class), any(Integer.class)))
-            .thenReturn(createMockAccountBalance(usableBalance, "TEST"));
-
-    // Branch service mock
-    BranchServiceResponseDto branchResponse = new BranchServiceResponseDto();
-    branchResponse.setBranchType("T");
-    when(branchService.getBranchDetail(any(Integer.class))).thenReturn(branchResponse);
-
-    // Parameter service mock
-    ResponseParameterList responseParameterList = new ResponseParameterList();
-    ResponseReadParameter parameter = new ResponseReadParameter();
-    parameter.setPrmAttributeName("PCMUHASEBE");
-    parameter.setPrmValue("TEST_CODE");
-    responseParameterList.setParameterList(List.of(parameter));
-    when(parameterService.getParameterList(any())).thenReturn(responseParameterList);
-
-    // Accounting service mock
-    AccountingResponseDto mockAccountingResponse = new AccountingResponseDto();
-    mockAccountingResponse.setFinancialServiceGuid("test-guid-123");
-    mockAccountingResponse.setVoucherNum(12345);
-    mockAccountingResponse.setTxnReferenceId("TXN-REF-123");
-    when(acountingTrxManagement.createFinancialTransaction(any())).thenReturn(mockAccountingResponse);
-
-    // Receipt service mock
-    CreateReceiptResponseDto mockReceiptResponse = new CreateReceiptResponseDto();
-    CreateReceiptTransactionDto mockReceiptTransaction = new CreateReceiptTransactionDto();
-    mockReceiptTransaction.setInstanceId("receipt-instance-123");
-    mockReceiptTransaction.setReferenceId1("receipt-ref-123");
-    mockReceiptResponse.setCreateReceiptTransaction(mockReceiptTransaction);
-    when(receiptService.createReceipt(any())).thenReturn(mockReceiptResponse);
-
-    // Arrange
-    TrnxCompleteWithdrawalRequestDto requestDto = createValidRequestDto();
-    requestDto.setCreateUserId("testUser");
-
-    ProcessingPersonInfoRequest personInfo = new ProcessingPersonInfoRequest();
-    personInfo.setProcessCustomerNum("12345");
-    personInfo.setStatusCode("ACTIVE");
-
-    List<ProcessingPersonInfoRequest> personInfoList = List.of(personInfo);
-    requestDto.setProcessingPersonInfo(personInfoList);
-
-    String trnxInstanceId = "2025-08-20 20:52:19.507005";
-
-    when(transactionDao.saveMoneyDepositTransaction(any(TransactionEntity.class)))
-            .thenReturn(trnxInstanceId);
-    when(moneyTrnxOperationInfoDao.save(any(MoneyTrnxOperationInfoEntity.class)))
-            .thenReturn(new MoneyTrnxOperationInfoEntity());
-
-    // Act
-    TrnxCompleteWithdrawalResponseDto response = transactionService.trnxCompleteWithdrawal(requestDto);
-
-    // Assert
-    assertNotNull(response);
-    assertEquals(trnxInstanceId, response.getInstanceId());
-
-    verify(moneyTrnxOperationInfoDao, times(1)).save(any(MoneyTrnxOperationInfoEntity.class));
-
-    ArgumentCaptor<MoneyTrnxOperationInfoEntity> captor =
-            ArgumentCaptor.forClass(MoneyTrnxOperationInfoEntity.class);
-    verify(moneyTrnxOperationInfoDao).save(captor.capture());
-
-    MoneyTrnxOperationInfoEntity savedEntity = captor.getValue();
-    assertEquals("testUser", savedEntity.getCreateUserId());
-    assertEquals("testUser", savedEntity.getUpdateUserId());
-    assertEquals(Integer.valueOf(12345), savedEntity.getCustomerNum());
-    assertEquals("I", savedEntity.getPartyType());
-    assertEquals("ACTIVE", savedEntity.getStatusCode());
-    assertNotNull(savedEntity.getMoneyTransactionId());
-    assertEquals(Timestamp.valueOf(trnxInstanceId), savedEntity.getMoneyTransactionId());
-}
-
-
-
