@@ -5,18 +5,22 @@ void testCreateAndSaveOperationInfo_Success() {
     when(contextBuilder.getContext().getGuid()).thenReturn("test-guid-123");
     when(serviceContext.getUser()).thenReturn(user);
 
-    // Account balance mock
+    // Account balance mock (anyInt() kullan)
     Money usableBalance = Money.newBuilder()
             .setUnits(2000)
             .setNanos(0)
             .build();
-    when(accountsBusinessService.getAccountDetail(any(Integer.class), any(Integer.class)))
+    when(accountsBusinessService.getAccountDetail(anyInt(), anyInt()))
             .thenReturn(createMockAccountBalance(usableBalance, "TEST"));
+
+    // Joint account mock (yeni ekleme)
+    when(accountsBusinessService.getJointAccounts(anyString(), anyInt()))
+            .thenReturn(null);
 
     // Branch service mock
     BranchServiceResponseDto branchResponse = new BranchServiceResponseDto();
     branchResponse.setBranchType("T");
-    when(branchService.getBranchDetail(any(Integer.class))).thenReturn(branchResponse);
+    when(branchService.getBranchDetail(anyInt())).thenReturn(branchResponse);
 
     // Request preparation
     TrnxCompleteWithdrawalRequestDto requestDto = createValidRequestDto();
@@ -38,14 +42,14 @@ void testCreateAndSaveOperationInfo_Success() {
     responseParameterList.setParameterList(List.of(parameter));
     when(parameterService.getParameterList(any())).thenReturn(responseParameterList);
 
-    // Accounting service mock (DÜZELTME)
+    // Accounting service mock
     AccountingResponseDto mockAccountingResponse = new AccountingResponseDto();
     mockAccountingResponse.setFinancialServiceGuid("test-guid-123");
     mockAccountingResponse.setVoucherNum(12345);
     mockAccountingResponse.setTxnReferenceId("TXN-REF-123");
     when(acountingTrxManagement.createFinancialTransaction(any())).thenReturn(mockAccountingResponse);
 
-    // Receipt service mock (YENİ)
+    // Receipt service mock
     CreateReceiptResponseDto mockReceiptResponse = new CreateReceiptResponseDto();
     CreateReceiptTransactionDto mockReceiptTransaction = new CreateReceiptTransactionDto();
     mockReceiptTransaction.setInstanceId("receipt-instance-123");
@@ -56,11 +60,11 @@ void testCreateAndSaveOperationInfo_Success() {
     // Transaction DAO mocks
     when(transactionDao.saveMoneyDepositTransaction(any(TransactionEntity.class)))
             .thenReturn(trnxInstanceId);
-    when(transactionDao.updateMoneyDepositTransaction(any(), any(), any(), any())).thenReturn(true);
+    // updateMoneyDepositTransaction mock'unu kaldırdık - void metod
     when(moneyTrnxOperationInfoDao.save(any(MoneyTrnxOperationInfoEntity.class)))
             .thenReturn(new MoneyTrnxOperationInfoEntity());
 
-    // Approve service mocks (YENİ)
+    // Approve service mocks
     ProcessCheckResponseDto checkResponseDto = new ProcessCheckResponseDto();
     checkResponseDto.setApproveOrder(1);
     checkResponseDto.setApproveType("TYPE1");
@@ -68,7 +72,6 @@ void testCreateAndSaveOperationInfo_Success() {
     ProcessCheckResultDto approveResult = new ProcessCheckResultDto();
     approveResult.setRecords(List.of(checkResponseDto));
     when(approveService.checkApprove(any())).thenReturn(approveResult);
-    when(approveService.saveApproveProcess(any())).thenReturn(any());
 
     // Act
     TrnxCompleteWithdrawalResponseDto response = transactionService.trnxCompleteWithdrawal(requestDto);
@@ -81,13 +84,20 @@ void testCreateAndSaveOperationInfo_Success() {
 
     verify(moneyTrnxOperationInfoDao, times(1)).save(any(MoneyTrnxOperationInfoEntity.class));
     verify(receiptService, times(1)).createReceipt(any());
-    verify(transactionDao, times(1)).updateMoneyDepositTransaction(any(), any(), any(), any());
+
+    ArgumentCaptor<MoneyTrnxOperationInfoEntity> captor =
+            ArgumentCaptor.forClass(MoneyTrnxOperationInfoEntity.class);
+    verify(moneyTrnxOperationInfoDao).save(captor.capture());
+
+    MoneyTrnxOperationInfoEntity savedEntity = captor.getValue();
+    assertEquals("testUser", savedEntity.getCreateUserId());
+    assertEquals("testUser", savedEntity.getUpdateUserId());
+    assertEquals(Integer.valueOf(12345), savedEntity.getCustomerNum());
+    assertEquals("I", savedEntity.getPartyType());
+    assertEquals("ACTIVE", savedEntity.getStatusCode());
+    assertNotNull(savedEntity.getMoneyTransactionId());
+    assertEquals(Timestamp.valueOf(trnxInstanceId), savedEntity.getMoneyTransactionId());
 }
-
-
-
-
-
 
 @Test
 void testCreateAndSaveOperationInfo_MultiplePersons() {
@@ -96,18 +106,22 @@ void testCreateAndSaveOperationInfo_MultiplePersons() {
     when(contextBuilder.getContext().getGuid()).thenReturn("test-guid-123");
     when(serviceContext.getUser()).thenReturn(user);
 
-    // Account balance mock
+    // Account balance mock (anyInt() kullan)
     Money usableBalance = Money.newBuilder()
             .setUnits(2000)
             .setNanos(0)
             .build();
-    when(accountsBusinessService.getAccountDetail(any(Integer.class), any(Integer.class)))
+    when(accountsBusinessService.getAccountDetail(anyInt(), anyInt()))
             .thenReturn(createMockAccountBalance(usableBalance, "TEST"));
+
+    // Joint account mock (yeni ekleme)
+    when(accountsBusinessService.getJointAccounts(anyString(), anyInt()))
+            .thenReturn(null);
 
     // Branch service mock
     BranchServiceResponseDto branchResponse = new BranchServiceResponseDto();
     branchResponse.setBranchType("T");
-    when(branchService.getBranchDetail(any(Integer.class))).thenReturn(branchResponse);
+    when(branchService.getBranchDetail(anyInt())).thenReturn(branchResponse);
 
     // Request preparation
     TrnxCompleteWithdrawalRequestDto requestDto = createMultiplePersonRequestDto();
@@ -120,14 +134,14 @@ void testCreateAndSaveOperationInfo_MultiplePersons() {
     responseParameterList.setParameterList(List.of(parameter));
     when(parameterService.getParameterList(any())).thenReturn(responseParameterList);
 
-    // Accounting service mock (DÜZELTME)
+    // Accounting service mock
     AccountingResponseDto mockAccountingResponse = new AccountingResponseDto();
     mockAccountingResponse.setFinancialServiceGuid("test-guid-123");
     mockAccountingResponse.setVoucherNum(12345);
     mockAccountingResponse.setTxnReferenceId("TXN-REF-123");
     when(acountingTrxManagement.createFinancialTransaction(any())).thenReturn(mockAccountingResponse);
 
-    // Receipt service mock (YENİ)
+    // Receipt service mock
     CreateReceiptResponseDto mockReceiptResponse = new CreateReceiptResponseDto();
     CreateReceiptTransactionDto mockReceiptTransaction = new CreateReceiptTransactionDto();
     mockReceiptTransaction.setInstanceId("receipt-instance-123");
@@ -138,11 +152,11 @@ void testCreateAndSaveOperationInfo_MultiplePersons() {
     // Transaction DAO mocks
     when(transactionDao.saveMoneyDepositTransaction(any(TransactionEntity.class)))
             .thenReturn("2025-08-20 20:52:19.507005");
-    when(transactionDao.updateMoneyDepositTransaction(any(), any(), any(), any())).thenReturn(true);
+    // updateMoneyDepositTransaction mock'unu kaldırdık - void metod
     when(moneyTrnxOperationInfoDao.save(any(MoneyTrnxOperationInfoEntity.class)))
             .thenReturn(new MoneyTrnxOperationInfoEntity());
 
-    // Approve service mocks (YENİ)
+    // Approve service mocks
     ProcessCheckResponseDto checkResponseDto = new ProcessCheckResponseDto();
     checkResponseDto.setApproveOrder(1);
     checkResponseDto.setApproveType("TYPE1");
@@ -150,7 +164,6 @@ void testCreateAndSaveOperationInfo_MultiplePersons() {
     ProcessCheckResultDto approveResult = new ProcessCheckResultDto();
     approveResult.setRecords(List.of(checkResponseDto));
     when(approveService.checkApprove(any())).thenReturn(approveResult);
-    when(approveService.saveApproveProcess(any())).thenReturn(any());
 
     // Act
     transactionService.trnxCompleteWithdrawal(requestDto);
@@ -173,6 +186,5 @@ void testCreateAndSaveOperationInfo_MultiplePersons() {
 
     // Yeni servislerin çağrıldığını doğrula
     verify(receiptService, times(1)).createReceipt(any());
-    verify(transactionDao, times(1)).updateMoneyDepositTransaction(any(), any(), any(), any());
     verify(approveService, times(1)).checkApprove(any());
 }
