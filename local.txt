@@ -1,188 +1,141 @@
-@Test
-void testCreateAndSaveOperationInfo_Success() {
-    // Context mock'ları
-    when(contextBuilder.getContext()).thenReturn(serviceContext);
-    when(contextBuilder.getContext().getGuid()).thenReturn("test-guid-123");
-    when(serviceContext.getUser()).thenReturn(user);
+# -*- coding: utf-8 -*-
+from __future__ import print_function
+import sys
+import os
+import io
+import argparse
+import shutil
+import qrcode
+from qrcode.constants import ERROR_CORRECT_L, ERROR_CORRECT_M, ERROR_CORRECT_Q, ERROR_CORRECT_H
+from PIL import Image
 
-    // Account balance mock (any(Integer.class) kullan)
-    Money usableBalance = Money.newBuilder()
-            .setUnits(2000)
-            .setNanos(0)
-            .build();
-    when(accountsBusinessService.getAccountDetail(any(Integer.class), any(Integer.class)))
-            .thenReturn(createMockAccountBalance(usableBalance, "TEST"));
-
-    // Joint account mock
-    when(accountsBusinessService.getJointAccounts(any(String.class), any(Integer.class)))
-            .thenReturn(null);
-
-    // Branch service mock
-    BranchServiceResponseDto branchResponse = new BranchServiceResponseDto();
-    branchResponse.setBranchType("T");
-    when(branchService.getBranchDetail(any(Integer.class))).thenReturn(branchResponse);
-
-    // Request preparation
-    TrnxCompleteWithdrawalRequestDto requestDto = createValidRequestDto();
-    requestDto.setCreateUserId("testUser");
-
-    ProcessingPersonInfoRequest personInfo = new ProcessingPersonInfoRequest();
-    personInfo.setProcessCustomerNum("12345");
-    personInfo.setStatusCode("ACTIVE");
-    List<ProcessingPersonInfoRequest> personInfoList = List.of(personInfo);
-    requestDto.setProcessingPersonInfo(personInfoList);
-
-    String trnxInstanceId = "2025-08-20 20:52:19.507005";
-
-    // Parameter service mock
-    ResponseParameterList responseParameterList = new ResponseParameterList();
-    ResponseReadParameter parameter = new ResponseReadParameter();
-    parameter.setPrmAttributeName("PCMUHASEBE");
-    parameter.setPrmValue("TEST_CODE");
-    responseParameterList.setParameterList(List.of(parameter));
-    when(parameterService.getParameterList(any())).thenReturn(responseParameterList);
-
-    // Accounting service mock
-    AccountingResponseDto mockAccountingResponse = new AccountingResponseDto();
-    mockAccountingResponse.setFinancialServiceGuid("test-guid-123");
-    mockAccountingResponse.setVoucherNum(12345);
-    mockAccountingResponse.setTxnReferenceId("TXN-REF-123");
-    when(acountingTrxManagement.createFinancialTransaction(any())).thenReturn(mockAccountingResponse);
-
-    // Receipt service mock
-    CreateReceiptResponseDto mockReceiptResponse = new CreateReceiptResponseDto();
-    CreateReceiptTransactionDto mockReceiptTransaction = new CreateReceiptTransactionDto();
-    mockReceiptTransaction.setInstanceId("receipt-instance-123");
-    mockReceiptTransaction.setReferenceId1("receipt-ref-123");
-    mockReceiptResponse.setCreateReceiptTransaction(mockReceiptTransaction);
-    when(receiptService.createReceipt(any())).thenReturn(mockReceiptResponse);
-
-    // Transaction DAO mocks
-    when(transactionDao.saveMoneyDepositTransaction(any(TransactionEntity.class)))
-            .thenReturn(trnxInstanceId);
-    when(moneyTrnxOperationInfoDao.save(any(MoneyTrnxOperationInfoEntity.class)))
-            .thenReturn(new MoneyTrnxOperationInfoEntity());
-
-    // Approve service mocks
-    ProcessCheckResponseDto checkResponseDto = new ProcessCheckResponseDto();
-    checkResponseDto.setApproveOrder(1);
-    checkResponseDto.setApproveType("TYPE1");
-    checkResponseDto.setApprovalRequired(false);
-    ProcessCheckResultDto approveResult = new ProcessCheckResultDto();
-    approveResult.setRecords(List.of(checkResponseDto));
-    when(approveService.checkApprove(any())).thenReturn(approveResult);
-
-    // Act
-    TrnxCompleteWithdrawalResponseDto response = transactionService.trnxCompleteWithdrawal(requestDto);
-
-    // Assert
-    assertNotNull(response);
-    assertEquals(trnxInstanceId, response.getInstanceId());
-    assertEquals("receipt-instance-123", response.getReceiptInstanceId());
-    assertEquals("receipt-ref-123", response.getReceiptReferenceId());
-
-    verify(moneyTrnxOperationInfoDao, times(1)).save(any(MoneyTrnxOperationInfoEntity.class));
-    verify(receiptService, times(1)).createReceipt(any());
-
-    ArgumentCaptor<MoneyTrnxOperationInfoEntity> captor =
-            ArgumentCaptor.forClass(MoneyTrnxOperationInfoEntity.class);
-    verify(moneyTrnxOperationInfoDao).save(captor.capture());
-
-    MoneyTrnxOperationInfoEntity savedEntity = captor.getValue();
-    assertEquals("testUser", savedEntity.getCreateUserId());
-    assertEquals("testUser", savedEntity.getUpdateUserId());
-    assertEquals(Integer.valueOf(12345), savedEntity.getCustomerNum());
-    assertEquals("I", savedEntity.getPartyType());
-    assertEquals("ACTIVE", savedEntity.getStatusCode());
-    assertNotNull(savedEntity.getMoneyTransactionId());
-    assertEquals(Timestamp.valueOf(trnxInstanceId), savedEntity.getMoneyTransactionId());
+ECC_MAP = {
+    'L': ERROR_CORRECT_L,
+    'M': ERROR_CORRECT_M,
+    'Q': ERROR_CORRECT_Q,
+    'H': ERROR_CORRECT_H,
 }
 
-@Test
-void testCreateAndSaveOperationInfo_MultiplePersons() {
-    // Context mock'ları
-    when(contextBuilder.getContext()).thenReturn(serviceContext);
-    when(contextBuilder.getContext().getGuid()).thenReturn("test-guid-123");
-    when(serviceContext.getUser()).thenReturn(user);
+def read_text(args):
+    # 1) --text
+    if args.text is not None:
+        try:
+            # Python 2/3 uyumu
+            unicode_type = unicode  # noqa
+        except NameError:
+            unicode_type = str
+        if isinstance(args.text, unicode_type):
+            return args.text
+        return args.text.decode('utf-8', 'replace')
+    # 2) --input dosya
+    if args.input:
+        with io.open(args.input, 'r', encoding='utf-8', errors='replace') as f:
+            return f.read()
+    # 3) stdin
+    if not sys.stdin.isatty():
+        data = sys.stdin.read()
+        try:
+            unicode_type = unicode  # noqa
+        except NameError:
+            unicode_type = str
+        if isinstance(data, unicode_type):
+            return data
+        return data.decode('utf-8', 'replace')
+    return u""
 
-    // Account balance mock (any(Integer.class) kullan)
-    Money usableBalance = Money.newBuilder()
-            .setUnits(2000)
-            .setNanos(0)
-            .build();
-    when(accountsBusinessService.getAccountDetail(any(Integer.class), any(Integer.class)))
-            .thenReturn(createMockAccountBalance(usableBalance, "TEST"));
+def make_qr_image(text, ecc, box_size, border):
+    qr = qrcode.QRCode(
+        version=None,
+        error_correction=ecc,
+        box_size=box_size,
+        border=border
+    )
+    qr.add_data(text)
+    qr.make(fit=True)
+    img = qr.make_image(fill_color="black", back_color="white")
+    if not isinstance(img, Image.Image):
+        img = img.get_image()
+    return img
 
-    // Joint account mock
-    when(accountsBusinessService.getJointAccounts(any(String.class), any(Integer.class)))
-            .thenReturn(null);
+def chunk_text(text, chunk_size):
+    return [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
 
-    // Branch service mock
-    BranchServiceResponseDto branchResponse = new BranchServiceResponseDto();
-    branchResponse.setBranchType("T");
-    when(branchService.getBranchDetail(any(Integer.class))).thenReturn(branchResponse);
+def ensure_clean_dir(path):
+    """Klasörü baştan temizler (varsa silip yeniden oluşturur)."""
+    if os.path.isdir(path):
+        # Windows'ta kilitli dosya hatalarına karşı basit retry yok; düz sil → oluştur
+        shutil.rmtree(path, ignore_errors=True)
+    if not os.path.isdir(path):
+        os.makedirs(path)
 
-    // Request preparation
-    TrnxCompleteWithdrawalRequestDto requestDto = createMultiplePersonRequestDto();
+def main():
+    parser = argparse.ArgumentParser(description="Metni QR koda çevirir (Python 2.7).")
+    parser.add_argument("-i", "--input", help="Girdi dosyası (UTF-8).")
+    parser.add_argument("-t", "--text", help="Doğrudan metin ver (tırnak içinde).")
+    parser.add_argument("-o", "--output-prefix", default="code_qr",
+                        help="Tekli moda çıkış adı ön eki (vars: code_qr).")
+    parser.add_argument("--chunk", action="store_true",
+                        help="Metin uzunsa parçalara bölüp çoklu QR üret.")
+    parser.add_argument("--chunk-size", type=int, default=1200,
+                        help="Parça boyutu (vars: 1200 karakter).")
+    parser.add_argument("--ecc", choices=['L','M','Q','H'], default='Q',
+                        help="Hata düzeltme seviyesi (L/M/Q/H). Vars: Q")
+    parser.add_argument("--box-size", type=int, default=10, help="Kare boyutu (vars: 10)")
+    parser.add_argument("--border", type=int, default=4, help="Kenar boşluğu (vars: 4)")
+    parser.add_argument("--threshold", type=int, default=1400,
+                        help="Parçalama eşiği. (Vars: 1400)")
+    parser.add_argument("--output-dir", default="chunks",
+                        help="Parçalı üretimlerin konacağı klasör (vars: chunks)")
+    args = parser.parse_args()
 
-    // Parameter service mock
-    ResponseParameterList responseParameterList = new ResponseParameterList();
-    ResponseReadParameter parameter = new ResponseReadParameter();
-    parameter.setPrmAttributeName("PCMUHASEBE");
-    parameter.setPrmValue("TEST_CODE");
-    responseParameterList.setParameterList(List.of(parameter));
-    when(parameterService.getParameterList(any())).thenReturn(responseParameterList);
+    text = read_text(args)
+    if not text:
+        print("Hata: Metin bulunamadı. --text, --input veya stdin kullanın.", file=sys.stderr)
+        parser.print_help()
+        sys.exit(1)
 
-    // Accounting service mock
-    AccountingResponseDto mockAccountingResponse = new AccountingResponseDto();
-    mockAccountingResponse.setFinancialServiceGuid("test-guid-123");
-    mockAccountingResponse.setVoucherNum(12345);
-    mockAccountingResponse.setTxnReferenceId("TXN-REF-123");
-    when(acountingTrxManagement.createFinancialTransaction(any())).thenReturn(mockAccountingResponse);
+    # Unicode garanti
+    try:
+        unicode_type = unicode  # noqa
+    except NameError:
+        unicode_type = str
+    if not isinstance(text, unicode_type):
+        try:
+            text = text.decode('utf-8', 'replace')
+        except Exception:
+            text = unicode_type(text)
 
-    // Receipt service mock
-    CreateReceiptResponseDto mockReceiptResponse = new CreateReceiptResponseDto();
-    CreateReceiptTransactionDto mockReceiptTransaction = new CreateReceiptTransactionDto();
-    mockReceiptTransaction.setInstanceId("receipt-instance-123");
-    mockReceiptTransaction.setReferenceId1("receipt-ref-123");
-    mockReceiptResponse.setCreateReceiptTransaction(mockReceiptTransaction);
-    when(receiptService.createReceipt(any())).thenReturn(mockReceiptResponse);
+    ecc = ECC_MAP[args.ecc]
 
-    // Transaction DAO mocks
-    when(transactionDao.saveMoneyDepositTransaction(any(TransactionEntity.class)))
-            .thenReturn("2025-08-20 20:52:19.507005");
-    when(moneyTrnxOperationInfoDao.save(any(MoneyTrnxOperationInfoEntity.class)))
-            .thenReturn(new MoneyTrnxOperationInfoEntity());
+    out_files = []
+    if args.chunk and len(text) > args.threshold:
+        # İSTEDİĞİNİZ DEĞİŞİKLİK: klasörü baştan temizle ve çıktılarını buraya yaz
+        ensure_clean_dir(args.output_dir)
 
-    // Approve service mocks
-    ProcessCheckResponseDto checkResponseDto = new ProcessCheckResponseDto();
-    checkResponseDto.setApproveOrder(1);
-    checkResponseDto.setApproveType("TYPE1");
-    checkResponseDto.setApprovalRequired(false);
-    ProcessCheckResultDto approveResult = new ProcessCheckResultDto();
-    approveResult.setRecords(List.of(checkResponseDto));
-    when(approveService.checkApprove(any())).thenReturn(approveResult);
+        pieces = chunk_text(text, args.chunk_size)
+        total = len(pieces)
+        width = len(str(total))
+        for i, p in enumerate(pieces, 1):
+            payload = u"[{}/{}]\n{}".format(i, total, p)
+            img = make_qr_image(payload, ecc, args.box_size, args.border)
+            # % biçimlendirme ile sıfır doldurma (Py2 güvenli)
+            num_str = ("%0" + str(width) + "d") % i
+            fname = os.path.join(args.output_dir, u"{prefix}_{num}.png".format(
+                prefix=args.output_prefix, num=num_str))
+            img.save(fname)
+            out_files.append(fname)
+        print(u"✓ {} parça üretildi → '{}' klasörüne kaydedildi.".format(total, args.output_dir))
+        for f in out_files:
+            print(" -", f)
+    else:
+        if len(text) > args.threshold and not args.chunk:
+            print("Uyarı: Metin uzun ({} karakter). --chunk kullanmanız önerilir."
+                  .format(len(text)), file=sys.stderr)
+        img = make_qr_image(text, ecc, args.box_size, args.border)
+        fname = u"{prefix}.png".format(prefix=args.output_prefix)
+        img.save(fname)
+        out_files.append(fname)
+        print("✓ Tek QR kaydedildi:", fname)
 
-    // Act
-    transactionService.trnxCompleteWithdrawal(requestDto);
-
-    // Assert
-    verify(moneyTrnxOperationInfoDao, times(2)).save(any(MoneyTrnxOperationInfoEntity.class));
-
-    ArgumentCaptor<MoneyTrnxOperationInfoEntity> captor =
-            ArgumentCaptor.forClass(MoneyTrnxOperationInfoEntity.class);
-    verify(moneyTrnxOperationInfoDao, times(2)).save(captor.capture());
-
-    List<MoneyTrnxOperationInfoEntity> savedEntities = captor.getAllValues();
-    assertEquals(2, savedEntities.size());
-
-    assertEquals(Integer.valueOf(12345), savedEntities.get(0).getCustomerNum());
-    assertEquals("ACTIVE", savedEntities.get(0).getStatusCode());
-
-    assertEquals(Integer.valueOf(67890), savedEntities.get(1).getCustomerNum());
-    assertEquals("PENDING", savedEntities.get(1).getStatusCode());
-
-    // Yeni servislerin çağrıldığını doğrula
-    verify(receiptService, times(1)).createReceipt(any());
-    verify(approveService, times(1)).checkApprove(any());
-}
+if __name__ == "__main__":
+    main()
