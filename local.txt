@@ -1,141 +1,136 @@
-# -*- coding: utf-8 -*-
-from __future__ import print_function
-import sys
-import os
-import io
-import argparse
-import shutil
-import qrcode
-from qrcode.constants import ERROR_CORRECT_L, ERROR_CORRECT_M, ERROR_CORRECT_Q, ERROR_CORRECT_H
-from PIL import Image
+// 1. BigDecimal Converter sınıfı oluşturun
+package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.mapper.converter;
 
-ECC_MAP = {
-    'L': ERROR_CORRECT_L,
-    'M': ERROR_CORRECT_M,
-    'Q': ERROR_CORRECT_Q,
-    'H': ERROR_CORRECT_H,
+import com.garantibbva.ark.custom.proto.BigDecimalProto;
+import org.springframework.stereotype.Component;
+
+import java.math.BigDecimal;
+
+@Component
+public class BigDecimalConverter {
+
+    /**
+     * Java BigDecimal'ı gRPC BigDecimal'a çevirir
+     */
+    public BigDecimalProto.BigDecimal toProtoBigDecimal(BigDecimal bigDecimal) {
+        if (bigDecimal == null) {
+            return null;
+        }
+        
+        return BigDecimalProto.BigDecimal.newBuilder()
+                .setScale(bigDecimal.scale())
+                .setPrecision(bigDecimal.precision())
+                .setValue(com.google.protobuf.ByteString.copyFrom(bigDecimal.unscaledValue().toByteArray()))
+                .build();
+    }
+
+    /**
+     * gRPC BigDecimal'ı Java BigDecimal'a çevirir
+     */
+    public BigDecimal fromProtoBigDecimal(BigDecimalProto.BigDecimal protoBigDecimal) {
+        if (protoBigDecimal == null) {
+            return null;
+        }
+        
+        return new BigDecimal(
+            new java.math.BigInteger(protoBigDecimal.getValue().toByteArray()),
+            protoBigDecimal.getScale()
+        );
+    }
 }
 
-def read_text(args):
-    # 1) --text
-    if args.text is not None:
-        try:
-            # Python 2/3 uyumu
-            unicode_type = unicode  # noqa
-        except NameError:
-            unicode_type = str
-        if isinstance(args.text, unicode_type):
-            return args.text
-        return args.text.decode('utf-8', 'replace')
-    # 2) --input dosya
-    if args.input:
-        with io.open(args.input, 'r', encoding='utf-8', errors='replace') as f:
-            return f.read()
-    # 3) stdin
-    if not sys.stdin.isatty():
-        data = sys.stdin.read()
-        try:
-            unicode_type = unicode  # noqa
-        except NameError:
-            unicode_type = str
-        if isinstance(data, unicode_type):
-            return data
-        return data.decode('utf-8', 'replace')
-    return u""
+// 2. Güncellenmiş DigitalOrderMapper
+package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.mapper;
 
-def make_qr_image(text, ecc, box_size, border):
-    qr = qrcode.QRCode(
-        version=None,
-        error_correction=ecc,
-        box_size=box_size,
-        border=border
-    )
-    qr.add_data(text)
-    qr.make(fit=True)
-    img = qr.make_image(fill_color="black", back_color="white")
-    if not isinstance(img, Image.Image):
-        img = img.get_image()
-    return img
+import com.garanti.ark.base.utility.grpc.mapper.GrpcMapperConfig;
+import com.garanti.branchinstructionmanagement.business.proto.v0.BranchInstruction.ReadBranchInstructionDepositWithdrawalRequest;
+import com.garanti.branchinstructionmanagement.business.proto.v0.BranchInstruction.ReadBranchInstructionDepositWithdrawalResponse;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.DigitalOrderReadRequestDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response.DigitalOrderReadResponseDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.mapper.converter.BigDecimalConverter;
+import com.garantibbva.ark.custom.proto.BigDecimalProto;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.factory.Mappers;
 
-def chunk_text(text, chunk_size):
-    return [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
+import java.math.BigDecimal;
 
-def ensure_clean_dir(path):
-    """Klasörü baştan temizler (varsa silip yeniden oluşturur)."""
-    if os.path.isdir(path):
-        # Windows'ta kilitli dosya hatalarına karşı basit retry yok; düz sil → oluştur
-        shutil.rmtree(path, ignore_errors=True)
-    if not os.path.isdir(path):
-        os.makedirs(path)
+@Mapper(config = GrpcMapperConfig.class, uses = BigDecimalConverter.class)
+public interface DigitalOrderMapper {
 
-def main():
-    parser = argparse.ArgumentParser(description="Metni QR koda çevirir (Python 2.7).")
-    parser.add_argument("-i", "--input", help="Girdi dosyası (UTF-8).")
-    parser.add_argument("-t", "--text", help="Doğrudan metin ver (tırnak içinde).")
-    parser.add_argument("-o", "--output-prefix", default="code_qr",
-                        help="Tekli moda çıkış adı ön eki (vars: code_qr).")
-    parser.add_argument("--chunk", action="store_true",
-                        help="Metin uzunsa parçalara bölüp çoklu QR üret.")
-    parser.add_argument("--chunk-size", type=int, default=1200,
-                        help="Parça boyutu (vars: 1200 karakter).")
-    parser.add_argument("--ecc", choices=['L','M','Q','H'], default='Q',
-                        help="Hata düzeltme seviyesi (L/M/Q/H). Vars: Q")
-    parser.add_argument("--box-size", type=int, default=10, help="Kare boyutu (vars: 10)")
-    parser.add_argument("--border", type=int, default=4, help="Kenar boşluğu (vars: 4)")
-    parser.add_argument("--threshold", type=int, default=1400,
-                        help="Parçalama eşiği. (Vars: 1400)")
-    parser.add_argument("--output-dir", default="chunks",
-                        help="Parçalı üretimlerin konacağı klasör (vars: chunks)")
-    args = parser.parse_args()
+    DigitalOrderMapper INSTANCE = Mappers.getMapper(DigitalOrderMapper.class);
 
-    text = read_text(args)
-    if not text:
-        print("Hata: Metin bulunamadı. --text, --input veya stdin kullanın.", file=sys.stderr)
-        parser.print_help()
-        sys.exit(1)
+    @Mapping(target = "amount", source = "amount", qualifiedByName = "toProtoBigDecimal")
+    ReadBranchInstructionDepositWithdrawalRequest toDigitalOrderGrpcRequest(
+            DigitalOrderReadRequestDto requestDto);
 
-    # Unicode garanti
-    try:
-        unicode_type = unicode  # noqa
-    except NameError:
-        unicode_type = str
-    if not isinstance(text, unicode_type):
-        try:
-            text = text.decode('utf-8', 'replace')
-        except Exception:
-            text = unicode_type(text)
+    @Mapping(target = "amount", source = "amount", qualifiedByName = "fromProtoBigDecimal") 
+    DigitalOrderReadResponseDto toResponseDto(ReadBranchInstructionDepositWithdrawalResponse grpcResponse);
 
-    ecc = ECC_MAP[args.ecc]
+    // Custom mapping methodları
+    @org.mapstruct.Named("toProtoBigDecimal")
+    default BigDecimalProto.BigDecimal toProtoBigDecimal(BigDecimal bigDecimal) {
+        if (bigDecimal == null) {
+            return null;
+        }
+        
+        return BigDecimalProto.BigDecimal.newBuilder()
+                .setScale(bigDecimal.scale())
+                .setPrecision(bigDecimal.precision())
+                .setValue(com.google.protobuf.ByteString.copyFrom(bigDecimal.unscaledValue().toByteArray()))
+                .build();
+    }
 
-    out_files = []
-    if args.chunk and len(text) > args.threshold:
-        # İSTEDİĞİNİZ DEĞİŞİKLİK: klasörü baştan temizle ve çıktılarını buraya yaz
-        ensure_clean_dir(args.output_dir)
+    @org.mapstruct.Named("fromProtoBigDecimal")
+    default BigDecimal fromProtoBigDecimal(BigDecimalProto.BigDecimal protoBigDecimal) {
+        if (protoBigDecimal == null) {
+            return null;
+        }
+        
+        return new BigDecimal(
+            new java.math.BigInteger(protoBigDecimal.getValue().toByteArray()),
+            protoBigDecimal.getScale()
+        );
+    }
+}
 
-        pieces = chunk_text(text, args.chunk_size)
-        total = len(pieces)
-        width = len(str(total))
-        for i, p in enumerate(pieces, 1):
-            payload = u"[{}/{}]\n{}".format(i, total, p)
-            img = make_qr_image(payload, ecc, args.box_size, args.border)
-            # % biçimlendirme ile sıfır doldurma (Py2 güvenli)
-            num_str = ("%0" + str(width) + "d") % i
-            fname = os.path.join(args.output_dir, u"{prefix}_{num}.png".format(
-                prefix=args.output_prefix, num=num_str))
-            img.save(fname)
-            out_files.append(fname)
-        print(u"✓ {} parça üretildi → '{}' klasörüne kaydedildi.".format(total, args.output_dir))
-        for f in out_files:
-            print(" -", f)
-    else:
-        if len(text) > args.threshold and not args.chunk:
-            print("Uyarı: Metin uzun ({} karakter). --chunk kullanmanız önerilir."
-                  .format(len(text)), file=sys.stderr)
-        img = make_qr_image(text, ecc, args.box_size, args.border)
-        fname = u"{prefix}.png".format(prefix=args.output_prefix)
-        img.save(fname)
-        out_files.append(fname)
-        print("✓ Tek QR kaydedildi:", fname)
+// 3. Alternatif çözüm - Ayrı BigDecimalMapper ile
+package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.mapper;
 
-if __name__ == "__main__":
-    main()
+import com.garantibbva.ark.custom.proto.BigDecimalProto;
+import org.mapstruct.Mapper;
+
+import java.math.BigDecimal;
+
+@Mapper
+public interface BigDecimalMapper {
+
+    default BigDecimalProto.BigDecimal map(BigDecimal bigDecimal) {
+        if (bigDecimal == null) {
+            return null;
+        }
+        
+        return BigDecimalProto.BigDecimal.newBuilder()
+                .setScale(bigDecimal.scale())
+                .setPrecision(bigDecimal.precision())
+                .setValue(com.google.protobuf.ByteString.copyFrom(bigDecimal.unscaledValue().toByteArray()))
+                .build();
+    }
+
+    default BigDecimal map(BigDecimalProto.BigDecimal protoBigDecimal) {
+        if (protoBigDecimal == null) {
+            return null;
+        }
+        
+        return new BigDecimal(
+            new java.math.BigInteger(protoBigDecimal.getValue().toByteArray()),
+            protoBigDecimal.getScale()
+        );
+    }
+}
+
+// Bu durumda DigitalOrderMapper'ı şöyle güncelleyin:
+@Mapper(config = GrpcMapperConfig.class, uses = BigDecimalMapper.class)
+public interface DigitalOrderMapper {
+    // mapping methodları aynı kalır, BigDecimalMapper otomatik olarak kullanılır
+}
