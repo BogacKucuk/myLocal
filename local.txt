@@ -1,31 +1,21 @@
-type OpCodeObject = {
-  opCode1: string; // ör: "PR"
-  opCode: string;  // ör: "HES-KAS-KEN"
-};
+function formatDate(input: string): string {
+  // Örnek giriş: "2025-08-06T21:39:08.000+03:00"
+  const date = new Date(input);
 
-function getCode(obj: OpCodeObject, currency: string): string {
-  // İlk iki harf opCode1, kalanı opCode2
-  const opCode2 = obj.opCode;
+  // Yıl, ay, gün
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
 
-  // Burada tabloyu mapping olarak tutabilirsin
-  const codeMap: Record<string, { TL: string; YP: string }> = {
-    "PR-HES-KAS-KEN": { TL: "BO06", YP: "BK05" },
-    "PR-HES-KAS-FIS": { TL: "BO06", YP: "BK05" },
-    "PC-HES-KAS-FIS": { TL: "BO09", YP: "BK04" },
-    "PC-KAS-KEN":     { TL: "BO01", YP: "BK04" },
-  };
+  // Saat, dakika, saniye
+  const hours = String(date.getHours()).padStart(2, "0");
+  const minutes = String(date.getMinutes()).padStart(2, "0");
+  const seconds = String(date.getSeconds()).padStart(2, "0");
 
-  const key = `${obj.opCode1}-${opCode2}`;
-  const codes = codeMap[key];
-
-  if (!codes) {
-    throw new Error(`Tanımsız opCode kombinasyonu: ${key}`);
-  }
-
-  return currency === "TL" ? codes.TL : codes.YP;
+  return `${year}-${month}-${day} ${hours}:${minutes}:${seconds}`;
 }
 
-// Kullanım:
-const obj = { opCode1: "PR", opCode: "HES-KAS-KEN" };
-console.log(getCode(obj, "TL")); // "BO06"
-console.log(getCode(obj, "YP")); // "BK05"
+// Kullanım
+const input = "2025-08-06T21:39:08.000+03:00";
+console.log(formatDate(input)); 
+// Çıktı: "2025-08-06 21:39:08"
