@@ -1,20 +1,20 @@
-<EfaText css-display="flex" style={{ fontWeight: 'bold', alignItems: 'center' }}>
-  {(() => {
-    switch (props.pageMode) {
-      case 'C':
-        return "cccccc";
-      case 'H':
-        return "hhhhhh";
-      default:
-        return "default";
+type Branches = {
+  unitNum: number | string;
+  addressInfo: object;
+};
+
+function extractUniqueBranches(transactions: Transaction[]): Branches[] {
+  const uniqueUnits = new Set<number>();
+
+  return transactions.reduce<Branches[]>((acc, trx) => {
+    if (trx.ownerUnitNum != null && !uniqueUnits.has(trx.ownerUnitNum)) {
+      uniqueUnits.add(trx.ownerUnitNum);
+
+      acc.push({
+        unitNum: trx.ownerUnitNum,
+        addressInfo: {} // şimdilik boş, ihtiyaca göre doldurabilirsin
+      });
     }
-  })()}
-</EfaText>
-
-
-<EfaText css-display="flex" style={{ fontWeight: 'bold', alignItems: 'center' }}>
-  {{
-    C: "cccccc",
-    H: "hhhhhh",
-  }[props.pageMode] ?? "default"}
-</EfaText>
+    return acc;
+  }, []);
+}
