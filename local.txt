@@ -1,20 +1,234 @@
-type Branches = {
-  unitNum: number | string;
-  addressInfo: object;
+import React, { JSX, useEffect, useMemo, useRef, useState } from "react";
+import { EfaPopup } from "@efa-web-components/efa-popup";
+import { EfaButton } from "@efa-web-components/efa-button";
+import { t } from "@ark-technical-modules/ark-multilanguage";
+import { EfaLayoutRow, EfaLayoutColumn } from "@efa-web-components/efa-layout-liquid";
+import { EfaDatatable, EfaDatatableElement } from "@efa-web-components/efa-datatable";
+import styles from "./LastTransactionsPopupComponent.module.scss";
+
+import { useLazyGetLastTransactionsQuery } from "../../../store/apis/LastTransactionsApi";
+import { useLazyReadBranchQuery } from "../../../store/apis/BranchesApi";
+import { Transaction } from "../../../store/types/Transaction.type";
+import { useAppDispatch, useAppSelector } from "../../../store";
+import { StoredRequest } from "../../../types/StoredRequest.type";
+import { storedRequestActions } from "../../../store/slices/storedRequestSlice";
+
+type Props = {
+  id: string;
+  onClose: () => void;
+  visible: boolean;
+  dataTestId: string;
+  onPageModeChange: (next: string) => void;
 };
 
-function extractUniqueBranches(transactions: Transaction[]): Branches[] {
-  const uniqueUnits = new Set<number>();
+type Row = {
+  date: string;
+  branch: string | number | null;
+  account: string | number | null;
+  amount: string | number | null;
+  type: string | number | null;
+};
 
-  return transactions.reduce<Branches[]>((acc, trx) => {
-    if (trx.ownerUnitNum != null && !uniqueUnits.has(trx.ownerUnitNum)) {
-      uniqueUnits.add(trx.ownerUnitNum);
+type BranchInfo = {
+  name?: string;
+  addressInfo?: Record<string, unknown>;
+};
 
-      acc.push({
-        unitNum: trx.ownerUnitNum,
-        addressInfo: {} // şimdilik boş, ihtiyaca göre doldurabilirsin
-      });
+const LastTransactionsPopupComponent = ({
+  onClose,
+  dataTestId,
+  visible,
+  onPageModeChange,
+}: Props): JSX.Element => {
+  const dispatch = useAppDispatch();
+  const dataTableRef = useRef<EfaDatatableElement>(null);
+
+  const customerInfo = useAppSelector((state) => state.customerInfoReducer);
+
+  const [lastTransactions, setLastTransactions] = useState<Transaction[]>([]);
+  const [storedRequestState, setStoredRequestState] = useState<StoredRequest | null>(null);
+
+  // LAZY hooks
+  const [triggerLastTrx, { data: responseList = [], isLoading: trxLoading, error: trxError }] =
+    useLazyGetLastTransactionsQuery();
+  const [readBranchTrigger] = useLazyReadBranchQuery();
+
+  // Şube bilgilerini hafızada tutacağımız map
+  const [branchInfoMap, setBranchInfoMap] = useState<Record<number, BranchInfo>>({});
+
+  // Aynı unitNum için birden fazla fetch'i engellemek üzere "işaret defteri"
+  const fetchedUnitsRef = useRef<Set<number>>(new Set());
+
+  // Bu bileşen mount ömrü boyunca lastTransactions tetikleyicisini sadece 1 kez çalıştır
+  const didFetchRef = useRef(false);
+
+  // ---- Yardımcılar
+
+  const getOpCodeText = (obj: Transaction): string | undefined => {
+    const mapping: Record<string, string> = {
+      "PC KAS-KEN": "Para Çekme Kendisi",
+      "PC KAS-FIS": "Para Çekme Fiş ile (3.şahıs)",
+      "PR HES-KAS-KEN": "Provizyon Kasadan Kendisi",
+      "PR HES-KAS-FIS": "Provizyon Fiş ile (3.şahıs)",
+    };
+    const key = `${obj.financialFamilyCode} ${obj.financialSubFamilyCode}`;
+    return mapping[key];
+  };
+
+  const formatDate = (input: string): string => {
+    const d = new Date(input);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(
+      d.getMinutes()
+    )}:${pad(d.getSeconds())}`;
+  };
+
+  // lastTransactions'tan benzersiz unitNum listesi
+  const uniqueUnitNums = useMemo<number[]>(() => {
+    const set = new Set<number>();
+    for (const tx of lastTransactions) {
+      if (tx.ownerUnitNum != null) set.add(tx.ownerUnitNum);
     }
-    return acc;
-  }, []);
-}
+    return Array.from(set);
+  }, [lastTransactions]);
+
+  // İlk görünürlükte son işlemleri bir kez çek
+  useEffect(() => {
+    if (!visible) return; // sadece görünürken başlat
+    if (didFetchRef.current) return;
+    if (customerInfo?.customerNumber) {
+      didFetchRef.current = true; // işaretle
+      triggerLastTrx({ customerNumber: customerInfo.customerNumber });
+    }
+  }, [visible, customerInfo?.customerNumber, triggerLastTrx]);
+
+  // RTK Query response'u state'e al
+  useEffect(() => {
+    if ((responseList as any)?.transactions) {
+      setLastTransactions((responseList as any).transactions);
+    }
+  }, [responseList]);
+
+  // Benzersiz şubeler için eksik olanları (daha önce fetch edilmemiş) paralel getir
+  useEffect(() => {
+    if (!visible) return;
+    if (uniqueUnitNums.length === 0) return;
+
+    const toFetch = uniqueUnitNums.filter((u) => !fetchedUnitsRef.current.has(u));
+    if (toFetch.length === 0) return;
+
+    (async () => {
+      await Promise.all(
+        toFetch.map(async (unit) => {
+          try {
+            const res = await readBranchTrigger({ referenceNumber: unit }).unwrap();
+            setBranchInfoMap((prev) => ({
+              ...prev,
+              [unit]: {
+                name: (res as any).name,
+                addressInfo: (res as any).addressInfo,
+              },
+            }));
+          } catch (e) {
+            // Opsiyonel: log / toast
+            // console.error("Branch read error:", e);
+          } finally {
+            fetchedUnitsRef.current.add(unit);
+          }
+        })
+      );
+    })();
+  }, [visible, uniqueUnitNums, readBranchTrigger]);
+
+  // Tablonun satırlarını her veri geldiğinde türet
+  const rows: Row[] = useMemo(
+    () =>
+      lastTransactions.map((tx) => ({
+        date: formatDate(tx.processDate),
+        branch: tx.ownerUnitNum != null ? branchInfoMap[tx.ownerUnitNum]?.name ?? tx.ownerUnitNum : "",
+        account: `${tx.accountBranchCode}-${tx.customerAccountNum}`,
+        amount: `${tx.transactionAmount} ${tx.currencyCode}`,
+        type: getOpCodeText(tx),
+      })),
+    [lastTransactions, branchInfoMap]
+  );
+
+  useEffect(() => {
+    if (trxError) {
+      // Opsiyonel: log / toast
+      // console.error(trxError);
+    }
+  }, [trxError]);
+
+  const header = [
+    { label: "İşlem Tarihi" },
+    { label: "Şube" },
+    { label: "Hesap" },
+    { label: "Tutar" },
+    { label: "İşlem Tipi" },
+  ];
+
+  const body = [{ property: "date" }, { property: "branch" }, { property: "account" }, { property: "amount" }, { property: "type" }];
+
+  const closeButtonClicked = (): void => {
+    onClose();
+  };
+
+  const changePageModeToHistory = (): void => {
+    onPageModeChange("H");
+    if (storedRequestState !== null) {
+      dispatch(storedRequestActions.setAll(storedRequestState));
+    }
+    closeButtonClicked();
+  };
+
+  const onRowSelected = (e: CustomEvent & { detail: { data: { _index: number } } }): void => {
+    const index = e.detail.data._index;
+    const storedRequest: StoredRequest = JSON.parse(lastTransactions[index].requestText);
+    // İstediğiniz gibi boşaltma/ayar
+    if (storedRequest?.transactionInfo) {
+      (storedRequest.transactionInfo as any).tableData = [];
+    }
+    setStoredRequestState(storedRequest);
+  };
+
+  return (
+    <EfaPopup
+      header={t("last-transactions-popup|title")}
+      footer
+      visible={visible}
+      data-testid={dataTestId}
+      onClose={closeButtonClicked}
+      className={styles.lastTransactionsPopup}
+    >
+      <EfaLayoutRow>
+        <EfaLayoutColumn gridWidth={24}>
+          <EfaDatatable
+            ref={dataTableRef}
+            header={header}
+            body={body}
+            data={rows}
+            loading={trxLoading}
+            selectable
+            selectable-row
+            selectableSelectOne
+            onSelect={onRowSelected as any}
+          />
+        </EfaLayoutColumn>
+      </EfaLayoutRow>
+
+      <EfaLayoutRow slot={"footer"}>
+        <EfaLayoutColumn css-display="flex" css-justify-content="space-between">
+          <EfaButton type={"default"} data-testid="last-transactions-closeBtn" onClick={closeButtonClicked}>
+            {t("button-back")}
+          </EfaButton>
+          <EfaButton type={"success"} onClick={changePageModeToHistory}>
+            {t("last-transactions-popup|use-info-button")}
+          </EfaButton>
+        </EfaLayoutColumn>
+      </EfaLayoutRow>
+    </EfaPopup>
+  );
+};
+
+export default LastTransactionsPopupComponent;
