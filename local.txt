@@ -1,63 +1,159 @@
-// Service method'unuzun başına bu test kodu ekleyin:
+package com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.contract.impl;
 
-@Override
-public DigitalOrderReadResponseDto readDigitalOrder(DigitalOrderReadRequestDto requestDto) {
-    
-    // === MAPPER TEST START ===
-    System.out.println("=== MAPPER TEST START ===");
-    
-    try {
-        // Mock BigDecimal proto oluşturalım
-        BigDecimalProto.BigDecimal testProtoBigDecimal = BigDecimalProto.BigDecimal.newBuilder()
-            .setScale(2)
-            .setPrecision(5)
-            .setValue(com.google.protobuf.ByteString.copyFrom(new BigDecimal("123.45").unscaledValue().toByteArray()))
-            .build();
+import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.contract.DigitalOrderService;
+import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.mapper.DigitalOrderMapper;
+import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.model.request.DigitalOrderReadRequestDto;
+import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.model.response.DigitalOrderReadResponseDto;
+import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.model.response.ReadBranchInstructionDepositWithdrawalDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.DigitalOrderGrpcServiceGrpc.DigitalOrderGrpcServiceBlockingStub;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.DigitalOrderProto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.DigitalOrderProto.DigitalOrderReadRequest;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.DigitalOrderProto.DigitalOrderReadResponse;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.DigitalOrderProto.ReadBranchInstructionDepositWithdrawal;
+import com.garantibbvaportfoy.utility.bigdecimal.proto.BigDecimalProto;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.stereotype.Service;
+
+import java.math.BigDecimal;
+
+@Service
+public class DigitalOrderServiceImpl implements DigitalOrderService {
+
+    private final DigitalOrderGrpcServiceBlockingStub blockingStub;
+
+    @Autowired
+    public DigitalOrderServiceImpl(DigitalOrderGrpcServiceBlockingStub blockingStub) {
+        this.blockingStub = blockingStub;
+    }
+
+    @Override
+    public DigitalOrderReadResponseDto readDigitalOrder(DigitalOrderReadRequestDto requestDto) {
         
-        System.out.println("Test Proto BigDecimal created - scale: " + testProtoBigDecimal.getScale() + 
-            ", precision: " + testProtoBigDecimal.getPrecision() + 
-            ", valueSize: " + testProtoBigDecimal.getValue().size());
+        // === MAPPER TEST START ===
+        System.out.println("=== MAPPER TEST START ===");
         
-        // Mock gRPC item oluşturalım
-        ReadBranchInstructionDepositWithdrawal testGrpcItem = 
-            ReadBranchInstructionDepositWithdrawal.newBuilder()
-                .setInstructionId(12345L)
-                .setAmount(testProtoBigDecimal)
-                .setCurrencyCode("TRY")
+        try {
+            // Mock BigDecimal proto oluşturalım
+            BigDecimalProto.BigDecimal testProtoBigDecimal = BigDecimalProto.BigDecimal.newBuilder()
+                .setScale(2)
+                .setPrecision(5)
+                .setValue(com.google.protobuf.ByteString.copyFrom(new BigDecimal("123.45").unscaledValue().toByteArray()))
                 .build();
-        
-        System.out.println("Test gRPC item created - ID: " + testGrpcItem.getInstructionId() + 
-            ", hasAmount: " + testGrpcItem.hasAmount());
-        
-        // Mapper test
-        System.out.println("Testing mapper...");
-        ReadBranchInstructionDepositWithdrawalDto testDto = 
-            DigitalOrderMapper.INSTANCE.toReadBranchInstructionDepositWithdrawalDto(testGrpcItem);
-        
-        System.out.println("Mapper result - ID: " + testDto.getInstructionId() + 
-            ", amount: " + testDto.getAmount() + 
-            ", currency: " + testDto.getCurrencyCode());
-        
-        if (testDto.getAmount() == null) {
-            System.out.println("*** MAPPER TEST FAILED: Amount is NULL ***");
             
-            // Direct method test
-            System.out.println("Testing direct method call...");
-            BigDecimal directResult = DigitalOrderMapper.INSTANCE.fromProtoBigDecimal(testProtoBigDecimal);
-            System.out.println("Direct method result: " + directResult);
+            System.out.println("Test Proto BigDecimal created - scale: " + testProtoBigDecimal.getScale() + 
+                ", precision: " + testProtoBigDecimal.getPrecision() + 
+                ", valueSize: " + testProtoBigDecimal.getValue().size());
             
-        } else {
-            System.out.println("*** MAPPER TEST SUCCESS: Amount = " + testDto.getAmount() + " ***");
+            // Mock gRPC item oluşturalım
+            ReadBranchInstructionDepositWithdrawal testGrpcItem = 
+                ReadBranchInstructionDepositWithdrawal.newBuilder()
+                    .setInstructionId(12345L)
+                    .setAmount(testProtoBigDecimal)
+                    .setCurrencyCode("TRY")
+                    .build();
+            
+            System.out.println("Test gRPC item created - ID: " + testGrpcItem.getInstructionId() + 
+                ", hasAmount: " + testGrpcItem.hasAmount());
+            
+            // Mapper test
+            System.out.println("Testing mapper...");
+            ReadBranchInstructionDepositWithdrawalDto testDto = 
+                DigitalOrderMapper.INSTANCE.toReadBranchInstructionDepositWithdrawalDto(testGrpcItem);
+            
+            System.out.println("Mapper result - ID: " + testDto.getInstructionId() + 
+                ", amount: " + testDto.getAmount() + 
+                ", currency: " + testDto.getCurrencyCode());
+            
+            if (testDto.getAmount() == null) {
+                System.out.println("*** MAPPER TEST FAILED: Amount is NULL ***");
+                
+                // Direct method test
+                System.out.println("Testing direct method call...");
+                BigDecimal directResult = DigitalOrderMapper.INSTANCE.fromProtoBigDecimal(testProtoBigDecimal);
+                System.out.println("Direct method result: " + directResult);
+                
+            } else {
+                System.out.println("*** MAPPER TEST SUCCESS: Amount = " + testDto.getAmount() + " ***");
+            }
+            
+        } catch (Exception e) {
+            System.out.println("*** MAPPER TEST ERROR: " + e.getMessage());
+            e.printStackTrace();
         }
         
-    } catch (Exception e) {
-        System.out.println("*** MAPPER TEST ERROR: " + e.getMessage());
-        e.printStackTrace();
+        System.out.println("=== MAPPER TEST END ===");
+        
+        // === GERÇEK SERVICE BAŞLIYOR ===
+        try {
+            System.out.println("=== CHANNEL SERVICE DEBUG START ===");
+            System.out.println("Input request DTO: " + requestDto);
+
+            // 1. Request mapping
+            DigitalOrderReadRequest grpcRequest = DigitalOrderMapper.INSTANCE.toGrpcRequest(requestDto);
+            System.out.println("Mapped gRPC request - hasAmount: " + grpcRequest.hasAmount());
+            if (grpcRequest.hasAmount()) {
+                System.out.println("gRPC request amount: scale=" + grpcRequest.getAmount().getScale() +
+                    ", precision=" + grpcRequest.getAmount().getPrecision() +
+                    ", valueSize=" + grpcRequest.getAmount().getValue().size());
+            }
+
+            // 2. gRPC call
+            System.out.println("Making gRPC call...");
+            DigitalOrderReadResponse grpcResponse = blockingStub.readDigitalOrder(grpcRequest);
+            
+            // 3. gRPC response kontrolü
+            System.out.println("gRPC response received - item count: " + 
+                grpcResponse.getReadBranchInstructionDepositWithdrawalCount());
+            
+            grpcResponse.getReadBranchInstructionDepositWithdrawalList().forEach(grpcItem -> {
+                System.out.println("gRPC response item - ID: " + grpcItem.getInstructionId() + 
+                    ", hasAmount: " + grpcItem.hasAmount());
+                
+                if (grpcItem.hasAmount()) {
+                    System.out.println("gRPC response amount - scale: " + grpcItem.getAmount().getScale() +
+                        ", precision: " + grpcItem.getAmount().getPrecision() +
+                        ", valueSize: " + grpcItem.getAmount().getValue().size());
+                } else {
+                    System.out.println("*** WARNING: gRPC response item has NO amount field! ***");
+                }
+            });
+
+            // 4. Response mapping
+            System.out.println("Starting response mapping...");
+            DigitalOrderReadResponseDto responseDto = DigitalOrderMapper.INSTANCE.toResponseDto(grpcResponse);
+            
+            // 5. Mapped response kontrolü
+            if (responseDto == null) {
+                System.out.println("*** ERROR: Response DTO is NULL after mapping! ***");
+                return null;
+            }
+            
+            if (responseDto.getReadBranchInstructionDepositWithdrawal() == null) {
+                System.out.println("*** ERROR: Response DTO list is NULL after mapping! ***");
+                return responseDto;
+            }
+            
+            System.out.println("Response DTO mapped - item count: " + 
+                responseDto.getReadBranchInstructionDepositWithdrawal().size());
+            
+            responseDto.getReadBranchInstructionDepositWithdrawal().forEach(dtoItem -> {
+                System.out.println("Response DTO item - ID: " + dtoItem.getInstructionId() + 
+                    ", amount: " + dtoItem.getAmount());
+                
+                if (dtoItem.getAmount() == null) {
+                    System.out.println("*** ERROR: DTO item amount is NULL! This is the problem! ***");
+                } else {
+                    System.out.println("SUCCESS: DTO item amount: " + dtoItem.getAmount());
+                }
+            });
+            
+            System.out.println("=== CHANNEL SERVICE DEBUG END ===");
+            return responseDto;
+            
+        } catch (Exception e) {
+            System.out.println("*** ERROR in readDigitalOrder: " + e.getMessage());
+            e.printStackTrace();
+            throw e;
+        }
     }
-    
-    System.out.println("=== MAPPER TEST END ===");
-    
-    // Gerçek kod devam eder...
-    DigitalOrderReadRequest grpcRequest = DigitalOrderMapper.INSTANCE.toGrpcRequest(requestDto);
-    // ... rest of your code
 }
