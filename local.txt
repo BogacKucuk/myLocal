@@ -1,2 +1,151 @@
+package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.mapper;
+
+import com.garanti.ark.base.utility.grpc.mapper.GrpcMapperConfig;
+import com.garanti.branchinstructionmanagement.business.proto.v0.BranchInstruction.ReadBranchInstructionDepositWithdrawalRequest;
+import com.garanti.branchinstructionmanagement.business.proto.v0.BranchInstruction.ReadBranchInstructionDepositWithdrawalResponse;
+import com.garanti.branchinstructionmanagement.business.proto.v0.BranchInstruction.ReadBranchInstructionDepositWithdrawal;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.DigitalOrderReadRequestDto;
+import com.garantibbva.depositwithdrawal.moneywithdrawbusiness.service.contract.model.response.DigitalOrderReadResponseDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response.ReadBranchInstructionDepositWithdrawalDto;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.NullValueCheckStrategy;
+import org.mapstruct.NullValueMappingStrategy;
+import org.mapstruct.NullValuePropertyMappingStrategy;
+import org.mapstruct.factory.Mappers;
+
+@Mapper(nullValueCheckStrategy = NullValueCheckStrategy.ALWAYS,
+    nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_DEFAULT,
+    nullValueMappingStrategy = NullValueMappingStrategy.RETURN_DEFAULT,
+    config = GrpcMapperConfig.class,
+    uses = BigDecimalMapper.class)
+public interface DigitalOrderMapper {
+
+  DigitalOrderMapper INSTANCE = Mappers.getMapper(DigitalOrderMapper.class);
+
+  ReadBranchInstructionDepositWithdrawalRequest toDigitalOrderGrpcRequest(
+      DigitalOrderReadRequestDto requestDto);
+
+  // Explicit mapping ile deneyelim
+  @Mapping(target = "readBranchInstructionDepositWithdrawal", 
+           source = "readBranchInstructionDepositWithdrawalList")
+  DigitalOrderReadResponseDto toResponseDto(
+      ReadBranchInstructionDepositWithdrawalResponse grpcResponse);
+  
+  // Liste elemanları için mapping method
   ReadBranchInstructionDepositWithdrawalDto toReadBranchInstructionDepositWithdrawalDto(
       ReadBranchInstructionDepositWithdrawal grpcItem);
+      
+  // Alternative: Manual mapping method for debugging
+  default DigitalOrderReadResponseDto toResponseDtoManual(
+      ReadBranchInstructionDepositWithdrawalResponse grpcResponse) {
+    
+    System.out.println("gRPC Response: " + grpcResponse);
+    System.out.println("List size: " + 
+        (grpcResponse.getReadBranchInstructionDepositWithdrawalList() != null ? 
+         grpcResponse.getReadBranchInstructionDepositWithdrawalList().size() : "null"));
+    
+    if (grpcResponse.getReadBranchInstructionDepositWithdrawalList() == null || 
+        grpcResponse.getReadBranchInstructionDepositWithdrawalList().isEmpty()) {
+      return DigitalOrderReadResponseDto.builder()
+          .readBranchInstructionDepositWithdrawal(new ArrayList<>())
+          .build();
+    }
+    
+    List<ReadBranchInstructionDepositWithdrawalDto> dtoList = 
+        grpcResponse.getReadBranchInstructionDepositWithdrawalList()
+            .stream()
+            .map(this::toReadBranchInstructionDepositWithdrawalDto)
+            .collect(Collectors.toList());
+            
+    return DigitalOrderReadResponseDto.builder()
+        .readBranchInstructionDepositWithdrawal(dtoList)
+        .build();
+  }
+}
+
+
+*****************************************************************************************************
+
+
+package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.mapper;
+
+import com.garanti.ark.base.utility.grpc.mapper.GrpcMapperConfig;
+import com.garanti.branchinstructionmanagement.business.proto.v0.BranchInstruction.ReadBranchInstructionDepositWithdrawalRequest;
+import com.garanti.branchinstructionmanagement.business.proto.v0.BranchInstruction.ReadBranchInstructionDepositWithdrawalResponse;
+import com.garanti.branchinstructionmanagement.business.proto.v0.BranchInstruction.ReadBranchInstructionDepositWithdrawal;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.DigitalOrderReadRequestDto;
+import com.garantibbva.depositwithdrawal.moneywithdrawbusiness.service.contract.model.response.DigitalOrderReadResponseDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response.ReadBranchInstructionDepositWithdrawalDto;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.NullValueCheckStrategy;
+import org.mapstruct.NullValueMappingStrategy;
+import org.mapstruct.NullValuePropertyMappingStrategy;
+import org.mapstruct.factory.Mappers;
+
+@Mapper(nullValueCheckStrategy = NullValueCheckStrategy.ALWAYS,
+    nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.SET_TO_DEFAULT,
+    nullValueMappingStrategy = NullValueMappingStrategy.RETURN_DEFAULT,
+    config = GrpcMapperConfig.class,
+    uses = BigDecimalMapper.class)
+public interface DigitalOrderMapper {
+
+  DigitalOrderMapper INSTANCE = Mappers.getMapper(DigitalOrderMapper.class);
+
+  ReadBranchInstructionDepositWithdrawalRequest toDigitalOrderGrpcRequest(
+      DigitalOrderReadRequestDto requestDto);
+
+  // Farklı field adları ile deneyelim
+  @Mapping(target = "readBranchInstructionDepositWithdrawal", 
+           source = "readBranchInstructionDepositWithdrawalList")
+  DigitalOrderReadResponseDto toResponseDto(
+      ReadBranchInstructionDepositWithdrawalResponse grpcResponse);
+      
+  // Alternatif field adı ile
+  @Mapping(target = "readBranchInstructionDepositWithdrawal", 
+           source = "readBranchInstructionDepositWithdrawal_")  
+  DigitalOrderReadResponseDto toResponseDtoAlt(
+      ReadBranchInstructionDepositWithdrawalResponse grpcResponse);
+  
+  // Liste elemanları için mapping method
+  ReadBranchInstructionDepositWithdrawalDto toReadBranchInstructionDepositWithdrawalDto(
+      ReadBranchInstructionDepositWithdrawal grpcItem);
+      
+  // Alternative: Manual mapping method for debugging
+  default DigitalOrderReadResponseDto toResponseDtoManual(
+      ReadBranchInstructionDepositWithdrawalResponse grpcResponse) {
+    
+    System.out.println("gRPC Response: " + grpcResponse);
+    System.out.println("List size: " + 
+        (grpcResponse.getReadBranchInstructionDepositWithdrawalList() != null ? 
+         grpcResponse.getReadBranchInstructionDepositWithdrawalList().size() : "null"));
+    
+    if (grpcResponse.getReadBranchInstructionDepositWithdrawalList() == null || 
+        grpcResponse.getReadBranchInstructionDepositWithdrawalList().isEmpty()) {
+      return DigitalOrderReadResponseDto.builder()
+          .readBranchInstructionDepositWithdrawal(new ArrayList<>())
+          .build();
+    }
+    
+    List<ReadBranchInstructionDepositWithdrawalDto> dtoList = 
+        grpcResponse.getReadBranchInstructionDepositWithdrawalList()
+            .stream()
+            .map(this::toReadBranchInstructionDepositWithdrawalDto)
+            .collect(Collectors.toList());
+            
+    return DigitalOrderReadResponseDto.builder()
+        .readBranchInstructionDepositWithdrawal(dtoList)
+        .build();
+  }
+}
+
+
+-------------------------------------------------------------------------------------------------------------
+
+// Debug için
+ReadBranchInstructionDepositWithdrawalResponse grpcResponse = // your grpc call
+System.out.println("Available methods: ");
+Arrays.stream(grpcResponse.getClass().getMethods())
+    .filter(m -> m.getName().contains("read") || m.getName().contains("Read"))
+    .forEach(m -> System.out.println(m.getName()));
