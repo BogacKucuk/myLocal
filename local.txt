@@ -1,192 +1,63 @@
-package com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.contract.impl;
+// Service method'unuzun başına bu test kodu ekleyin:
 
-import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.contract.DigitalOrderService;
-import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.mapper.DigitalOrderMapper;
-import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.model.request.DigitalOrderReadRequestDto;
-import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.model.response.DigitalOrderReadResponseDto;
-import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.DigitalOrderGrpcServiceGrpc.DigitalOrderGrpcServiceBlockingStub;
-import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.DigitalOrderProto;
-import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.DigitalOrderProto.DigitalOrderReadRequest;
-import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.DigitalOrderProto.DigitalOrderReadResponse;
-import lombok.extern.slf4j.Slf4j;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.stereotype.Service;
-
-@Slf4j
-@Service
-public class DigitalOrderServiceImpl implements DigitalOrderService {
-
-    private final DigitalOrderGrpcServiceBlockingStub blockingStub;
-
-    @Autowired
-    public DigitalOrderServiceImpl(DigitalOrderGrpcServiceBlockingStub blockingStub) {
-        this.blockingStub = blockingStub;
-    }
-
-    @Override
-    public DigitalOrderReadResponseDto readDigitalOrder(DigitalOrderReadRequestDto requestDto) {
-        try {
-            log.debug("=== CHANNEL SERVICE DEBUG START ===");
-            log.debug("Input request DTO: {}", requestDto);
-
-            // 1. Request mapping
-            DigitalOrderReadRequest grpcRequest = DigitalOrderMapper.INSTANCE.toGrpcRequest(requestDto);
-            log.debug("Mapped gRPC request - hasAmount: {}", grpcRequest.hasAmount());
-            if (grpcRequest.hasAmount()) {
-                log.debug("gRPC request amount: scale={}, precision={}, valueSize={}", 
-                    grpcRequest.getAmount().getScale(),
-                    grpcRequest.getAmount().getPrecision(),
-                    grpcRequest.getAmount().getValue().size());
-            }
-
-            // 2. gRPC call
-            log.debug("Making gRPC call...");
-            DigitalOrderReadResponse grpcResponse = blockingStub.readDigitalOrder(grpcRequest);
-            
-            // 3. gRPC response kontrolü
-            log.debug("gRPC response received - item count: {}", 
-                grpcResponse.getReadBranchInstructionDepositWithdrawalCount());
-            
-            grpcResponse.getReadBranchInstructionDepositWithdrawalList().forEach(grpcItem -> {
-                log.debug("gRPC response item - ID: {}, hasAmount: {}", 
-                    grpcItem.getInstructionId(), grpcItem.hasAmount());
-                
-                if (grpcItem.hasAmount()) {
-                    log.debug("gRPC response amount - scale: {}, precision: {}, valueSize: {}", 
-                        grpcItem.getAmount().getScale(),
-                        grpcItem.getAmount().getPrecision(),
-                        grpcItem.getAmount().getValue().size());
-                } else {
-                    log.warn("gRPC response item has NO amount field!");
-                }
-            });
-
-            // 4. Response mapping
-            log.debug("Starting response mapping...");
-            DigitalOrderReadResponseDto responseDto = DigitalOrderMapper.INSTANCE.toResponseDto(grpcResponse);
-            
-            // 5. Mapped response kontrolü
-            if (responseDto == null) {
-                log.error("Response DTO is NULL after mapping!");
-                return null;
-            }
-            
-            if (responseDto.getReadBranchInstructionDepositWithdrawal() == null) {
-                log.error("Response DTO list is NULL after mapping!");
-                return responseDto;
-            }
-            
-            log.debug("Response DTO mapped - item count: {}", 
-                responseDto.getReadBranchInstructionDepositWithdrawal().size());
-            
-            responseDto.getReadBranchInstructionDepositWithdrawal().forEach(dtoItem -> {
-                log.debug("Response DTO item - ID: {}, amount: {}", 
-                    dtoItem.getInstructionId(), dtoItem.getAmount());
-                
-                if (dtoItem.getAmount() == null) {
-                    log.error("DTO item amount is NULL! This is the problem!");
-                } else {
-                    log.debug("DTO item amount: {}", dtoItem.getAmount());
-                }
-            });
-            
-            log.debug("=== CHANNEL SERVICE DEBUG END ===");
-            return responseDto;
-            
-        } catch (Exception e) {
-            log.error("Error in readDigitalOrder", e);
-            throw e;
-        }
-    }
-}
-
-// Ek olarak, mapper'ın çalışıp çalışmadığını test etmek için basit bir test methodu
-package com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.mapper;
-
-import com.garantibbvaportfoy.utility.bigdecimal.proto.BigDecimalProto;
-import lombok.extern.slf4j.Slf4j;
-import java.math.BigDecimal;
-
-@Slf4j
-public class BigDecimalMapperTest {
+@Override
+public DigitalOrderReadResponseDto readDigitalOrder(DigitalOrderReadRequestDto requestDto) {
     
-    public static void testMapping() {
-        try {
-            // Test 1: Java -> Proto
-            BigDecimal javaBigDecimal = new BigDecimal("123.45");
-            log.debug("Original Java BigDecimal: {}", javaBigDecimal);
-            
-            BigDecimalProto.BigDecimal protoBigDecimal = BigDecimalProto.BigDecimal.newBuilder()
-                .setScale((int) javaBigDecimal.scale())
-                .setPrecision(javaBigDecimal.precision())
-                .setValue(com.google.protobuf.ByteString.copyFrom(javaBigDecimal.unscaledValue().toByteArray()))
+    // === MAPPER TEST START ===
+    System.out.println("=== MAPPER TEST START ===");
+    
+    try {
+        // Mock BigDecimal proto oluşturalım
+        BigDecimalProto.BigDecimal testProtoBigDecimal = BigDecimalProto.BigDecimal.newBuilder()
+            .setScale(2)
+            .setPrecision(5)
+            .setValue(com.google.protobuf.ByteString.copyFrom(new BigDecimal("123.45").unscaledValue().toByteArray()))
+            .build();
+        
+        System.out.println("Test Proto BigDecimal created - scale: " + testProtoBigDecimal.getScale() + 
+            ", precision: " + testProtoBigDecimal.getPrecision() + 
+            ", valueSize: " + testProtoBigDecimal.getValue().size());
+        
+        // Mock gRPC item oluşturalım
+        ReadBranchInstructionDepositWithdrawal testGrpcItem = 
+            ReadBranchInstructionDepositWithdrawal.newBuilder()
+                .setInstructionId(12345L)
+                .setAmount(testProtoBigDecimal)
+                .setCurrencyCode("TRY")
                 .build();
+        
+        System.out.println("Test gRPC item created - ID: " + testGrpcItem.getInstructionId() + 
+            ", hasAmount: " + testGrpcItem.hasAmount());
+        
+        // Mapper test
+        System.out.println("Testing mapper...");
+        ReadBranchInstructionDepositWithdrawalDto testDto = 
+            DigitalOrderMapper.INSTANCE.toReadBranchInstructionDepositWithdrawalDto(testGrpcItem);
+        
+        System.out.println("Mapper result - ID: " + testDto.getInstructionId() + 
+            ", amount: " + testDto.getAmount() + 
+            ", currency: " + testDto.getCurrencyCode());
+        
+        if (testDto.getAmount() == null) {
+            System.out.println("*** MAPPER TEST FAILED: Amount is NULL ***");
             
-            log.debug("Converted to Proto - scale: {}, precision: {}, valueSize: {}", 
-                protoBigDecimal.getScale(), protoBigDecimal.getPrecision(), 
-                protoBigDecimal.getValue().size());
+            // Direct method test
+            System.out.println("Testing direct method call...");
+            BigDecimal directResult = DigitalOrderMapper.INSTANCE.fromProtoBigDecimal(testProtoBigDecimal);
+            System.out.println("Direct method result: " + directResult);
             
-            // Test 2: Proto -> Java
-            BigDecimal convertedBack = new BigDecimal(
-                new java.math.BigInteger(protoBigDecimal.getValue().toByteArray()),
-                (int) protoBigDecimal.getScale()
-            );
-            
-            log.debug("Converted back to Java: {}", convertedBack);
-            log.debug("Are equal: {}", javaBigDecimal.compareTo(convertedBack) == 0);
-            
-        } catch (Exception e) {
-            log.error("Error in BigDecimal mapping test", e);
+        } else {
+            System.out.println("*** MAPPER TEST SUCCESS: Amount = " + testDto.getAmount() + " ***");
         }
+        
+    } catch (Exception e) {
+        System.out.println("*** MAPPER TEST ERROR: " + e.getMessage());
+        e.printStackTrace();
     }
+    
+    System.out.println("=== MAPPER TEST END ===");
+    
+    // Gerçek kod devam eder...
+    DigitalOrderReadRequest grpcRequest = DigitalOrderMapper.INSTANCE.toGrpcRequest(requestDto);
+    // ... rest of your code
 }
-
-// Channel katmanındaki DTO'ların yapısını da kontrol edin
-// ReadBranchInstructionDepositWithdrawalDto şöyle olmalı:
-/*
-package com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.model.response;
-
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import java.math.BigDecimal;
-
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class ReadBranchInstructionDepositWithdrawalDto {
-    private Long instructionId;
-    private Integer customerNum;
-    private Integer accountNumber;
-    private Integer branchCode;
-    private BigDecimal amount;  // Bu alan mapping'de null geliyor
-    private String currencyCode;
-    private String identityNumber;
-    private String documentId;
-    private String transactionDate;
-    private String status;
-    private Integer transactionType;
-    private Integer processUnitNum;
-}
-*/
-
-// DigitalOrderReadResponseDto da kontrol edilmeli:
-/*
-package com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.model.response;
-
-import lombok.AllArgsConstructor;
-import lombok.Builder;
-import lombok.Data;
-import lombok.NoArgsConstructor;
-import java.util.List;
-
-@Data
-@Builder
-@NoArgsConstructor
-@AllArgsConstructor
-public class DigitalOrderReadResponseDto {
-    private List<ReadBranchInstructionDepositWithdrawalDto> readBranchInstructionDepositWithdrawal;
-}
-*/
