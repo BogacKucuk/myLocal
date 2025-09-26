@@ -1,49 +1,78 @@
-package com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.mapper;
+package com.garantibbva.depositwithdrawalmngt.depositwithdrawalevent.service.impl;
 
-import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.mapper.config.GrpcMapperConfig;
-import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.model.request.DigitalOrderReadRequestDto;
-import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.model.response.DigitalOrderReadResponseDto;
-import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.model.response.ReadBranchInstructionDepositWithdrawalDto;
-import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.DigitalOrderProto;
-import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.DigitalOrderProto.ReadBranchInstructionDepositWithdrawal;
-import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
-import org.mapstruct.factory.Mappers;
+import com.garanti.ark.base.logging.Logger;
+import com.garanti.ark.base.logging.LoggerManager;
+import com.garantibbva.depositwithdrawalmngt.depositwithdrawalevent.service.contract.DepositWithdrawEventService;
+import com.garantibbva.depositwithdrawalmngt.depositwithdrawalevent.service.contract.model.DepositWithdrawEventRequestDto;
+import org.springframework.stereotype.Service;
 
-import java.util.List;
-import java.util.stream.Collectors;
+@Service
+public class DepositWithdrawEventServiceImpl implements DepositWithdrawEventService {
 
-@Mapper(config = GrpcMapperConfig.class)
-public interface DigitalOrderMapper {
+  private final Logger logger;
 
-    DigitalOrderMapper INSTANCE = Mappers.getMapper(DigitalOrderMapper.class);
+  /** Spring için varsayılan ctor (public bırakıyoruz). */
+  public DepositWithdrawEventServiceImpl() {
+    this(LoggerManager.getLogger(DepositWithdrawEventServiceImpl.class));
+  }
 
-    // Request mapping - BigDecimalMapper otomatik kullanılacak
-    DigitalOrderProto.DigitalOrderReadRequest toGrpcRequest(DigitalOrderReadRequestDto requestDto);
+  /** Test kolaylığı için ikinci ctor (package-private). */
+  DepositWithdrawEventServiceImpl(Logger logger) {
+    this.logger = logger;
+  }
 
-    // Response mapping - Manuel yapıyoruz çünkü field name mismatch var
-    default DigitalOrderReadResponseDto toResponseDto(DigitalOrderProto.DigitalOrderReadResponse grpcResponse) {
-        if (grpcResponse == null) {
-            return null;
-        }
-        
-        DigitalOrderReadResponseDto responseDto = new DigitalOrderReadResponseDto();
-        
-        // Liste mapping - her bir gRPC item'ı DTO'ya çeviriyoruz
-        if (grpcResponse.getReadBranchInstructionDepositWithdrawalList() != null) {
-            List<ReadBranchInstructionDepositWithdrawalDto> dtoList = 
-                grpcResponse.getReadBranchInstructionDepositWithdrawalList()
-                    .stream()
-                    .map(this::toReadBranchInstructionDepositWithdrawalDto)
-                    .collect(Collectors.toList());
-            
-            responseDto.setReadBranchInstructionDepositWithdrawal(dtoList);
-        }
-        
-        return responseDto;
-    }
+  @Override
+  public void consumeMessage(DepositWithdrawEventRequestDto requestDto) {
+    // dummy amaçlı, sadece bir örnek nesne oluşturuyoruz (kullanılmıyor).
+    DepositWithdrawEventRequestDto dummy = new DepositWithdrawEventRequestDto();
 
-    // Nested object mapping - BigDecimalMapper otomatik kullanılacak
-    ReadBranchInstructionDepositWithdrawalDto toReadBranchInstructionDepositWithdrawalDto(
-        ReadBranchInstructionDepositWithdrawal grpcItem);
+    // null güvenliği ile logla
+    String text = (requestDto != null) ? requestDto.toString() : "null";
+    logger.info(text);
+  }
 }
+
+
+package com.garantibbva.depositwithdrawalmngt.depositwithdrawalevent.service.impl;
+
+import com.garanti.ark.base.logging.Logger;
+import com.garantibbva.depositwithdrawalmngt.depositwithdrawalevent.service.contract.model.DepositWithdrawEventRequestDto;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class DepositWithdrawEventServiceImplTest {
+
+  @Mock
+  Logger logger;
+
+  @InjectMocks
+  DepositWithdrawEventServiceImpl service; // package-private ctor ile enjekte edilir
+
+  @Test
+  void consumeMessage_logsDtoString_once_andDoesNotThrow() {
+    // dto'yu mock'layıp toString sonucunu sabitliyoruz
+    DepositWithdrawEventRequestDto dto = mock(DepositWithdrawEventRequestDto.class);
+    when(dto.toString()).thenReturn("DTO_STRING");
+
+    assertDoesNotThrow(() -> service.consumeMessage(dto));
+
+    verify(logger, times(1)).info("DTO_STRING");
+    verifyNoMoreInteractions(logger);
+  }
+
+  @Test
+  void consumeMessage_withNull_logsNullSafely() {
+    assertDoesNotThrow(() -> service.consumeMessage(null));
+
+    verify(logger, times(1)).info("null");
+    verifyNoMoreInteractions(logger);
+  }
+}
+
