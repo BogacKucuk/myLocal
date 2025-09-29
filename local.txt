@@ -4,10 +4,10 @@ import com.garanti.branchinstructionmanagement.business.proto.v0.BranchInstructi
 import com.garanti.branchinstructionmanagement.business.proto.v0.BranchInstruction.ReadBranchInstructionDepositWithdrawalRequest;
 import com.garanti.branchinstructionmanagement.business.proto.v0.BranchInstruction.ReadBranchInstructionDepositWithdrawalResponse;
 import com.garanti.branchinstructionmanagement.business.proto.v0.BranchInstructionGrpcServiceGrpc.BranchInstructionGrpcServiceBlockingStub;
+import com.garantibbva.ark.custom.proto.BigDecimalProto;
 import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.DigitalOrderReadRequestDto;
 import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response.DigitalOrderReadResponseDto;
 import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response.ReadBranchInstructionDepositWithdrawalDto;
-import com.garantibbvaportfoy.utility.bigdecimal.proto.BigDecimalProto;
 import com.google.protobuf.ByteString;
 import io.grpc.Status;
 import io.grpc.StatusRuntimeException;
@@ -53,7 +53,8 @@ class DigitalOrderServiceImplTest {
                 .processUnitNum(10)
                 .build();
 
-        BigDecimalProto.BigDecimal protoAmount = createProtoBigDecimal(new BigDecimal("1000.00"));
+        // Dış servisin BigDecimal proto tipini kullanıyoruz
+        BigDecimalProto.BigDecimal protoAmount = createExternalProtoBigDecimal(new BigDecimal("1000.00"));
 
         ReadBranchInstructionDepositWithdrawal grpcInstruction = 
                 ReadBranchInstructionDepositWithdrawal.newBuilder()
@@ -76,7 +77,8 @@ class DigitalOrderServiceImplTest {
                 .build();
     }
 
-    private BigDecimalProto.BigDecimal createProtoBigDecimal(BigDecimal value) {
+    // Dış servisin BigDecimal proto tipini oluştur (com.garantibbva.ark.custom.proto)
+    private BigDecimalProto.BigDecimal createExternalProtoBigDecimal(BigDecimal value) {
         if (value == null) {
             return BigDecimalProto.BigDecimal.getDefaultInstance();
         }
@@ -143,8 +145,8 @@ class DigitalOrderServiceImplTest {
     @Test
     void readDigitalOrder_whenGrpcReturnsMultipleInstructions_shouldReturnAllInstructions() {
         // Given
-        BigDecimalProto.BigDecimal amount1 = createProtoBigDecimal(new BigDecimal("1000.00"));
-        BigDecimalProto.BigDecimal amount2 = createProtoBigDecimal(new BigDecimal("2000.00"));
+        BigDecimalProto.BigDecimal amount1 = createExternalProtoBigDecimal(new BigDecimal("1000.00"));
+        BigDecimalProto.BigDecimal amount2 = createExternalProtoBigDecimal(new BigDecimal("2000.00"));
 
         ReadBranchInstructionDepositWithdrawal instruction1 = 
                 ReadBranchInstructionDepositWithdrawal.newBuilder()
@@ -308,7 +310,7 @@ class DigitalOrderServiceImplTest {
     @Test
     void readDigitalOrder_whenResponseWithAllFields_shouldMapAllFieldsCorrectly() {
         // Given
-        BigDecimalProto.BigDecimal fullAmount = createProtoBigDecimal(new BigDecimal("5000.75"));
+        BigDecimalProto.BigDecimal fullAmount = createExternalProtoBigDecimal(new BigDecimal("5000.75"));
 
         ReadBranchInstructionDepositWithdrawal fullInstruction = 
                 ReadBranchInstructionDepositWithdrawal.newBuilder()
@@ -401,7 +403,7 @@ class DigitalOrderServiceImplTest {
     void readDigitalOrder_whenAmountHasMultipleDecimalPlaces_shouldPreservePrecision() {
         // Given
         BigDecimal preciseAmount = new BigDecimal("1234.56789");
-        BigDecimalProto.BigDecimal protoPreciseAmount = createProtoBigDecimal(preciseAmount);
+        BigDecimalProto.BigDecimal protoPreciseAmount = createExternalProtoBigDecimal(preciseAmount);
 
         ReadBranchInstructionDepositWithdrawal preciseInstruction = 
                 ReadBranchInstructionDepositWithdrawal.newBuilder()
