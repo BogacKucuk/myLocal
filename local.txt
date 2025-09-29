@@ -1,18 +1,20 @@
-package com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.contract.impl;
+package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.grpc.impl;
 
-import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.mapper.DigitalOrderMapper;
-import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.model.request.DigitalOrderReadRequestDto;
-import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.model.response.DigitalOrderReadResponseDto;
-import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.model.response.ReadBranchInstructionDepositWithdrawalDto;
-import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.DigitalOrderGrpcServiceGrpc.DigitalOrderGrpcServiceBlockingStub;
-import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.DigitalOrderProto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.DigitalOrderProto.DigitalOrderReadRequest;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.DigitalOrderProto.DigitalOrderReadResponse;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.DigitalOrderProto.ReadBranchInstructionDepositWithdrawal;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.DigitalOrderService;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.DigitalOrderReadRequestDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response.DigitalOrderReadResponseDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response.ReadBranchInstructionDepositWithdrawalDto;
 import com.garantibbvaportfoy.utility.bigdecimal.proto.BigDecimalProto;
 import com.google.protobuf.ByteString;
-import io.grpc.Status;
-import io.grpc.StatusRuntimeException;
+import io.grpc.stub.StreamObserver;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Captor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -26,18 +28,359 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
+class DigitalOrderGrpcServiceImplTest {
+
+    @Mock
+    private DigitalOrderService digitalOrderService;
+
+    @Mock
+    private StreamObserver<DigitalOrderReadResponse> responseObserver;
+
+    @InjectMocks
+    private DigitalOrderGrpcServiceImpl digitalOrderGrpcService;
+
+    @Captor
+    private ArgumentCaptor<DigitalOrderReadResponse> responseCaptor;
+
+    private DigitalOrderReadRequest grpcRequest;
+    private DigitalOrderReadResponseDto serviceResponseDto;
+
+    @BeforeEach
+    void setUp() {
+        BigDecimalProto.BigDecimal protoAmount = createProtoBigDecimal(new BigDecimal("1000.00"));
+
+        grpcRequest = DigitalOrderReadRequest.newBuilder()
+                .setInstructionId(12345L)
+                .setCustomerNum(100001)
+                .setAccountNumber(200001)
+                .setBranchCode(500)
+                .setAmount(protoAmount)
+                .setCurrencyCode("TRY")
+                .setIdentityNumber("12345678901")
+                .setDocumentId("DOC123")
+                .setTransactionDate("2025-09-29")
+                .setStatus("ACTIVE")
+                .setTransactionType(1)
+                .setProcessUnitNum(10)
+                .build();
+
+        ReadBranchInstructionDepositWithdrawalDto instructionDto = ReadBranchInstructionDepositWithdrawalDto.builder()
+                .instructionId(12345L)
+                .customerNum(100001)
+                .accountNumber(200001)
+                .branchCode(500)
+                .amount(new BigDecimal("1000.00"))
+                .currencyCode("TRY")
+                .identityNumber("12345678901")
+                .documentId("DOC123")
+                .transactionDate("2025-09-29")
+                .status("ACTIVE")
+                .transactionType(1)
+                .processUnitNum(10)
+                .build();
+
+        serviceResponseDto = DigitalOrderReadResponseDto.builder()
+                .readBranchInstructionDepositWithdrawal(Collections.singletonList(instructionDto))
+                .build();
+    }
+
+    private BigDecimalProto.BigDecimal createProtoBigDecimal(BigDecimal value) {
+        if (value == null) {
+            return BigDecimalProto.BigDecimal.getDefaultInstance();
+        }
+        return BigDecimalProto.BigDecimal.newBuilder()
+                .setScale(value.scale())
+                .setPrecision(value.precision())
+                .setValue(ByteString.copyFrom(value.unscaledValue().toByteArray()))
+                .build();
+    }
+
+    @Test
+    void readDigitalOrder_whenValidRequest_shouldCallServiceAndSendResponse() {
+        // Given
+        when(digitalOrderService.readDigitalOrder(any(DigitalOrderReadRequestDto.class)))
+                .thenReturn(serviceResponseDto);
+
+        // When
+        digitalOrderGrpcService.readDigitalOrder(grpcRequest, responseObserver);
+
+        // Then
+        verify(digitalOrderService, times(1)).readDigitalOrder(any(DigitalOrderReadRequestDto.class));
+        verify(responseObserver, times(1)).onNext(responseCaptor.capture());
+        verify(responseObserver, times(1)).onCompleted();
+        verify(responseObserver, never()).onError(any());
+
+        DigitalOrderReadResponse capturedResponse = responseCaptor.getValue();
+        assertNotNull(capturedResponse);
+        assertEquals(1, capturedResponse.getReadBranchInstructionDepositWithdrawalCount());
+        
+        ReadBranchInstructionDepositWithdrawal instruction = 
+                capturedResponse.getReadBranchInstructionDepositWithdrawal(0);
+        assertEquals(12345L, instruction.getInstructionId());
+        assertEquals(100001, instruction.getCustomerNum());
+        assertEquals(200001, instruction.getAccountNumber());
+        assertEquals(500, instruction.getBranchCode());
+        assertEquals("TRY", instruction.getCurrencyCode());
+        assertEquals("12345678901", instruction.getIdentityNumber());
+        assertEquals("DOC123", instruction.getDocumentId());
+        assertEquals("2025-09-29", instruction.getTransactionDate());
+        assertEquals("ACTIVE", instruction.getStatus());
+        assertEquals(1, instruction.getTransactionType());
+        assertEquals(10, instruction.getProcessUnitNum());
+        assertNotNull(instruction.getAmount());
+    }
+
+    @Test
+    void readDigitalOrder_whenServiceReturnsEmptyList_shouldSendEmptyResponse() {
+        // Given
+        DigitalOrderReadResponseDto emptyResponseDto = DigitalOrderReadResponseDto.builder()
+                .readBranchInstructionDepositWithdrawal(Collections.emptyList())
+                .build();
+
+        when(digitalOrderService.readDigitalOrder(any(DigitalOrderReadRequestDto.class)))
+                .thenReturn(emptyResponseDto);
+
+        // When
+        digitalOrderGrpcService.readDigitalOrder(grpcRequest, responseObserver);
+
+        // Then
+        verify(digitalOrderService, times(1)).readDigitalOrder(any(DigitalOrderReadRequestDto.class));
+        verify(responseObserver, times(1)).onNext(responseCaptor.capture());
+        verify(responseObserver, times(1)).onCompleted();
+
+        DigitalOrderReadResponse capturedResponse = responseCaptor.getValue();
+        assertNotNull(capturedResponse);
+        assertEquals(0, capturedResponse.getReadBranchInstructionDepositWithdrawalCount());
+    }
+
+    @Test
+    void readDigitalOrder_whenServiceReturnsMultipleInstructions_shouldSendAllInResponse() {
+        // Given
+        ReadBranchInstructionDepositWithdrawalDto instruction1 = ReadBranchInstructionDepositWithdrawalDto.builder()
+                .instructionId(12345L)
+                .customerNum(100001)
+                .amount(new BigDecimal("1000.00"))
+                .currencyCode("TRY")
+                .build();
+
+        ReadBranchInstructionDepositWithdrawalDto instruction2 = ReadBranchInstructionDepositWithdrawalDto.builder()
+                .instructionId(67890L)
+                .customerNum(100002)
+                .amount(new BigDecimal("2000.00"))
+                .currencyCode("USD")
+                .build();
+
+        DigitalOrderReadResponseDto multipleResponseDto = DigitalOrderReadResponseDto.builder()
+                .readBranchInstructionDepositWithdrawal(List.of(instruction1, instruction2))
+                .build();
+
+        when(digitalOrderService.readDigitalOrder(any(DigitalOrderReadRequestDto.class)))
+                .thenReturn(multipleResponseDto);
+
+        // When
+        digitalOrderGrpcService.readDigitalOrder(grpcRequest, responseObserver);
+
+        // Then
+        verify(digitalOrderService, times(1)).readDigitalOrder(any(DigitalOrderReadRequestDto.class));
+        verify(responseObserver, times(1)).onNext(responseCaptor.capture());
+        verify(responseObserver, times(1)).onCompleted();
+
+        DigitalOrderReadResponse capturedResponse = responseCaptor.getValue();
+        assertNotNull(capturedResponse);
+        assertEquals(2, capturedResponse.getReadBranchInstructionDepositWithdrawalCount());
+        
+        assertEquals(12345L, capturedResponse.getReadBranchInstructionDepositWithdrawal(0).getInstructionId());
+        assertEquals("TRY", capturedResponse.getReadBranchInstructionDepositWithdrawal(0).getCurrencyCode());
+        
+        assertEquals(67890L, capturedResponse.getReadBranchInstructionDepositWithdrawal(1).getInstructionId());
+        assertEquals("USD", capturedResponse.getReadBranchInstructionDepositWithdrawal(1).getCurrencyCode());
+    }
+
+    @Test
+    void readDigitalOrder_whenServiceThrowsException_shouldNotCallOnNext() {
+        // Given
+        RuntimeException exception = new RuntimeException("Service error");
+        when(digitalOrderService.readDigitalOrder(any(DigitalOrderReadRequestDto.class)))
+                .thenThrow(exception);
+
+        // When & Then
+        assertThrows(RuntimeException.class, () -> 
+            digitalOrderGrpcService.readDigitalOrder(grpcRequest, responseObserver)
+        );
+
+        verify(digitalOrderService, times(1)).readDigitalOrder(any(DigitalOrderReadRequestDto.class));
+        verify(responseObserver, never()).onNext(any());
+        verify(responseObserver, never()).onCompleted();
+    }
+
+    @Test
+    void readDigitalOrder_whenRequestWithNullFields_shouldStillProcess() {
+        // Given
+        DigitalOrderReadRequest requestWithNulls = DigitalOrderReadRequest.newBuilder()
+                .setInstructionId(0L)
+                .setCustomerNum(0)
+                .build();
+
+        when(digitalOrderService.readDigitalOrder(any(DigitalOrderReadRequestDto.class)))
+                .thenReturn(serviceResponseDto);
+
+        // When
+        digitalOrderGrpcService.readDigitalOrder(requestWithNulls, responseObserver);
+
+        // Then
+        verify(digitalOrderService, times(1)).readDigitalOrder(any(DigitalOrderReadRequestDto.class));
+        verify(responseObserver, times(1)).onNext(any(DigitalOrderReadResponse.class));
+        verify(responseObserver, times(1)).onCompleted();
+    }
+
+    @Test
+    void readDigitalOrder_whenServiceReturnsNull_shouldSendDefaultResponse() {
+        // Given
+        when(digitalOrderService.readDigitalOrder(any(DigitalOrderReadRequestDto.class)))
+                .thenReturn(null);
+
+        // When
+        digitalOrderGrpcService.readDigitalOrder(grpcRequest, responseObserver);
+
+        // Then
+        verify(digitalOrderService, times(1)).readDigitalOrder(any(DigitalOrderReadRequestDto.class));
+        verify(responseObserver, times(1)).onNext(responseCaptor.capture());
+        verify(responseObserver, times(1)).onCompleted();
+
+        DigitalOrderReadResponse capturedResponse = responseCaptor.getValue();
+        assertNotNull(capturedResponse);
+        assertEquals(DigitalOrderReadResponse.getDefaultInstance(), capturedResponse);
+    }
+
+    @Test
+    void readDigitalOrder_whenAllFieldsPresent_shouldMapAllFieldsCorrectly() {
+        // Given
+        BigDecimalProto.BigDecimal fullAmount = createProtoBigDecimal(new BigDecimal("5000.75"));
+
+        DigitalOrderReadRequest fullRequest = DigitalOrderReadRequest.newBuilder()
+                .setInstructionId(99999L)
+                .setCustomerNum(888888)
+                .setAccountNumber(777777)
+                .setBranchCode(666)
+                .setAmount(fullAmount)
+                .setCurrencyCode("EUR")
+                .setIdentityNumber("98765432109")
+                .setDocumentId("DOC999")
+                .setTransactionDate("2025-12-31")
+                .setStatus("COMPLETED")
+                .setTransactionType(2)
+                .setProcessUnitNum(20)
+                .build();
+
+        ReadBranchInstructionDepositWithdrawalDto fullDto = ReadBranchInstructionDepositWithdrawalDto.builder()
+                .instructionId(99999L)
+                .customerNum(888888)
+                .accountNumber(777777)
+                .branchCode(666)
+                .amount(new BigDecimal("5000.75"))
+                .currencyCode("EUR")
+                .identityNumber("98765432109")
+                .documentId("DOC999")
+                .transactionDate("2025-12-31")
+                .status("COMPLETED")
+                .transactionType(2)
+                .processUnitNum(20)
+                .build();
+
+        DigitalOrderReadResponseDto fullResponseDto = DigitalOrderReadResponseDto.builder()
+                .readBranchInstructionDepositWithdrawal(Collections.singletonList(fullDto))
+                .build();
+
+        when(digitalOrderService.readDigitalOrder(any(DigitalOrderReadRequestDto.class)))
+                .thenReturn(fullResponseDto);
+
+        // When
+        digitalOrderGrpcService.readDigitalOrder(fullRequest, responseObserver);
+
+        // Then
+        verify(responseObserver, times(1)).onNext(responseCaptor.capture());
+        verify(responseObserver, times(1)).onCompleted();
+
+        DigitalOrderReadResponse capturedResponse = responseCaptor.getValue();
+        ReadBranchInstructionDepositWithdrawal instruction = 
+                capturedResponse.getReadBranchInstructionDepositWithdrawal(0);
+
+        assertEquals(99999L, instruction.getInstructionId());
+        assertEquals(888888, instruction.getCustomerNum());
+        assertEquals(777777, instruction.getAccountNumber());
+        assertEquals(666, instruction.getBranchCode());
+        assertEquals("EUR", instruction.getCurrencyCode());
+        assertEquals("98765432109", instruction.getIdentityNumber());
+        assertEquals("DOC999", instruction.getDocumentId());
+        assertEquals("2025-12-31", instruction.getTransactionDate());
+        assertEquals("COMPLETED", instruction.getStatus());
+        assertEquals(2, instruction.getTransactionType());
+        assertEquals(20, instruction.getProcessUnitNum());
+        assertNotNull(instruction.getAmount());
+    }
+
+    @Test
+    void readDigitalOrder_shouldAlwaysCallOnCompletedAfterOnNext() {
+        // Given
+        when(digitalOrderService.readDigitalOrder(any(DigitalOrderReadRequestDto.class)))
+                .thenReturn(serviceResponseDto);
+
+        // When
+        digitalOrderGrpcService.readDigitalOrder(grpcRequest, responseObserver);
+
+        // Then
+        verify(responseObserver, times(1)).onNext(any(DigitalOrderReadResponse.class));
+        verify(responseObserver, times(1)).onCompleted();
+        
+        // Verify order of calls
+        var inOrder = inOrder(responseObserver);
+        inOrder.verify(responseObserver).onNext(any(DigitalOrderReadResponse.class));
+        inOrder.verify(responseObserver).onCompleted();
+    }
+}
+
+
+
+
+
+
+package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.impl;
+
+import com.garanti.branchinstructionmanagement.business.proto.v0.BranchInstruction.ReadBranchInstructionDepositWithdrawal;
+import com.garanti.branchinstructionmanagement.business.proto.v0.BranchInstruction.ReadBranchInstructionDepositWithdrawalRequest;
+import com.garanti.branchinstructionmanagement.business.proto.v0.BranchInstruction.ReadBranchInstructionDepositWithdrawalResponse;
+import com.garanti.branchinstructionmanagement.business.proto.v0.BranchInstructionGrpcServiceGrpc.BranchInstructionGrpcServiceBlockingStub;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.DigitalOrderReadRequestDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response.DigitalOrderReadResponseDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response.ReadBranchInstructionDepositWithdrawalDto;
+import com.garantibbvaportfoy.utility.bigdecimal.proto.BigDecimalProto;
+import com.google.protobuf.ByteString;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.math.BigDecimal;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
 class DigitalOrderServiceImplTest {
 
     @Mock
-    private DigitalOrderGrpcServiceBlockingStub blockingStub;
+    private BranchInstructionGrpcServiceBlockingStub blockingStub;
 
     @InjectMocks
     private DigitalOrderServiceImpl digitalOrderService;
 
     private DigitalOrderReadRequestDto requestDto;
-    private DigitalOrderProto.DigitalOrderReadRequest grpcRequest;
-    private DigitalOrderProto.DigitalOrderReadResponse grpcResponse;
-    private DigitalOrderReadResponseDto expectedResponseDto;
+    private ReadBranchInstructionDepositWithdrawalResponse grpcResponse;
 
     @BeforeEach
     void setUp() {
@@ -56,15 +399,15 @@ class DigitalOrderServiceImplTest {
                 .processUnitNum(10)
                 .build();
 
-        // BigDecimal proto message oluşturma
-        BigDecimalProto.BigDecimal protoBigDecimal = createProtoBigDecimal(new BigDecimal("1000.00"));
+        BigDecimalProto.BigDecimal protoAmount = createProtoBigDecimal(new BigDecimal("1000.00"));
 
-        grpcRequest = DigitalOrderProto.DigitalOrderReadRequest.newBuilder()
+        ReadBranchInstructionDepositWithdrawal grpcInstruction = 
+                ReadBranchInstructionDepositWithdrawal.newBuilder()
                 .setInstructionId(12345L)
                 .setCustomerNum(100001)
                 .setAccountNumber(200001)
                 .setBranchCode(500)
-                .setAmount(protoBigDecimal)
+                .setAmount(protoAmount)
                 .setCurrencyCode("TRY")
                 .setIdentityNumber("12345678901")
                 .setDocumentId("DOC123")
@@ -74,43 +417,8 @@ class DigitalOrderServiceImplTest {
                 .setProcessUnitNum(10)
                 .build();
 
-        DigitalOrderProto.ReadBranchInstructionDepositWithdrawal grpcInstruction = 
-                DigitalOrderProto.ReadBranchInstructionDepositWithdrawal.newBuilder()
-                .setInstructionId(12345L)
-                .setCustomerNum(100001)
-                .setAccountNumber(200001)
-                .setBranchCode(500)
-                .setAmount(protoBigDecimal)
-                .setCurrencyCode("TRY")
-                .setIdentityNumber("12345678901")
-                .setDocumentId("DOC123")
-                .setTransactionDate("2025-09-29")
-                .setStatus("ACTIVE")
-                .setTransactionType(1)
-                .setProcessUnitNum(10)
-                .build();
-
-        grpcResponse = DigitalOrderProto.DigitalOrderReadResponse.newBuilder()
+        grpcResponse = ReadBranchInstructionDepositWithdrawalResponse.newBuilder()
                 .addReadBranchInstructionDepositWithdrawal(grpcInstruction)
-                .build();
-
-        ReadBranchInstructionDepositWithdrawalDto instructionDto = ReadBranchInstructionDepositWithdrawalDto.builder()
-                .instructionId(12345L)
-                .customerNum(100001)
-                .accountNumber(200001)
-                .branchCode(500)
-                .amount(new BigDecimal("1000.00"))
-                .currencyCode("TRY")
-                .identityNumber("12345678901")
-                .documentId("DOC123")
-                .transactionDate("2025-09-29")
-                .status("ACTIVE")
-                .transactionType(1)
-                .processUnitNum(10)
-                .build();
-
-        expectedResponseDto = DigitalOrderReadResponseDto.builder()
-                .readBranchInstructionDepositWithdrawal(Collections.singletonList(instructionDto))
                 .build();
     }
 
@@ -128,7 +436,7 @@ class DigitalOrderServiceImplTest {
     @Test
     void readDigitalOrder_whenValidRequest_shouldReturnMappedResponse() {
         // Given
-        when(blockingStub.readDigitalOrder(any(DigitalOrderProto.DigitalOrderReadRequest.class)))
+        when(blockingStub.readBranchInstructionDepositWithdrawal(any(ReadBranchInstructionDepositWithdrawalRequest.class)))
                 .thenReturn(grpcResponse);
 
         // When
@@ -138,10 +446,10 @@ class DigitalOrderServiceImplTest {
         assertNotNull(result);
         assertNotNull(result.getReadBranchInstructionDepositWithdrawal());
         assertEquals(1, result.getReadBranchInstructionDepositWithdrawal().size());
-        
+
         ReadBranchInstructionDepositWithdrawalDto resultDto = 
                 result.getReadBranchInstructionDepositWithdrawal().get(0);
-        
+
         assertEquals(12345L, resultDto.getInstructionId());
         assertEquals(100001, resultDto.getCustomerNum());
         assertEquals(200001, resultDto.getAccountNumber());
@@ -155,17 +463,17 @@ class DigitalOrderServiceImplTest {
         assertEquals(10, resultDto.getProcessUnitNum());
         assertNotNull(resultDto.getAmount());
 
-        verify(blockingStub, times(1)).readDigitalOrder(any(DigitalOrderProto.DigitalOrderReadRequest.class));
+        verify(blockingStub, times(1)).readBranchInstructionDepositWithdrawal(any(ReadBranchInstructionDepositWithdrawalRequest.class));
     }
 
     @Test
     void readDigitalOrder_whenGrpcReturnsEmptyList_shouldReturnEmptyResponse() {
         // Given
-        DigitalOrderProto.DigitalOrderReadResponse emptyGrpcResponse = 
-                DigitalOrderProto.DigitalOrderReadResponse.newBuilder().build();
-        
-        when(blockingStub.readDigitalOrder(any(DigitalOrderProto.DigitalOrderReadRequest.class)))
-                .thenReturn(emptyGrpcResponse);
+        ReadBranchInstructionDepositWithdrawalResponse emptyResponse = 
+                ReadBranchInstructionDepositWithdrawalResponse.newBuilder().build();
+
+        when(blockingStub.readBranchInstructionDepositWithdrawal(any(ReadBranchInstructionDepositWithdrawalRequest.class)))
+                .thenReturn(emptyResponse);
 
         // When
         DigitalOrderReadResponseDto result = digitalOrderService.readDigitalOrder(requestDto);
@@ -175,7 +483,7 @@ class DigitalOrderServiceImplTest {
         assertNotNull(result.getReadBranchInstructionDepositWithdrawal());
         assertTrue(result.getReadBranchInstructionDepositWithdrawal().isEmpty());
 
-        verify(blockingStub, times(1)).readDigitalOrder(any(DigitalOrderProto.DigitalOrderReadRequest.class));
+        verify(blockingStub, times(1)).readBranchInstructionDepositWithdrawal(any(ReadBranchInstructionDepositWithdrawalRequest.class));
     }
 
     @Test
@@ -184,30 +492,30 @@ class DigitalOrderServiceImplTest {
         BigDecimalProto.BigDecimal amount1 = createProtoBigDecimal(new BigDecimal("1000.00"));
         BigDecimalProto.BigDecimal amount2 = createProtoBigDecimal(new BigDecimal("2000.00"));
 
-        DigitalOrderProto.ReadBranchInstructionDepositWithdrawal grpcInstruction1 = 
-                DigitalOrderProto.ReadBranchInstructionDepositWithdrawal.newBuilder()
+        ReadBranchInstructionDepositWithdrawal instruction1 = 
+                ReadBranchInstructionDepositWithdrawal.newBuilder()
                 .setInstructionId(12345L)
                 .setCustomerNum(100001)
                 .setAmount(amount1)
                 .setCurrencyCode("TRY")
                 .build();
 
-        DigitalOrderProto.ReadBranchInstructionDepositWithdrawal grpcInstruction2 = 
-                DigitalOrderProto.ReadBranchInstructionDepositWithdrawal.newBuilder()
+        ReadBranchInstructionDepositWithdrawal instruction2 = 
+                ReadBranchInstructionDepositWithdrawal.newBuilder()
                 .setInstructionId(67890L)
                 .setCustomerNum(100002)
                 .setAmount(amount2)
                 .setCurrencyCode("USD")
                 .build();
 
-        DigitalOrderProto.DigitalOrderReadResponse multipleGrpcResponse = 
-                DigitalOrderProto.DigitalOrderReadResponse.newBuilder()
-                .addReadBranchInstructionDepositWithdrawal(grpcInstruction1)
-                .addReadBranchInstructionDepositWithdrawal(grpcInstruction2)
+        ReadBranchInstructionDepositWithdrawalResponse multipleResponse = 
+                ReadBranchInstructionDepositWithdrawalResponse.newBuilder()
+                .addReadBranchInstructionDepositWithdrawal(instruction1)
+                .addReadBranchInstructionDepositWithdrawal(instruction2)
                 .build();
 
-        when(blockingStub.readDigitalOrder(any(DigitalOrderProto.DigitalOrderReadRequest.class)))
-                .thenReturn(multipleGrpcResponse);
+        when(blockingStub.readBranchInstructionDepositWithdrawal(any(ReadBranchInstructionDepositWithdrawalRequest.class)))
+                .thenReturn(multipleResponse);
 
         // When
         DigitalOrderReadResponseDto result = digitalOrderService.readDigitalOrder(requestDto);
@@ -215,86 +523,36 @@ class DigitalOrderServiceImplTest {
         // Then
         assertNotNull(result);
         assertEquals(2, result.getReadBranchInstructionDepositWithdrawal().size());
-        
+
         ReadBranchInstructionDepositWithdrawalDto firstDto = result.getReadBranchInstructionDepositWithdrawal().get(0);
         assertEquals(12345L, firstDto.getInstructionId());
         assertEquals(100001, firstDto.getCustomerNum());
         assertEquals("TRY", firstDto.getCurrencyCode());
-        
+
         ReadBranchInstructionDepositWithdrawalDto secondDto = result.getReadBranchInstructionDepositWithdrawal().get(1);
         assertEquals(67890L, secondDto.getInstructionId());
         assertEquals(100002, secondDto.getCustomerNum());
         assertEquals("USD", secondDto.getCurrencyCode());
 
-        verify(blockingStub, times(1)).readDigitalOrder(any(DigitalOrderProto.DigitalOrderReadRequest.class));
+        verify(blockingStub, times(1)).readBranchInstructionDepositWithdrawal(any(ReadBranchInstructionDepositWithdrawalRequest.class));
     }
 
     @Test
     void readDigitalOrder_whenGrpcThrowsNotFoundException_shouldPropagateException() {
         // Given
-        StatusRuntimeException exception = new StatusRuntimeException(Status.NOT_FOUND.withDescription("Order not found"));
+        StatusRuntimeException exception = new StatusRuntimeException(
+                Status.NOT_FOUND.withDescription("Instruction not found"));
 
-        when(blockingStub.readDigitalOrder(any(DigitalOrderProto.DigitalOrderReadRequest.class)))
+        when(blockingStub.readBranchInstructionDepositWithdrawal(any(ReadBranchInstructionDepositWithdrawalRequest.class)))
                 .thenThrow(exception);
 
         // When & Then
-        StatusRuntimeException thrown = assertThrows(StatusRuntimeException.class, () -> 
+        StatusRuntimeException thrown = assertThrows(StatusRuntimeException.class, () ->
             digitalOrderService.readDigitalOrder(requestDto)
         );
 
-        assertEquals(Status.NOT_FOUND.getCode(), thrown.getStatus().getCode());
-        verify(blockingStub, times(1)).readDigitalOrder(any(DigitalOrderProto.DigitalOrderReadRequest.class));
-    }
-
-    @Test
-    void readDigitalOrder_whenGrpcThrowsUnavailableException_shouldPropagateException() {
-        // Given
-        StatusRuntimeException exception = new StatusRuntimeException(Status.UNAVAILABLE.withDescription("Service unavailable"));
-
-        when(blockingStub.readDigitalOrder(any(DigitalOrderProto.DigitalOrderReadRequest.class)))
-                .thenThrow(exception);
-
-        // When & Then
-        StatusRuntimeException thrown = assertThrows(StatusRuntimeException.class, () -> 
-            digitalOrderService.readDigitalOrder(requestDto)
-        );
-
-        assertEquals(Status.UNAVAILABLE.getCode(), thrown.getStatus().getCode());
-        verify(blockingStub, times(1)).readDigitalOrder(any(DigitalOrderProto.DigitalOrderReadRequest.class));
-    }
-
-    @Test
-    void readDigitalOrder_whenGrpcThrowsInternalException_shouldPropagateException() {
-        // Given
-        StatusRuntimeException exception = new StatusRuntimeException(Status.INTERNAL.withDescription("Internal server error"));
-
-        when(blockingStub.readDigitalOrder(any(DigitalOrderProto.DigitalOrderReadRequest.class)))
-                .thenThrow(exception);
-
-        // When & Then
-        StatusRuntimeException thrown = assertThrows(StatusRuntimeException.class, () -> 
-            digitalOrderService.readDigitalOrder(requestDto)
-        );
-
-        assertEquals(Status.INTERNAL.getCode(), thrown.getStatus().getCode());
-        verify(blockingStub, times(1)).readDigitalOrder(any(DigitalOrderProto.DigitalOrderReadRequest.class));
-    }
-
-    @Test
-    void readDigitalOrder_whenGrpcThrowsDeadlineExceededException_shouldPropagateException() {
-        // Given
-        StatusRuntimeException exception = new StatusRuntimeException(Status.DEADLINE_EXCEEDED.withDescription("Deadline exceeded"));
-
-        when(blockingStub.readDigitalOrder(any(DigitalOrderProto.DigitalOrderReadRequest.class)))
-                .thenThrow(exception);
-
-        // When & Then
-        StatusRuntimeException thrown = assertThrows(StatusRuntimeException.class, () -> 
-            digitalOrderService.readDigitalOrder(requestDto)
-        );
-
-        assertEquals(Status.DEADLINE_EXCEEDED.getCode(), thrown.getStatus().getCode());
-        verify(blockingStub, times(1)).readDigitalOrder(any(DigitalOrderProto.DigitalOrderReadRequest.class));
+        assertEquals(Status.PERMISSION_DENIED.getCode(), thrown.getStatus().getCode());
+        verify(blockingStub, times(1)).readBranchInstructionDepositWithdrawal(any(ReadBranchInstructionDepositWithdrawalRequest.class));
     }
 
     @Test
@@ -307,10 +565,10 @@ class DigitalOrderServiceImplTest {
                 .currencyCode(null)
                 .build();
 
-        DigitalOrderProto.DigitalOrderReadResponse emptyResponse = 
-                DigitalOrderProto.DigitalOrderReadResponse.newBuilder().build();
+        ReadBranchInstructionDepositWithdrawalResponse emptyResponse = 
+                ReadBranchInstructionDepositWithdrawalResponse.newBuilder().build();
 
-        when(blockingStub.readDigitalOrder(any(DigitalOrderProto.DigitalOrderReadRequest.class)))
+        when(blockingStub.readBranchInstructionDepositWithdrawal(any(ReadBranchInstructionDepositWithdrawalRequest.class)))
                 .thenReturn(emptyResponse);
 
         // When
@@ -318,21 +576,21 @@ class DigitalOrderServiceImplTest {
 
         // Then
         assertNotNull(result);
-        verify(blockingStub, times(1)).readDigitalOrder(any(DigitalOrderProto.DigitalOrderReadRequest.class));
+        verify(blockingStub, times(1)).readBranchInstructionDepositWithdrawal(any(ReadBranchInstructionDepositWithdrawalRequest.class));
     }
 
     @Test
     void readDigitalOrder_whenResponseWithAllFields_shouldMapAllFieldsCorrectly() {
         // Given
-        BigDecimalProto.BigDecimal protoAmount = createProtoBigDecimal(new BigDecimal("5000.75"));
-        
-        DigitalOrderProto.ReadBranchInstructionDepositWithdrawal fullGrpcInstruction = 
-                DigitalOrderProto.ReadBranchInstructionDepositWithdrawal.newBuilder()
+        BigDecimalProto.BigDecimal fullAmount = createProtoBigDecimal(new BigDecimal("5000.75"));
+
+        ReadBranchInstructionDepositWithdrawal fullInstruction = 
+                ReadBranchInstructionDepositWithdrawal.newBuilder()
                 .setInstructionId(99999L)
                 .setCustomerNum(888888)
                 .setAccountNumber(777777)
                 .setBranchCode(666)
-                .setAmount(protoAmount)
+                .setAmount(fullAmount)
                 .setCurrencyCode("EUR")
                 .setIdentityNumber("98765432109")
                 .setDocumentId("DOC999")
@@ -342,13 +600,13 @@ class DigitalOrderServiceImplTest {
                 .setProcessUnitNum(20)
                 .build();
 
-        DigitalOrderProto.DigitalOrderReadResponse fullGrpcResponse = 
-                DigitalOrderProto.DigitalOrderReadResponse.newBuilder()
-                .addReadBranchInstructionDepositWithdrawal(fullGrpcInstruction)
+        ReadBranchInstructionDepositWithdrawalResponse fullResponse = 
+                ReadBranchInstructionDepositWithdrawalResponse.newBuilder()
+                .addReadBranchInstructionDepositWithdrawal(fullInstruction)
                 .build();
 
-        when(blockingStub.readDigitalOrder(any(DigitalOrderProto.DigitalOrderReadRequest.class)))
-                .thenReturn(fullGrpcResponse);
+        when(blockingStub.readBranchInstructionDepositWithdrawal(any(ReadBranchInstructionDepositWithdrawalRequest.class)))
+                .thenReturn(fullResponse);
 
         // When
         DigitalOrderReadResponseDto result = digitalOrderService.readDigitalOrder(requestDto);
@@ -356,7 +614,7 @@ class DigitalOrderServiceImplTest {
         // Then
         assertNotNull(result);
         assertEquals(1, result.getReadBranchInstructionDepositWithdrawal().size());
-        
+
         ReadBranchInstructionDepositWithdrawalDto dto = result.getReadBranchInstructionDepositWithdrawal().get(0);
         assertEquals(99999L, dto.getInstructionId());
         assertEquals(888888, dto.getCustomerNum());
@@ -371,13 +629,13 @@ class DigitalOrderServiceImplTest {
         assertEquals(20, dto.getProcessUnitNum());
         assertNotNull(dto.getAmount());
 
-        verify(blockingStub, times(1)).readDigitalOrder(any(DigitalOrderProto.DigitalOrderReadRequest.class));
+        verify(blockingStub, times(1)).readBranchInstructionDepositWithdrawal(any(ReadBranchInstructionDepositWithdrawalRequest.class));
     }
 
     @Test
     void readDigitalOrder_whenGrpcResponseIsNull_shouldHandleGracefully() {
         // Given
-        when(blockingStub.readDigitalOrder(any(DigitalOrderProto.DigitalOrderReadRequest.class)))
+        when(blockingStub.readBranchInstructionDepositWithdrawal(any(ReadBranchInstructionDepositWithdrawalRequest.class)))
                 .thenReturn(null);
 
         // When
@@ -385,6 +643,137 @@ class DigitalOrderServiceImplTest {
 
         // Then
         assertNull(result);
-        verify(blockingStub, times(1)).readDigitalOrder(any(DigitalOrderProto.DigitalOrderReadRequest.class));
+        verify(blockingStub, times(1)).readBranchInstructionDepositWithdrawal(any(ReadBranchInstructionDepositWithdrawalRequest.class));
+    }
+
+    @Test
+    void readDigitalOrder_whenRequestWithZeroValues_shouldProcessCorrectly() {
+        // Given
+        DigitalOrderReadRequestDto zeroRequest = DigitalOrderReadRequestDto.builder()
+                .instructionId(0L)
+                .customerNum(0)
+                .accountNumber(0)
+                .branchCode(0)
+                .amount(BigDecimal.ZERO)
+                .currencyCode("")
+                .transactionType(0)
+                .processUnitNum(0)
+                .build();
+
+        when(blockingStub.readBranchInstructionDepositWithdrawal(any(ReadBranchInstructionDepositWithdrawalRequest.class)))
+                .thenReturn(grpcResponse);
+
+        // When
+        DigitalOrderReadResponseDto result = digitalOrderService.readDigitalOrder(zeroRequest);
+
+        // Then
+        assertNotNull(result);
+        verify(blockingStub, times(1)).readBranchInstructionDepositWithdrawal(any(ReadBranchInstructionDepositWithdrawalRequest.class));
+    }
+
+    @Test
+    void readDigitalOrder_whenAmountHasMultipleDecimalPlaces_shouldPreservePrecision() {
+        // Given
+        BigDecimal preciseAmount = new BigDecimal("1234.56789");
+        BigDecimalProto.BigDecimal protoPreciseAmount = createProtoBigDecimal(preciseAmount);
+
+        ReadBranchInstructionDepositWithdrawal preciseInstruction = 
+                ReadBranchInstructionDepositWithdrawal.newBuilder()
+                .setInstructionId(12345L)
+                .setAmount(protoPreciseAmount)
+                .build();
+
+        ReadBranchInstructionDepositWithdrawalResponse preciseResponse = 
+                ReadBranchInstructionDepositWithdrawalResponse.newBuilder()
+                .addReadBranchInstructionDepositWithdrawal(preciseInstruction)
+                .build();
+
+        when(blockingStub.readBranchInstructionDepositWithdrawal(any(ReadBranchInstructionDepositWithdrawalRequest.class)))
+                .thenReturn(preciseResponse);
+
+        // When
+        DigitalOrderReadResponseDto result = digitalOrderService.readDigitalOrder(requestDto);
+
+        // Then
+        assertNotNull(result);
+        assertEquals(1, result.getReadBranchInstructionDepositWithdrawal().size());
+        
+        ReadBranchInstructionDepositWithdrawalDto dto = result.getReadBranchInstructionDepositWithdrawal().get(0);
+        assertNotNull(dto.getAmount());
+        assertEquals(5, dto.getAmount().scale());
+
+        verify(blockingStub, times(1)).readBranchInstructionDepositWithdrawal(any(ReadBranchInstructionDepositWithdrawalRequest.class));
     }
 }
+
+        assertEquals(Status.NOT_FOUND.getCode(), thrown.getStatus().getCode());
+        verify(blockingStub, times(1)).readBranchInstructionDepositWithdrawal(any(ReadBranchInstructionDepositWithdrawalRequest.class));
+    }
+
+    @Test
+    void readDigitalOrder_whenGrpcThrowsUnavailableException_shouldPropagateException() {
+        // Given
+        StatusRuntimeException exception = new StatusRuntimeException(
+                Status.UNAVAILABLE.withDescription("Branch instruction service unavailable"));
+
+        when(blockingStub.readBranchInstructionDepositWithdrawal(any(ReadBranchInstructionDepositWithdrawalRequest.class)))
+                .thenThrow(exception);
+
+        // When & Then
+        StatusRuntimeException thrown = assertThrows(StatusRuntimeException.class, () ->
+            digitalOrderService.readDigitalOrder(requestDto)
+        );
+
+        assertEquals(Status.UNAVAILABLE.getCode(), thrown.getStatus().getCode());
+        verify(blockingStub, times(1)).readBranchInstructionDepositWithdrawal(any(ReadBranchInstructionDepositWithdrawalRequest.class));
+    }
+
+    @Test
+    void readDigitalOrder_whenGrpcThrowsInternalException_shouldPropagateException() {
+        // Given
+        StatusRuntimeException exception = new StatusRuntimeException(
+                Status.INTERNAL.withDescription("Internal server error"));
+
+        when(blockingStub.readBranchInstructionDepositWithdrawal(any(ReadBranchInstructionDepositWithdrawalRequest.class)))
+                .thenThrow(exception);
+
+        // When & Then
+        StatusRuntimeException thrown = assertThrows(StatusRuntimeException.class, () ->
+            digitalOrderService.readDigitalOrder(requestDto)
+        );
+
+        assertEquals(Status.INTERNAL.getCode(), thrown.getStatus().getCode());
+        verify(blockingStub, times(1)).readBranchInstructionDepositWithdrawal(any(ReadBranchInstructionDepositWithdrawalRequest.class));
+    }
+
+    @Test
+    void readDigitalOrder_whenGrpcThrowsDeadlineExceededException_shouldPropagateException() {
+        // Given
+        StatusRuntimeException exception = new StatusRuntimeException(
+                Status.DEADLINE_EXCEEDED.withDescription("Request timeout"));
+
+        when(blockingStub.readBranchInstructionDepositWithdrawal(any(ReadBranchInstructionDepositWithdrawalRequest.class)))
+                .thenThrow(exception);
+
+        // When & Then
+        StatusRuntimeException thrown = assertThrows(StatusRuntimeException.class, () ->
+            digitalOrderService.readDigitalOrder(requestDto)
+        );
+
+        assertEquals(Status.DEADLINE_EXCEEDED.getCode(), thrown.getStatus().getCode());
+        verify(blockingStub, times(1)).readBranchInstructionDepositWithdrawal(any(ReadBranchInstructionDepositWithdrawalRequest.class));
+    }
+
+    @Test
+    void readDigitalOrder_whenGrpcThrowsPermissionDeniedException_shouldPropagateException() {
+        // Given
+        StatusRuntimeException exception = new StatusRuntimeException(
+                Status.PERMISSION_DENIED.withDescription("Access denied"));
+
+        when(blockingStub.readBranchInstructionDepositWithdrawal(any(ReadBranchInstructionDepositWithdrawalRequest.class)))
+                .thenThrow(exception);
+
+        // When & Then
+        StatusRuntimeException thrown = assertThrows(StatusRuntimeException.class, () ->
+            digitalOrderService.readDigitalOrder(requestDto)
+        );
