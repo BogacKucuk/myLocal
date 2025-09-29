@@ -1,78 +1,538 @@
-package com.garantibbva.depositwithdrawalmngt.depositwithdrawalevent.service.impl;
+package com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.rest.impl;
 
-import com.garanti.ark.base.logging.Logger;
-import com.garanti.ark.base.logging.LoggerManager;
-import com.garantibbva.depositwithdrawalmngt.depositwithdrawalevent.service.contract.DepositWithdrawEventService;
-import com.garantibbva.depositwithdrawalmngt.depositwithdrawalevent.service.contract.model.DepositWithdrawEventRequestDto;
-import org.springframework.stereotype.Service;
-
-@Service
-public class DepositWithdrawEventServiceImpl implements DepositWithdrawEventService {
-
-  private final Logger logger;
-
-  /** Spring için varsayılan ctor (public bırakıyoruz). */
-  public DepositWithdrawEventServiceImpl() {
-    this(LoggerManager.getLogger(DepositWithdrawEventServiceImpl.class));
-  }
-
-  /** Test kolaylığı için ikinci ctor (package-private). */
-  DepositWithdrawEventServiceImpl(Logger logger) {
-    this.logger = logger;
-  }
-
-  @Override
-  public void consumeMessage(DepositWithdrawEventRequestDto requestDto) {
-    // dummy amaçlı, sadece bir örnek nesne oluşturuyoruz (kullanılmıyor).
-    DepositWithdrawEventRequestDto dummy = new DepositWithdrawEventRequestDto();
-
-    // null güvenliği ile logla
-    String text = (requestDto != null) ? requestDto.toString() : "null";
-    logger.info(text);
-  }
-}
-
-
-package com.garantibbva.depositwithdrawalmngt.depositwithdrawalevent.service.impl;
-
-import com.garanti.ark.base.logging.Logger;
-import com.garantibbva.depositwithdrawalmngt.depositwithdrawalevent.service.contract.model.DepositWithdrawEventRequestDto;
+import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.contract.DigitalOrderService;
+import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.model.request.DigitalOrderReadRequestDto;
+import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.model.response.DigitalOrderReadResponseDto;
+import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.model.response.ReadBranchInstructionDepositWithdrawalDto;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
+import java.math.BigDecimal;
+import java.util.Collections;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-class DepositWithdrawEventServiceImplTest {
+class DigitalOrderControllerImplTest {
 
-  @Mock
-  Logger logger;
+    @Mock
+    private DigitalOrderService digitalOrderService;
 
-  @InjectMocks
-  DepositWithdrawEventServiceImpl service; // package-private ctor ile enjekte edilir
+    @InjectMocks
+    private DigitalOrderControllerImpl digitalOrderController;
 
-  @Test
-  void consumeMessage_logsDtoString_once_andDoesNotThrow() {
-    // dto'yu mock'layıp toString sonucunu sabitliyoruz
-    DepositWithdrawEventRequestDto dto = mock(DepositWithdrawEventRequestDto.class);
-    when(dto.toString()).thenReturn("DTO_STRING");
+    private DigitalOrderReadRequestDto requestDto;
+    private DigitalOrderReadResponseDto responseDto;
 
-    assertDoesNotThrow(() -> service.consumeMessage(dto));
+    @BeforeEach
+    void setUp() {
+        requestDto = DigitalOrderReadRequestDto.builder()
+                .instructionId(12345L)
+                .customerNum(100001)
+                .accountNumber(200001)
+                .branchCode(500)
+                .amount(new BigDecimal("1000.00"))
+                .currencyCode("TRY")
+                .identityNumber("12345678901")
+                .documentId("DOC123")
+                .transactionDate("2025-09-29")
+                .status("ACTIVE")
+                .transactionType(1)
+                .processUnitNum(10)
+                .build();
 
-    verify(logger, times(1)).info("DTO_STRING");
-    verifyNoMoreInteractions(logger);
-  }
+        ReadBranchInstructionDepositWithdrawalDto instructionDto = ReadBranchInstructionDepositWithdrawalDto.builder()
+                .instructionId(12345L)
+                .customerNum(100001)
+                .accountNumber(200001)
+                .branchCode(500)
+                .amount(new BigDecimal("1000.00"))
+                .currencyCode("TRY")
+                .identityNumber("12345678901")
+                .documentId("DOC123")
+                .transactionDate("2025-09-29")
+                .status("ACTIVE")
+                .transactionType(1)
+                .processUnitNum(10)
+                .build();
 
-  @Test
-  void consumeMessage_withNull_logsNullSafely() {
-    assertDoesNotThrow(() -> service.consumeMessage(null));
+        responseDto = DigitalOrderReadResponseDto.builder()
+                .readBranchInstructionDepositWithdrawal(Collections.singletonList(instructionDto))
+                .build();
+    }
 
-    verify(logger, times(1)).info("null");
-    verifyNoMoreInteractions(logger);
-  }
+    @Test
+    void readDigitalOrder_whenValidRequest_shouldReturnOkResponseWithData() {
+        // Given
+        when(digitalOrderService.readDigitalOrder(any(DigitalOrderReadRequestDto.class)))
+                .thenReturn(responseDto);
+
+        // When
+        ResponseEntity<DigitalOrderReadResponseDto> response = digitalOrderController.readDigitalOrder(requestDto);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(1, response.getBody().getReadBranchInstructionDepositWithdrawal().size());
+        
+        ReadBranchInstructionDepositWithdrawalDto resultDto = 
+                response.getBody().getReadBranchInstructionDepositWithdrawal().get(0);
+        
+        assertEquals(12345L, resultDto.getInstructionId());
+        assertEquals(100001, resultDto.getCustomerNum());
+        assertEquals(200001, resultDto.getAccountNumber());
+        assertEquals(500, resultDto.getBranchCode());
+        assertEquals(new BigDecimal("1000.00"), resultDto.getAmount());
+        assertEquals("TRY", resultDto.getCurrencyCode());
+        assertEquals("12345678901", resultDto.getIdentityNumber());
+        assertEquals("DOC123", resultDto.getDocumentId());
+        assertEquals("2025-09-29", resultDto.getTransactionDate());
+        assertEquals("ACTIVE", resultDto.getStatus());
+        assertEquals(1, resultDto.getTransactionType());
+        assertEquals(10, resultDto.getProcessUnitNum());
+
+        verify(digitalOrderService, times(1)).readDigitalOrder(any(DigitalOrderReadRequestDto.class));
+    }
+
+    @Test
+    void readDigitalOrder_whenEmptyList_shouldReturnOkResponseWithEmptyList() {
+        // Given
+        DigitalOrderReadResponseDto emptyResponse = DigitalOrderReadResponseDto.builder()
+                .readBranchInstructionDepositWithdrawal(Collections.emptyList())
+                .build();
+        
+        when(digitalOrderService.readDigitalOrder(any(DigitalOrderReadRequestDto.class)))
+                .thenReturn(emptyResponse);
+
+        // When
+        ResponseEntity<DigitalOrderReadResponseDto> response = digitalOrderController.readDigitalOrder(requestDto);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertTrue(response.getBody().getReadBranchInstructionDepositWithdrawal().isEmpty());
+
+        verify(digitalOrderService, times(1)).readDigitalOrder(any(DigitalOrderReadRequestDto.class));
+    }
+
+    @Test
+    void readDigitalOrder_whenMultipleInstructions_shouldReturnAllInstructions() {
+        // Given
+        ReadBranchInstructionDepositWithdrawalDto instruction1 = ReadBranchInstructionDepositWithdrawalDto.builder()
+                .instructionId(12345L)
+                .customerNum(100001)
+                .amount(new BigDecimal("1000.00"))
+                .build();
+
+        ReadBranchInstructionDepositWithdrawalDto instruction2 = ReadBranchInstructionDepositWithdrawalDto.builder()
+                .instructionId(67890L)
+                .customerNum(100002)
+                .amount(new BigDecimal("2000.00"))
+                .build();
+
+        DigitalOrderReadResponseDto multipleResponse = DigitalOrderReadResponseDto.builder()
+                .readBranchInstructionDepositWithdrawal(List.of(instruction1, instruction2))
+                .build();
+
+        when(digitalOrderService.readDigitalOrder(any(DigitalOrderReadRequestDto.class)))
+                .thenReturn(multipleResponse);
+
+        // When
+        ResponseEntity<DigitalOrderReadResponseDto> response = digitalOrderController.readDigitalOrder(requestDto);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        assertNotNull(response.getBody());
+        assertEquals(2, response.getBody().getReadBranchInstructionDepositWithdrawal().size());
+
+        verify(digitalOrderService, times(1)).readDigitalOrder(any(DigitalOrderReadRequestDto.class));
+    }
+
+    @Test
+    void readDigitalOrder_whenServiceThrowsException_shouldPropagateException() {
+        // Given
+        when(digitalOrderService.readDigitalOrder(any(DigitalOrderReadRequestDto.class)))
+                .thenThrow(new RuntimeException("Service error"));
+
+        // When & Then
+        assertThrows(RuntimeException.class, () -> {
+            digitalOrderController.readDigitalOrder(requestDto);
+        });
+
+        verify(digitalOrderService, times(1)).readDigitalOrder(any(DigitalOrderReadRequestDto.class));
+    }
+
+    @Test
+    void readDigitalOrder_whenRequestWithNullFields_shouldStillProcess() {
+        // Given
+        DigitalOrderReadRequestDto requestWithNulls = DigitalOrderReadRequestDto.builder()
+                .instructionId(null)
+                .customerNum(null)
+                .amount(null)
+                .build();
+
+        when(digitalOrderService.readDigitalOrder(any(DigitalOrderReadRequestDto.class)))
+                .thenReturn(responseDto);
+
+        // When
+        ResponseEntity<DigitalOrderReadResponseDto> response = digitalOrderController.readDigitalOrder(requestWithNulls);
+
+        // Then
+        assertNotNull(response);
+        assertEquals(HttpStatus.OK, response.getStatusCode());
+        verify(digitalOrderService, times(1)).readDigitalOrder(any(DigitalOrderReadRequestDto.class));
+    }
 }
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+package com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.contract.impl;
+
+import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.mapper.DigitalOrderMapper;
+import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.model.request.DigitalOrderReadRequestDto;
+import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.model.response.DigitalOrderReadResponseDto;
+import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.model.response.ReadBranchInstructionDepositWithdrawalDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.DigitalOrderGrpcServiceGrpc.DigitalOrderGrpcServiceBlockingStub;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.DigitalOrderProto;
+import io.grpc.Status;
+import io.grpc.StatusRuntimeException;
+import org.junit.jupiter.api.BeforeEach;
+import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.InjectMocks;
+import org.mockito.Mock;
+import org.mockito.MockedStatic;
+import org.mockito.junit.jupiter.MockitoExtension;
+
+import java.math.BigDecimal;
+import java.util.Collections;
+import java.util.List;
+
+import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.*;
+
+@ExtendWith(MockitoExtension.class)
+class DigitalOrderServiceImplTest {
+
+    @Mock
+    private DigitalOrderGrpcServiceBlockingStub blockingStub;
+
+    @Mock
+    private DigitalOrderMapper digitalOrderMapper;
+
+    @InjectMocks
+    private DigitalOrderServiceImpl digitalOrderService;
+
+    private DigitalOrderReadRequestDto requestDto;
+    private DigitalOrderProto.DigitalOrderReadRequest grpcRequest;
+    private DigitalOrderProto.DigitalOrderReadResponse grpcResponse;
+    private DigitalOrderReadResponseDto responseDto;
+
+    @BeforeEach
+    void setUp() {
+        requestDto = DigitalOrderReadRequestDto.builder()
+                .instructionId(12345L)
+                .customerNum(100001)
+                .accountNumber(200001)
+                .branchCode(500)
+                .amount(new BigDecimal("1000.00"))
+                .currencyCode("TRY")
+                .identityNumber("12345678901")
+                .documentId("DOC123")
+                .transactionDate("2025-09-29")
+                .status("ACTIVE")
+                .transactionType(1)
+                .processUnitNum(10)
+                .build();
+
+        grpcRequest = DigitalOrderProto.DigitalOrderReadRequest.newBuilder()
+                .setInstructionId(12345L)
+                .setCustomerNum(100001)
+                .setAccountNumber(200001)
+                .setBranchCode(500)
+                .setAmount("1000.00")
+                .setCurrencyCode("TRY")
+                .setIdentityNumber("12345678901")
+                .setDocumentId("DOC123")
+                .setTransactionDate("2025-09-29")
+                .setStatus("ACTIVE")
+                .setTransactionType(1)
+                .setProcessUnitNum(10)
+                .build();
+
+        DigitalOrderProto.ReadBranchInstructionDepositWithdrawal grpcInstruction = 
+                DigitalOrderProto.ReadBranchInstructionDepositWithdrawal.newBuilder()
+                .setInstructionId(12345L)
+                .setCustomerNum(100001)
+                .setAccountNumber(200001)
+                .setBranchCode(500)
+                .setAmount("1000.00")
+                .setCurrencyCode("TRY")
+                .setIdentityNumber("12345678901")
+                .setDocumentId("DOC123")
+                .setTransactionDate("2025-09-29")
+                .setStatus("ACTIVE")
+                .setTransactionType(1)
+                .setProcessUnitNum(10)
+                .build();
+
+        grpcResponse = DigitalOrderProto.DigitalOrderReadResponse.newBuilder()
+                .addReadBranchInstructionDepositWithdrawal(grpcInstruction)
+                .build();
+
+        ReadBranchInstructionDepositWithdrawalDto instructionDto = ReadBranchInstructionDepositWithdrawalDto.builder()
+                .instructionId(12345L)
+                .customerNum(100001)
+                .accountNumber(200001)
+                .branchCode(500)
+                .amount(new BigDecimal("1000.00"))
+                .currencyCode("TRY")
+                .identityNumber("12345678901")
+                .documentId("DOC123")
+                .transactionDate("2025-09-29")
+                .status("ACTIVE")
+                .transactionType(1)
+                .processUnitNum(10)
+                .build();
+
+        responseDto = DigitalOrderReadResponseDto.builder()
+                .readBranchInstructionDepositWithdrawal(Collections.singletonList(instructionDto))
+                .build();
+    }
+
+    @Test
+    void readDigitalOrder_whenValidRequest_shouldReturnMappedResponse() {
+        // Given
+        try (MockedStatic<DigitalOrderMapper> mapperStatic = mockStatic(DigitalOrderMapper.class)) {
+            mapperStatic.when(() -> DigitalOrderMapper.INSTANCE).thenReturn(digitalOrderMapper);
+            
+            when(digitalOrderMapper.toGrpcRequest(any(DigitalOrderReadRequestDto.class)))
+                    .thenReturn(grpcRequest);
+            when(blockingStub.readDigitalOrder(any(DigitalOrderProto.DigitalOrderReadRequest.class)))
+                    .thenReturn(grpcResponse);
+            when(digitalOrderMapper.toResponseDto(any(DigitalOrderProto.DigitalOrderReadResponse.class)))
+                    .thenReturn(responseDto);
+
+            // When
+            DigitalOrderReadResponseDto result = digitalOrderService.readDigitalOrder(requestDto);
+
+            // Then
+            assertNotNull(result);
+            assertNotNull(result.getReadBranchInstructionDepositWithdrawal());
+            assertEquals(1, result.getReadBranchInstructionDepositWithdrawal().size());
+            
+            ReadBranchInstructionDepositWithdrawalDto resultDto = 
+                    result.getReadBranchInstructionDepositWithdrawal().get(0);
+            
+            assertEquals(12345L, resultDto.getInstructionId());
+            assertEquals(100001, resultDto.getCustomerNum());
+            assertEquals("TRY", resultDto.getCurrencyCode());
+            assertEquals(new BigDecimal("1000.00"), resultDto.getAmount());
+
+            verify(digitalOrderMapper, times(1)).toGrpcRequest(any(DigitalOrderReadRequestDto.class));
+            verify(blockingStub, times(1)).readDigitalOrder(any(DigitalOrderProto.DigitalOrderReadRequest.class));
+            verify(digitalOrderMapper, times(1)).toResponseDto(any(DigitalOrderProto.DigitalOrderReadResponse.class));
+        }
+    }
+
+    @Test
+    void readDigitalOrder_whenGrpcReturnsEmptyList_shouldReturnEmptyResponse() {
+        // Given
+        DigitalOrderProto.DigitalOrderReadResponse emptyGrpcResponse = 
+                DigitalOrderProto.DigitalOrderReadResponse.newBuilder().build();
+        
+        DigitalOrderReadResponseDto emptyResponseDto = DigitalOrderReadResponseDto.builder()
+                .readBranchInstructionDepositWithdrawal(Collections.emptyList())
+                .build();
+
+        try (MockedStatic<DigitalOrderMapper> mapperStatic = mockStatic(DigitalOrderMapper.class)) {
+            mapperStatic.when(() -> DigitalOrderMapper.INSTANCE).thenReturn(digitalOrderMapper);
+            
+            when(digitalOrderMapper.toGrpcRequest(any(DigitalOrderReadRequestDto.class)))
+                    .thenReturn(grpcRequest);
+            when(blockingStub.readDigitalOrder(any(DigitalOrderProto.DigitalOrderReadRequest.class)))
+                    .thenReturn(emptyGrpcResponse);
+            when(digitalOrderMapper.toResponseDto(any(DigitalOrderProto.DigitalOrderReadResponse.class)))
+                    .thenReturn(emptyResponseDto);
+
+            // When
+            DigitalOrderReadResponseDto result = digitalOrderService.readDigitalOrder(requestDto);
+
+            // Then
+            assertNotNull(result);
+            assertNotNull(result.getReadBranchInstructionDepositWithdrawal());
+            assertTrue(result.getReadBranchInstructionDepositWithdrawal().isEmpty());
+
+            verify(blockingStub, times(1)).readDigitalOrder(any(DigitalOrderProto.DigitalOrderReadRequest.class));
+        }
+    }
+
+    @Test
+    void readDigitalOrder_whenGrpcReturnsMultipleInstructions_shouldReturnAllInstructions() {
+        // Given
+        DigitalOrderProto.ReadBranchInstructionDepositWithdrawal grpcInstruction1 = 
+                DigitalOrderProto.ReadBranchInstructionDepositWithdrawal.newBuilder()
+                .setInstructionId(12345L)
+                .setCustomerNum(100001)
+                .build();
+
+        DigitalOrderProto.ReadBranchInstructionDepositWithdrawal grpcInstruction2 = 
+                DigitalOrderProto.ReadBranchInstructionDepositWithdrawal.newBuilder()
+                .setInstructionId(67890L)
+                .setCustomerNum(100002)
+                .build();
+
+        DigitalOrderProto.DigitalOrderReadResponse multipleGrpcResponse = 
+                DigitalOrderProto.DigitalOrderReadResponse.newBuilder()
+                .addReadBranchInstructionDepositWithdrawal(grpcInstruction1)
+                .addReadBranchInstructionDepositWithdrawal(grpcInstruction2)
+                .build();
+
+        ReadBranchInstructionDepositWithdrawalDto dto1 = ReadBranchInstructionDepositWithdrawalDto.builder()
+                .instructionId(12345L)
+                .customerNum(100001)
+                .build();
+
+        ReadBranchInstructionDepositWithdrawalDto dto2 = ReadBranchInstructionDepositWithdrawalDto.builder()
+                .instructionId(67890L)
+                .customerNum(100002)
+                .build();
+
+        DigitalOrderReadResponseDto multipleResponseDto = DigitalOrderReadResponseDto.builder()
+                .readBranchInstructionDepositWithdrawal(List.of(dto1, dto2))
+                .build();
+
+        try (MockedStatic<DigitalOrderMapper> mapperStatic = mockStatic(DigitalOrderMapper.class)) {
+            mapperStatic.when(() -> DigitalOrderMapper.INSTANCE).thenReturn(digitalOrderMapper);
+            
+            when(digitalOrderMapper.toGrpcRequest(any(DigitalOrderReadRequestDto.class)))
+                    .thenReturn(grpcRequest);
+            when(blockingStub.readDigitalOrder(any(DigitalOrderProto.DigitalOrderReadRequest.class)))
+                    .thenReturn(multipleGrpcResponse);
+            when(digitalOrderMapper.toResponseDto(any(DigitalOrderProto.DigitalOrderReadResponse.class)))
+                    .thenReturn(multipleResponseDto);
+
+            // When
+            DigitalOrderReadResponseDto result = digitalOrderService.readDigitalOrder(requestDto);
+
+            // Then
+            assertNotNull(result);
+            assertEquals(2, result.getReadBranchInstructionDepositWithdrawal().size());
+            assertEquals(12345L, result.getReadBranchInstructionDepositWithdrawal().get(0).getInstructionId());
+            assertEquals(67890L, result.getReadBranchInstructionDepositWithdrawal().get(1).getInstructionId());
+
+            verify(blockingStub, times(1)).readDigitalOrder(any(DigitalOrderProto.DigitalOrderReadRequest.class));
+        }
+    }
+
+    @Test
+    void readDigitalOrder_whenGrpcThrowsNotFoundException_shouldPropagateException() {
+        // Given
+        StatusRuntimeException exception = new StatusRuntimeException(Status.NOT_FOUND);
+
+        try (MockedStatic<DigitalOrderMapper> mapperStatic = mockStatic(DigitalOrderMapper.class)) {
+            mapperStatic.when(() -> DigitalOrderMapper.INSTANCE).thenReturn(digitalOrderMapper);
+            
+            when(digitalOrderMapper.toGrpcRequest(any(DigitalOrderReadRequestDto.class)))
+                    .thenReturn(grpcRequest);
+            when(blockingStub.readDigitalOrder(any(DigitalOrderProto.DigitalOrderReadRequest.class)))
+                    .thenThrow(exception);
+
+            // When & Then
+            assertThrows(StatusRuntimeException.class, () -> {
+                digitalOrderService.readDigitalOrder(requestDto);
+            });
+
+            verify(blockingStub, times(1)).readDigitalOrder(any(DigitalOrderProto.DigitalOrderReadRequest.class));
+        }
+    }
+
+    @Test
+    void readDigitalOrder_whenGrpcThrowsUnavailableException_shouldPropagateException() {
+        // Given
+        StatusRuntimeException exception = new StatusRuntimeException(Status.UNAVAILABLE);
+
+        try (MockedStatic<DigitalOrderMapper> mapperStatic = mockStatic(DigitalOrderMapper.class)) {
+            mapperStatic.when(() -> DigitalOrderMapper.INSTANCE).thenReturn(digitalOrderMapper);
+            
+            when(digitalOrderMapper.toGrpcRequest(any(DigitalOrderReadRequestDto.class)))
+                    .thenReturn(grpcRequest);
+            when(blockingStub.readDigitalOrder(any(DigitalOrderProto.DigitalOrderReadRequest.class)))
+                    .thenThrow(exception);
+
+            // When & Then
+            assertThrows(StatusRuntimeException.class, () -> {
+                digitalOrderService.readDigitalOrder(requestDto);
+            });
+
+            verify(blockingStub, times(1)).readDigitalOrder(any(DigitalOrderProto.DigitalOrderReadRequest.class));
+        }
+    }
+
+    @Test
+    void readDigitalOrder_whenMapperThrowsException_shouldPropagateException() {
+        // Given
+        try (MockedStatic<DigitalOrderMapper> mapperStatic = mockStatic(DigitalOrderMapper.class)) {
+            mapperStatic.when(() -> DigitalOrderMapper.INSTANCE).thenReturn(digitalOrderMapper);
+            
+            when(digitalOrderMapper.toGrpcRequest(any(DigitalOrderReadRequestDto.class)))
+                    .thenThrow(new RuntimeException("Mapping error"));
+
+            // When & Then
+            assertThrows(RuntimeException.class, () -> {
+                digitalOrderService.readDigitalOrder(requestDto);
+            });
+
+            verify(digitalOrderMapper, times(1)).toGrpcRequest(any(DigitalOrderReadRequestDto.class));
+            verify(blockingStub, never()).readDigitalOrder(any());
+        }
+    }
+
+    @Test
+    void readDigitalOrder_whenRequestIsNull_shouldStillAttemptProcessing() {
+        // Given
+        try (MockedStatic<DigitalOrderMapper> mapperStatic = mockStatic(DigitalOrderMapper.class)) {
+            mapperStatic.when(() -> DigitalOrderMapper.INSTANCE).thenReturn(digitalOrderMapper);
+            
+            when(digitalOrderMapper.toGrpcRequest(null))
+                    .thenReturn(grpcRequest);
+            when(blockingStub.readDigitalOrder(any(DigitalOrderProto.DigitalOrderReadRequest.class)))
+                    .thenReturn(grpcResponse);
+            when(digitalOrderMapper.toResponseDto(any(DigitalOrderProto.DigitalOrderReadResponse.class)))
+                    .thenReturn(responseDto);
+
+            // When
+            DigitalOrderReadResponseDto result = digitalOrderService.readDigitalOrder(null);
+
+            // Then
+            assertNotNull(result);
+            verify(digitalOrderMapper, times(1)).toGrpcRequest(null);
+            verify(blockingStub, times(1)).readDigitalOrder(any(DigitalOrderProto.DigitalOrderReadRequest.class));
+        }
+    }
+}
