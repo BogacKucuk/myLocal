@@ -1,14 +1,40 @@
-  @Test
-    void readDigitalOrder_whenGrpcResponseIsNull_shouldHandleGracefully() {
-        // Given
-        when(blockingStub.readBranchInstructionDepositWithdrawal(any(ReadBranchInstructionDepositWithdrawalRequest.class)))
-                .thenReturn(null);
+const [triggerGetCustomerData] = useLazyGetExtendedCustomerInfoQuery();
 
-        // When
-        DigitalOrderReadResponseDto result = digitalOrderService.readDigitalOrder(requestDto);
+const customerNumber = digitalOrderStore?.selectedDigitalOrder?.customerNumber?.toString();
+const tckn = digitalOrderStore?.selectedDigitalOrder?.tckn;
 
-        // Then
-        assertNotNull(result);
-        assertNull(result.getReadBranchInstructionDepositWithdrawal());
-        verify(blockingStub, times(1)).readBranchInstructionDepositWithdrawal(any(ReadBranchInstructionDepositWithdrawalRequest.class));
-    }
+useEffect(() => {
+  if (pageMode !== 'DO' || !customerNumber) return;
+
+  let isActive = true;
+
+  // tetikle ve elde edilen promise'ı sakla
+  const p = triggerGetCustomerData({ customerNum: customerNumber });
+
+  p.unwrap()
+    .then((customerData) => {
+      if (!isActive) return; // unmount/deps değiştiyse ignore
+      const tableDataRecord: TableRow = [
+        {
+          customer: customerNumber,
+          identityNumber: tckn,
+          isManuallyAdded: true,
+          nameSurname: customerData?.fullName ?? 'TEST',
+          nationality: customerData?.nationality ?? 'TUR',
+        },
+      ];
+      setTableData(tableDataRecord);
+      handleCustomerNumberBlur(customerNumber, customerNumber);
+    })
+    .catch((err) => {
+      if (!isActive) return; // iptal edildiyse yok say
+      console.error('getCustomerData failed', err);
+      // burada toast gösterebilirsin
+    });
+
+  return () => {
+    isActive = false;
+    // RTKQ lazy trigger abort desteği
+    if (typeof p.abort === 'function') p.abort();
+  };
+}, [pageMode, customerNumber, tckn, triggerGetCustomerData, handleCustomerNumberBlur]);
