@@ -1,11 +1,22 @@
-export const todayYMD = (timeZone: string = 'Europe/Istanbul'): string => {
-  return new Intl.DateTimeFormat('en-CA', {
-    timeZone,
-    year: 'numeric',
-    month: '2-digit',
-    day: '2-digit',
-  }).format(new Date());
+export const formatMoney = (value: number | string | null | undefined): string => {
+  if (value === null || value === undefined) {
+    return '0,00';
+  }
+
+  // string gelirse sayıya çevir
+  const num = typeof value === 'string' ? Number(value) : value;
+
+  if (isNaN(num)) {
+    return '0,00';
+  }
+
+  return new Intl.NumberFormat('tr-TR', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(num);
 };
 
-// Kullanım
-const today = todayYMD(); // örn: "2025-10-01"
+// Kullanım örnekleri:
+console.log(formatMoney(1000));        // "1.000,00"
+console.log(formatMoney("1234.5"));    // "1.234,50"
+console.log(formatMoney(null));        // "0,00"
