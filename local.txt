@@ -1,5 +1,6 @@
 pip install pdf417gen==0.7 Pillow==6.2.2
 
+python pdf417_from_code.py -i buyuk_kod.txt --chunk-size 900 --columns 6 --security 2 --header
 
 
 
