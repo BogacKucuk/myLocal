@@ -1,27 +1,142 @@
-function convertRawToTimestamp(input: string): string {
-  // Beklenen input: 2025-10-02-18.02.27.372856
-  // Ama micro kısmı eksik ya da hiç olmayabilir
+pip install pdf417gen==0.7 Pillow==6.2.2
 
-  const year = input.substring(0, 4);
-  const month = input.substring(5, 7);
-  const day = input.substring(8, 10);
-  const hour = input.substring(11, 13);
-  const minute = input.substring(14, 16);
-  const second = input.substring(17, 19);
 
-  const micro = input.length > 20 ? input.substring(20) : "";
 
-  return micro
-    ? `${year}-${month}-${day} ${hour}:${minute}:${second}.${micro}`
-    : `${year}-${month}-${day} ${hour}:${minute}:${second}`;
-}
 
-// Kullanım örnekleri
-console.log(convertRawToTimestamp("2025-10-02-18.02.27.372856"));
-// ✅ 2025-10-02 18:02:27.372856
 
-console.log(convertRawToTimestamp("2025-10-02-18.02.27.37"));
-// ✅ 2025-10-02 18:02:27.37
+# -*- coding: utf-8 -*-
+from __future__ import print_function
+import sys
+import os
+import io
+import argparse
+import shutil
+import math
+import pdf417gen
+from PIL import Image, ImageDraw
 
-console.log(convertRawToTimestamp("2025-10-02-18.02.27"));
-// ✅ 2025-10-02 18:02:27
+# Windows konsollarda Unicode güvenli yazdırma
+def safe_print(msg):
+    if isinstance(msg, unicode):
+        u = msg
+    else:
+        try:
+            u = unicode(msg)
+        except Exception:
+            u = unicode(str(msg), errors='replace')
+    enc = sys.stdout.encoding or 'utf-8'
+    sys.stdout.write(u.encode(enc, 'replace') + b"\n")
+    sys.stdout.flush()
+
+def read_text(args):
+    # 1) --text
+    if args.text is not None:
+        if isinstance(args.text, unicode):
+            return args.text
+        return args.text.decode('utf-8', 'replace')
+    # 2) --input dosya
+    if args.input:
+        with io.open(args.input, 'r', encoding='utf-8', errors='replace') as f:
+            return f.read()
+    # 3) stdin
+    if not sys.stdin.isatty():
+        data = sys.stdin.read()
+        if isinstance(data, unicode):
+            return data
+        return data.decode('utf-8', 'replace')
+    return u""
+
+def ensure_clean_dir(path):
+    if os.path.isdir(path):
+        shutil.rmtree(path, ignore_errors=True)
+    if not os.path.isdir(path):
+        os.makedirs(path)
+
+def render_pdf417(data_text, scale, ratio, columns, security_level):
+    """
+    data_text: unicode
+    scale: piksel ölçeği (örn 3-6)
+    ratio: bar yüksekliği oranı (örn 3)
+    columns: 1..30 (daha fazla sütun = daha geniş kod)
+    security_level: 0..8 (düzeltme arttıkça kapasite düşer)
+    """
+    # pdf417gen byte/utf-8 ile çalışır
+    payload = data_text.encode('utf-8')
+    codes = pdf417gen.encode(payload, columns=columns, security_level=security_level)
+    image = pdf417gen.render_image(codes, scale=scale, ratio=ratio, padding=8)
+    return image
+
+def chunk_text(text, chunk_size):
+    return [text[i:i+chunk_size] for i in range(0, len(text), chunk_size)]
+
+def main():
+    parser = argparse.ArgumentParser(description="Büyük metni çoklu PDF417 barkodlarına böler (Python 2.7).")
+    parser.add_argument("-i", "--input", help="Girdi dosyası (UTF-8).")
+    parser.add_argument("-t", "--text", help="Doğrudan metin (tırnak içinde).")
+    parser.add_argument("--output-dir", default="chunks_pdf417", help="Çıktı klasörü (vars: chunks_pdf417)")
+    parser.add_argument("--prefix", default="part", help="Dosya adı ön eki (vars: part)")
+    # kapasite/okunabilirlik ayarları
+    parser.add_argument("--chunk-size", type=int, default=900,
+                        help="Parça karakter sayısı (vars: 900).")
+    parser.add_argument("--columns", type=int, default=6,
+                        help="PDF417 sütun sayısı 1..30 (vars: 6)")
+    parser.add_argument("--security", type=int, default=2,
+                        help="Hata düzeltme 0..8 (vars: 2)")
+    parser.add_argument("--scale", type=int, default=4,
+                        help="Piksel ölçeği (vars: 4)")
+    parser.add_argument("--ratio", type=int, default=3,
+                        help="Çubuk yüksekliği oranı (vars: 3)")
+    parser.add_argument("--header", action="store_true",
+                        help="Her parçanın üstüne insan-okur başlık (1/NN) ekle (QR gibi)")
+    args = parser.parse_args()
+
+    text = read_text(args)
+    if not text:
+        safe_print(u"Hata: Metin bulunamadı. --text, --input veya stdin kullanın.")
+        sys.exit(1)
+
+    # Unicode garanti
+    if not isinstance(text, unicode):
+        try:
+            text = text.decode('utf-8', 'replace')
+        except Exception:
+            text = unicode(text, errors='replace')
+
+    # klasörü temizle
+    ensure_clean_dir(args.output_dir)
+
+    pieces = chunk_text(text, args.chunk_size)
+    total = len(pieces)
+    width = len(str(total))
+
+    out_files = []
+    for i, p in enumerate(pieces, 1):
+        # Parça başlığı (alıcıda sırayı anlamayı kolaylaştırır)
+        payload = p
+        if args.header:
+            payload = u"[{num}/{tot}]\n".format(
+                num=("%0" + str(width) + "d") % i, tot=total) + p
+
+        img = render_pdf417(payload, scale=args.scale, ratio=args.ratio,
+                            columns=args.columns, security_level=args.security)
+
+        # İstersen başlığı görsel üstüne de yaz (okumaya yardım)
+        if args.header:
+            draw = ImageDraw.Draw(img)
+            # basit tek satır; unicode sorun olursa kaldır
+            try:
+                draw.text((8, 8), u"Parça {}/{}".format(i, total))
+            except Exception:
+                pass
+
+        fname = os.path.join(args.output_dir, u"{prefix}_{num}.png".format(
+            prefix=args.prefix, num=("%0" + str(width) + "d") % i))
+        img.save(fname)
+        out_files.append(fname)
+
+    safe_print(u"{} parça üretildi → '{}' klasöründe.".format(total, args.output_dir))
+    for f in out_files:
+        safe_print(u" - " + f)
+
+if __name__ == "__main__":
+    main()
