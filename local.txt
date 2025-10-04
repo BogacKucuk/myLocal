@@ -2,6 +2,9 @@ pip install pdf417gen==0.7 Pillow==6.2.2
 
 python pdf417_macro_extended.py -i note.txt --auto --columns 18 --security 1 --header --macro --macro-visible-only
 
+python pdf417_macro_extended.py -i note.txt --auto --columns 18 --max-columns 30 --security 1 --scale 4 --ratio 3 --header --macro
+
+
 python pdf417_macro_extended.py -i note.txt --chunk-size 1000 --columns 20 --security 1 --header --macro
 
 
