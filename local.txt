@@ -1,215 +1,163 @@
-python pdf417_extended.py -i note.txt --auto --columns 14 --security 1 --scale 4 --ratio 3 --header
+python extended.py -i note.txt --auto --columns 16 --max-columns 30 --security 1 --scale 4 --ratio 3 --header
 
-python pdf417_extended.py -i note.txt --chunk-size 900 --columns 16 --security 2 --header
 
 
 
 # -*- coding: utf-8 -*-
 from __future__ import print_function
-import sys
-import os
-import io
-import argparse
-import shutil
+import sys, os, io, argparse, shutil
 import pdf417gen
 from PIL import Image, ImageDraw
 
-# ---------- Helpers ----------
-
 def safe_print(msg):
-    """Windows/Py2 için unicode güvenli print."""
     try:
         u = msg if isinstance(msg, unicode) else unicode(msg)
     except Exception:
         u = unicode(str(msg), errors='replace')
     enc = sys.stdout.encoding or 'utf-8'
-    sys.stdout.write(u.encode(enc, 'replace') + b"\n")
-    sys.stdout.flush()
+    sys.stdout.write(u.encode(enc, 'replace') + b"\n"); sys.stdout.flush()
 
 def read_text(args):
-    # 1) --text
     if args.text is not None:
-        if isinstance(args.text, unicode):
-            return args.text
+        if isinstance(args.text, unicode): return args.text
         return args.text.decode('utf-8', 'replace')
-    # 2) --input dosya
     if args.input:
         with io.open(args.input, 'r', encoding='utf-8', errors='replace') as f:
             return f.read()
-    # 3) stdin (pipe)
     if not sys.stdin.isatty():
         data = sys.stdin.read()
-        if isinstance(data, unicode):
-            return data
+        if isinstance(data, unicode): return data
         return data.decode('utf-8', 'replace')
     return u""
 
 def ensure_clean_dir(path):
-    """Klasörü her çalıştırmada temizler ve yeniden oluşturur."""
-    if os.path.isdir(path):
-        shutil.rmtree(path, ignore_errors=True)
-    if not os.path.isdir(path):
-        os.makedirs(path)
+    if os.path.isdir(path): shutil.rmtree(path, ignore_errors=True)
+    if not os.path.isdir(path): os.makedirs(path)
 
 def render_pdf417_fit(data_text, scale, ratio, start_columns, security_level, max_cols):
-    """
-    PDF417'i üret; satır sayısı 90'ı aşarsa sütunları artırarak dener.
-    Dönen: (PIL.Image, kullanılan_sütun)
-    """
     payload = data_text.encode('utf-8')
-    cols = start_columns
-    last_err = None
+    cols = start_columns; last_err = None
     while cols <= max_cols:
         try:
             codes = pdf417gen.encode(payload, columns=cols, security_level=security_level)
             img = pdf417gen.render_image(codes, scale=scale, ratio=ratio, padding=8)
             return img, cols
         except ValueError as e:
-            s = str(e)
-            last_err = e
-            # pdf417gen mesajı: "Maximum is 90 rows. Try increasing column count."
+            s = str(e); last_err = e
             if ("Maximum is 90 rows" in s) or ("Try increasing column count" in s):
-                cols += 2  # daha geniş barkod için sütunu arttır
-                continue
-            # başka bir hata ise yükselt
+                cols += 2; continue
+            if "Maximum is" in s and "MAX_CODE_WORDS" in s:  # kod sözcüğü limiti
+                raise
             raise
-    raise ValueError("Sığmadı (max {} sütun). Daha küçük parçalara bölmek gerek. Son hata: {}".format(max_cols, last_err))
+    raise ValueError("Sığmadı (max {} sütun). Son hata: {}".format(max_cols, last_err))
 
-def max_fit_length(text_u, scale, ratio, start_cols, security, max_cols, lo=100):
-    """
-    İkili arama ile tek barkoda sığan maksimum uzunluğu bul.
-    Dönen: int (karakter sayısı)
-    """
-    hi = len(text_u)
-    best = 0
+def max_fit_length(text_u, scale, ratio, start_cols, security, max_cols, lo=64):
+    """Tek sembole sığan maksimum karakter uzunluğu (ikili arama)."""
+    hi = len(text_u); best = 0
     while lo <= hi:
         mid = (lo + hi) // 2
         try:
             render_pdf417_fit(text_u[:mid], scale, ratio, start_cols, security, max_cols)
-            best = mid
-            lo = mid + 1
+            best = mid; lo = mid + 1
         except ValueError:
             hi = mid - 1
-    return max(1, best)
+    # güvenlik payı (bazı segmentler farklı kompaksiyon seçip 1-2 codeword fazla üretebiliyor)
+    return max(1, int(best * 0.95))
 
 def fit_or_split(text_u, scale, ratio, start_cols, security, max_cols):
-    """
-    Önce tek sembole sığdırmayı dener; olmazsa en az sayıda parçaya böler.
-    Dönen: [(PIL.Image, used_cols), ...]
-    """
-    # Tek parça denemesi
+    """Önce tek sembol; olmazsa minimum parça sayısı ile adaptif böl."""
+    # 1) Tek sembol dene
     try:
         img, used_cols = render_pdf417_fit(text_u, scale, ratio, start_cols, security, max_cols)
         return [(img, used_cols)]
     except ValueError:
         pass
 
-    # Parçalayarak üretim
+    # 2) Sığan en büyük uzunluğu bul
     chunk_len = max_fit_length(text_u, scale, ratio, start_cols, security, max_cols)
     parts = []
-    i = 0
-    L = len(text_u)
+    i = 0; L = len(text_u)
+
     while i < L:
-        chunk = text_u[i:i + chunk_len]
-        img, used_cols = render_pdf417_fit(chunk, scale, ratio, start_cols, security, max_cols)
-        parts.append((img, used_cols))
-        i += chunk_len
+        remaining = text_u[i:]
+        cur_len = min(chunk_len, len(remaining))
+        # adaptif deneme: sığmazsa %10 küçült
+        while True:
+            try:
+                chunk = remaining[:cur_len]
+                img, used_cols = render_pdf417_fit(chunk, scale, ratio, start_cols, security, max_cols)
+                parts.append((img, used_cols))
+                i += cur_len
+                break
+            except ValueError as e:
+                # kod sözcüğü limiti ise cur_len'i küçültüp yeniden dene
+                s = str(e)
+                if "MAX_CODE_WORDS" in s or "Maximum is" in s:
+                    new_len = int(cur_len * 0.9)
+                    if new_len < 32:
+                        raise ValueError("Parça çok küçük bile sığmıyor; güvenlik/columns düşürmeyi deneyin: {}".format(e))
+                    cur_len = new_len
+                else:
+                    raise
     return parts
 
 def add_header_text(img, text_u):
-    """Üstte küçük bir başlık yaz (isteğe bağlı)."""
     try:
         draw = ImageDraw.Draw(img)
         draw.text((8, 8), text_u)
     except Exception:
         pass
 
-# ---------- CLI ----------
-
 def main():
-    parser = argparse.ArgumentParser(description="Büyük metni PDF417 barkod(lar)ına çevirir (Python 2.7).")
-    parser.add_argument("-i", "--input", help="Girdi dosyası (UTF-8).")
-    parser.add_argument("-t", "--text", help="Doğrudan metin (tırnak içinde).")
-    parser.add_argument("--output-dir", default="chunks_pdf417", help="Çıktı klasörü (vars: chunks_pdf417)")
-    parser.add_argument("--prefix", default="part", help="Çıktı dosya adı ön eki (vars: part)")
-
-    # Üretim stratejisi
-    parser.add_argument("--auto", action="store_true",
-        help="Tek sembole sığdırmayı dener; sığmazsa minimum parça ile otomatik böler.")
-    parser.add_argument("--chunk-size", type=int, default=900,
-        help="Manuel mod: parça karakter sayısı (vars: 900). --auto ile kullanılmaz.")
-
-    # Barkod boyut/okunabilirlik ayarları
-    parser.add_argument("--columns", type=int, default=14, help="Başlangıç PDF417 sütun sayısı 1..30 (vars: 14)")
-    parser.add_argument("--max-columns", type=int, default=30, help="Otomatik artırmada üst sınır (vars: 30)")
-    parser.add_argument("--security", type=int, default=2, help="Hata düzeltme 0..8 (vars: 2)")
-    parser.add_argument("--scale", type=int, default=4, help="Piksel ölçeği (vars: 4)")
-    parser.add_argument("--ratio", type=int, default=3, help="Çubuk yüksekliği oranı (vars: 3)")
-
-    # Görsel/human yardımcıları
-    parser.add_argument("--header", action="store_true",
-        help="Her parçaya insan-okur başlık (1/NN) ekle ve görsel üstüne yaz.")
-    args = parser.parse_args()
+    p = argparse.ArgumentParser(description="Metni PDF417 barkod(lar)ına çevirir (Python 2.7).")
+    p.add_argument("-i","--input"); p.add_argument("-t","--text")
+    p.add_argument("--output-dir", default="chunks_pdf417")
+    p.add_argument("--prefix", default="part")
+    p.add_argument("--auto", action="store_true",
+        help="Tek sembole sığdır (sütunları artır). Olmazsa en az parça ile adaptif böl.")
+    p.add_argument("--chunk-size", type=int, default=900,
+        help="Manuel mod: parça karakter sayısı.")
+    p.add_argument("--columns", type=int, default=16)
+    p.add_argument("--max-columns", type=int, default=30)
+    p.add_argument("--security", type=int, default=1)
+    p.add_argument("--scale", type=int, default=4)
+    p.add_argument("--ratio", type=int, default=3)
+    p.add_argument("--header", action="store_true")
+    args = p.parse_args()
 
     text = read_text(args)
     if not text:
-        safe_print(u"Hata: Metin bulunamadı. --text, --input veya stdin kullanın.")
-        sys.exit(1)
-
-    # Unicode garanti
+        safe_print(u"Hata: Metin yok. --text, --input veya stdin kullanın."); sys.exit(1)
     if not isinstance(text, unicode):
-        try:
-            text = text.decode('utf-8', 'replace')
-        except Exception:
-            text = unicode(text, errors='replace')
+        try: text = text.decode('utf-8', 'replace')
+        except Exception: text = unicode(text, errors='replace')
 
     ensure_clean_dir(args.output_dir)
-
     out_files = []
 
     if args.auto:
-        # --- Otomatik sığdırma ---
         parts = fit_or_split(text, args.scale, args.ratio, args.columns, args.security, args.max_columns)
-        total = len(parts)
-        width = len(str(total))
-
-        # Başlık istenirse payload'ın başına [x/N] eklemek yerine sadece görsele yazıyoruz
+        total = len(parts); width = len(str(total))
         for idx, (img, used_cols) in enumerate(parts, 1):
             if args.header:
-                header_txt = u"Parça {}/{} (cols={})".format(idx, total, used_cols)
-                add_header_text(img, header_txt)
-            num_str = ("%0" + str(width) + "d") % idx
-            fname = os.path.join(args.output_dir, u"{}_{num}.png".format(args.prefix, num=num_str))
-            img.save(fname)
-            out_files.append(fname)
-
+                add_header_text(img, u"Parça {}/{} (cols={})".format(idx, total, used_cols))
+            num = ("%0{}d".format(width)) % idx
+            fname = os.path.join(args.output_dir, u"{}_{}.png".format(args.prefix, num))
+            img.save(fname); out_files.append(fname)
         safe_print(u"{} parça üretildi (auto). Çıkış: '{}'".format(total, args.output_dir))
-
     else:
-        # --- Manuel parçalama ---
-        # Parçaları önceden böl
-        chunks = [text[i:i + args.chunk_size] for i in range(0, len(text), args.chunk_size)]
-        total = len(chunks)
-        width = len(str(total))
-
+        chunks = [text[i:i+args.chunk_size] for i in range(0, len(text), args.chunk_size)]
+        total = len(chunks); width = len(str(total))
         for i, chunk in enumerate(chunks, 1):
-            # İstenirse payload'a da [x/N] ekleyebiliriz; ancak kapasiteyi azaltır.
-            payload = chunk
-            img, used_cols = render_pdf417_fit(payload, args.scale, args.ratio,
-                                               args.columns, args.security, args.max_columns)
+            img, used_cols = render_pdf417_fit(chunk, args.scale, args.ratio, args.columns, args.security, args.max_columns)
             if args.header:
-                header_txt = u"Parça {}/{} (cols={})".format(i, total, used_cols)
-                add_header_text(img, header_txt)
-
-            num_str = ("%0" + str(width) + "d") % i
-            fname = os.path.join(args.output_dir, u"{}_{num}.png".format(args.prefix, num=num_str))
-            img.save(fname)
-            out_files.append(fname)
-
+                add_header_text(img, u"Parça {}/{} (cols={})".format(i, total, used_cols))
+            num = ("%0{}d".format(width)) % i
+            fname = os.path.join(args.output_dir, u"{}_{}.png".format(args.prefix, num))
+            img.save(fname); out_files.append(fname)
         safe_print(u"{} parça üretildi (manuel, chunk-size={}). Çıkış: '{}'".format(total, args.chunk_size, args.output_dir))
 
-    for f in out_files:
-        safe_print(u" - " + f)
+    for f in out_files: safe_print(u" - " + f)
 
 if __name__ == "__main__":
     main()
