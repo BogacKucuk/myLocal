@@ -1,14 +1,17 @@
-python extended.py -i note.txt --auto --columns 16 --max-columns 30 --security 1 --scale 4 --ratio 3 --header
+pip install pdf417gen==0.7 Pillow==6.2.2
 
+python pdf417_macro_extended.py -i note.txt --auto --columns 18 --security 1 --header --macro --macro-visible-only
 
+python pdf417_macro_extended.py -i note.txt --chunk-size 1000 --columns 20 --security 1 --header --macro
 
 
 # -*- coding: utf-8 -*-
 from __future__ import print_function
-import sys, os, io, argparse, shutil
+import sys, os, io, argparse, shutil, zlib, uuid, time
 import pdf417gen
 from PIL import Image, ImageDraw
 
+# --------- I/O helpers ---------
 def safe_print(msg):
     try:
         u = msg if isinstance(msg, unicode) else unicode(msg)
@@ -34,8 +37,17 @@ def ensure_clean_dir(path):
     if os.path.isdir(path): shutil.rmtree(path, ignore_errors=True)
     if not os.path.isdir(path): os.makedirs(path)
 
-def render_pdf417_fit(data_text, scale, ratio, start_columns, security_level, max_cols):
-    payload = data_text.encode('utf-8')
+# --------- PDF417 core ---------
+def encode_payload_best_effort(text_u):
+    """ASCII uygunsa ASCII, değilse UTF-8 byte dizisi döner."""
+    try:
+        return text_u.encode('ascii')
+    except Exception:
+        return text_u.encode('utf-8')
+
+def render_pdf417_fit(data_text_u, scale, ratio, start_columns, security_level, max_cols):
+    """Satır>90 olursa sütun artırarak üret. Dönen: (img, used_cols)"""
+    payload = encode_payload_best_effort(data_text_u)
     cols = start_columns; last_err = None
     while cols <= max_cols:
         try:
@@ -44,15 +56,15 @@ def render_pdf417_fit(data_text, scale, ratio, start_columns, security_level, ma
             return img, cols
         except ValueError as e:
             s = str(e); last_err = e
+            # tipik: "Maximum is 90 rows. Try increasing column count."
             if ("Maximum is 90 rows" in s) or ("Try increasing column count" in s):
                 cols += 2; continue
-            if "Maximum is" in s and "MAX_CODE_WORDS" in s:  # kod sözcüğü limiti
-                raise
+            # codeword limit aşıldı vb. ise yükselt
             raise
     raise ValueError("Sığmadı (max {} sütun). Son hata: {}".format(max_cols, last_err))
 
 def max_fit_length(text_u, scale, ratio, start_cols, security, max_cols, lo=64):
-    """Tek sembole sığan maksimum karakter uzunluğu (ikili arama)."""
+    """Tek barkoda sığabilecek maksimum uzunluk (ikili arama + küçük güvenlik payı)."""
     hi = len(text_u); best = 0
     while lo <= hi:
         mid = (lo + hi) // 2
@@ -61,44 +73,35 @@ def max_fit_length(text_u, scale, ratio, start_cols, security, max_cols, lo=64):
             best = mid; lo = mid + 1
         except ValueError:
             hi = mid - 1
-    # güvenlik payı (bazı segmentler farklı kompaksiyon seçip 1-2 codeword fazla üretebiliyor)
-    return max(1, int(best * 0.95))
+    # güvenlik payını küçük tut (kapasiteyi artırmak için)
+    return max(1, int(best * 0.99))
 
 def fit_or_split(text_u, scale, ratio, start_cols, security, max_cols):
-    """Önce tek sembol; olmazsa minimum parça sayısı ile adaptif böl."""
-    # 1) Tek sembol dene
+    """Tek sembol dene; olmazsa minimum parça ile adaptif böl."""
     try:
         img, used_cols = render_pdf417_fit(text_u, scale, ratio, start_cols, security, max_cols)
-        return [(img, used_cols)]
+        return [(img, used_cols, text_u)]
     except ValueError:
         pass
-
-    # 2) Sığan en büyük uzunluğu bul
     chunk_len = max_fit_length(text_u, scale, ratio, start_cols, security, max_cols)
     parts = []
-    i = 0; L = len(text_u)
-
+    i, L = 0, len(text_u)
     while i < L:
         remaining = text_u[i:]
         cur_len = min(chunk_len, len(remaining))
-        # adaptif deneme: sığmazsa %10 küçült
         while True:
             try:
-                chunk = remaining[:cur_len]
-                img, used_cols = render_pdf417_fit(chunk, scale, ratio, start_cols, security, max_cols)
-                parts.append((img, used_cols))
+                chunk_u = remaining[:cur_len]
+                img, used_cols = render_pdf417_fit(chunk_u, scale, ratio, start_cols, security, max_cols)
+                parts.append((img, used_cols, chunk_u))
                 i += cur_len
                 break
             except ValueError as e:
-                # kod sözcüğü limiti ise cur_len'i küçültüp yeniden dene
-                s = str(e)
-                if "MAX_CODE_WORDS" in s or "Maximum is" in s:
-                    new_len = int(cur_len * 0.9)
-                    if new_len < 32:
-                        raise ValueError("Parça çok küçük bile sığmıyor; güvenlik/columns düşürmeyi deneyin: {}".format(e))
-                    cur_len = new_len
-                else:
-                    raise
+                # codeword limiti vb: biraz küçült ve tekrar dene
+                new_len = int(cur_len * 0.97)
+                if new_len < 32:
+                    raise ValueError("Parça çok küçük bile sığmıyor: {}".format(e))
+                cur_len = new_len
     return parts
 
 def add_header_text(img, text_u):
@@ -108,21 +111,52 @@ def add_header_text(img, text_u):
     except Exception:
         pass
 
+# --------- Macro-like header helpers ---------
+def crc32_hex(u_text):
+    b = encode_payload_best_effort(u_text)
+    c = zlib.crc32(b) & 0xffffffff
+    return ("%08X" % c)
+
+def make_macro_payload(file_id, idx, total, chunk_u, include_header_in_payload):
+    """
+    Macro benzeri üstbilgi. Bazı okuyucular otomatik birleştirir.
+    include_header_in_payload=True ise metnin başına da yazılır.
+    """
+    header = u"[MFID:{fid}|IDX:{i}|TOTAL:{t}|CRC32:{crc}]".format(
+        fid=file_id, i=idx, t=total, crc=crc32_hex(chunk_u))
+    if include_header_in_payload:
+        return header + u"\n" + chunk_u
+    else:
+        return chunk_u, header  # (payload, visible_header)
+
+# --------- CLI ---------
 def main():
-    p = argparse.ArgumentParser(description="Metni PDF417 barkod(lar)ına çevirir (Python 2.7).")
-    p.add_argument("-i","--input"); p.add_argument("-t","--text")
-    p.add_argument("--output-dir", default="chunks_pdf417")
-    p.add_argument("--prefix", default="part")
+    p = argparse.ArgumentParser(description="Büyük metni PDF417 barkodlarına çevirir (Python 2.7).")
+    p.add_argument("-i","--input", help="Girdi dosyası (UTF-8)")
+    p.add_argument("-t","--text", help="Doğrudan metin")
+    p.add_argument("--output-dir", default="chunks_pdf417", help="Çıktı klasörü")
+    p.add_argument("--prefix", default="part", help="Dosya adı ön eki")
+
+    # strateji
     p.add_argument("--auto", action="store_true",
-        help="Tek sembole sığdır (sütunları artır). Olmazsa en az parça ile adaptif böl.")
+        help="Tek sembole sığdırmayı dener; olmazsa minimum parçaya böler.")
     p.add_argument("--chunk-size", type=int, default=900,
-        help="Manuel mod: parça karakter sayısı.")
-    p.add_argument("--columns", type=int, default=16)
+        help="Manuel mod parça uzunluğu (auto kapalıyken).")
+
+    # barkod ölçü/okunabilirlik
+    p.add_argument("--columns", type=int, default=18)
     p.add_argument("--max-columns", type=int, default=30)
     p.add_argument("--security", type=int, default=1)
     p.add_argument("--scale", type=int, default=4)
     p.add_argument("--ratio", type=int, default=3)
-    p.add_argument("--header", action="store_true")
+
+    # görsel & macro
+    p.add_argument("--header", action="store_true",
+        help="Görsel üstüne Parça x/N (cols=..) başlığı yaz.")
+    p.add_argument("--macro", action="store_true",
+        help="Payload başına [MFID|IDX|TOTAL|CRC32] header ekle ve manifest üret.")
+    p.add_argument("--macro-visible-only", action="store_true",
+        help="Header'ı sadece görsel üstüne yaz; payload içine ekleme (uyumluluk için).")
     args = p.parse_args()
 
     text = read_text(args)
@@ -134,30 +168,76 @@ def main():
 
     ensure_clean_dir(args.output_dir)
     out_files = []
+    manifest_lines = []
 
+    # parçaları üret
     if args.auto:
         parts = fit_or_split(text, args.scale, args.ratio, args.columns, args.security, args.max_columns)
-        total = len(parts); width = len(str(total))
-        for idx, (img, used_cols) in enumerate(parts, 1):
-            if args.header:
-                add_header_text(img, u"Parça {}/{} (cols={})".format(idx, total, used_cols))
-            num = ("%0{}d".format(width)) % idx
-            fname = os.path.join(args.output_dir, u"{}_{}.png".format(args.prefix, num))
-            img.save(fname); out_files.append(fname)
-        safe_print(u"{} parça üretildi (auto). Çıkış: '{}'".format(total, args.output_dir))
+        chunks_u = [u for (_img,_c,u) in parts]
+        imgs_cols = [(img,col) for (img,col,_u) in parts]
     else:
-        chunks = [text[i:i+args.chunk_size] for i in range(0, len(text), args.chunk_size)]
-        total = len(chunks); width = len(str(total))
-        for i, chunk in enumerate(chunks, 1):
-            img, used_cols = render_pdf417_fit(chunk, args.scale, args.ratio, args.columns, args.security, args.max_columns)
-            if args.header:
-                add_header_text(img, u"Parça {}/{} (cols={})".format(i, total, used_cols))
-            num = ("%0{}d".format(width)) % i
-            fname = os.path.join(args.output_dir, u"{}_{}.png".format(args.prefix, num))
-            img.save(fname); out_files.append(fname)
-        safe_print(u"{} parça üretildi (manuel, chunk-size={}). Çıkış: '{}'".format(total, args.chunk_size, args.output_dir))
+        # manuel böl
+        chunks_u = [text[i:i+args.chunk_size] for i in range(0, len(text), args.chunk_size)]
+        imgs_cols = []
+        for chunk_u in chunks_u:
+            img, used_cols = render_pdf417_fit(chunk_u, args.scale, args.ratio,
+                                               args.columns, args.security, args.max_columns)
+            imgs_cols.append((img, used_cols))
 
+    total = len(chunks_u)
+    width = len(str(total))
+    # Macro için dosya-ID
+    file_id = (uuid.uuid4().hex[:10] + "-" + str(int(time.time()))) if args.macro else None
+
+    for idx, ((img, used_cols), chunk_u) in enumerate(zip(imgs_cols, chunks_u), 1):
+        visible_head = None
+        payload_u = chunk_u
+
+        if args.macro:
+            if args.macro_visible_only:
+                payload_u, visible_head = make_macro_payload(file_id, idx, total, chunk_u, include_header_in_payload=False)
+            else:
+                payload_u = make_macro_payload(file_id, idx, total, chunk_u, include_header_in_payload=True)
+
+        # Görselse başlık
+        if args.header:
+            head_txt = u"Parça {}/{} (cols={})".format(idx, total, used_cols)
+            add_header_text(img, head_txt)
+        # Macro görünür başlığını da ekrana yaz (istersen)
+        if visible_head:
+            add_header_text(img, visible_head)
+
+        # Barkodu payload_u ile yeniden üret (macro payload eklendiyse)
+        if args.macro and (not args.macro_visible_only):
+            # macro payload'ı barkoda gömmek için yeniden render et
+            img, used_cols = render_pdf417_fit(payload_u, args.scale, args.ratio,
+                                               args.columns, args.security, args.max_columns)
+
+        num = ("%0{}d".format(width)) % idx
+        fname = os.path.join(args.output_dir, u"{}_{}.png".format(args.prefix, num))
+        img.save(fname); out_files.append(fname)
+
+        # manifest
+        if args.macro:
+            manifest_lines.append(u"{num}\tIDX={i}\tTOTAL={t}\tMFID={fid}\tCRC32={crc}\tFILE={f}".format(
+                num=num, i=idx, t=total, fid=file_id, crc=crc32_hex(chunk_u), f=fname))
+
+    if args.macro:
+        # manifest kaydet
+        man_path = os.path.join(args.output_dir, "manifest.txt")
+        with io.open(man_path, 'w', encoding='utf-8') as mf:
+            mf.write(u"# Macro PDF417 manifest\n")
+            mf.write(u"# MFID: {}\n".format(file_id))
+            mf.write(u"# parçalar: {}\n".format(total))
+            for line in manifest_lines: mf.write(line + u"\n")
+
+    # özet çıktı
+    mode = u"auto" if args.auto else u"manuel"
+    safe_print(u"{} parça üretildi ({}) → '{}'".format(total, mode, args.output_dir))
     for f in out_files: safe_print(u" - " + f)
+    if args.macro:
+        safe_print(u"Manifest: {}".format(os.path.join(args.output_dir, "manifest.txt")))
+        safe_print(u"MFID: {}".format(file_id))
 
 if __name__ == "__main__":
     main()
