@@ -1665,6 +1665,21 @@ components:
           type: integer
           format: int32
       additionalProperties: false
+    BigDecimal:
+      type: object
+      properties:
+        scale:
+          type: integer
+          format: int32
+          minimum: 0
+        precision:
+          type: integer
+          format: int32
+          minimum: 0
+        value:
+          type: string
+          format: byte
+      additionalProperties: false
   responses:
     HttpOKwithTransactionGrpcResponseResult:
       description: OK.
