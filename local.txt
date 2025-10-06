@@ -1276,7 +1276,9 @@ components:
         records:
           type: array
           items:
-            $ref: '#/components/schemas/T'
+            type: object
+            description: Generic object (replacing unresolved generic type).
+            example: {}
           description: Field `records`.
           example: [string]
       example: {totalCount: 123, records: [string]}
@@ -1853,8 +1855,7 @@ components:
           description: Field `operationCodeItems`.
           example: [string]
         processMainCode:
-          $ref: "#/components/schemas/static class OperationCodeItem {\n        private\
-            \ String"
+          $ref: '#/components/schemas/OperationCodeItem'
         processSubCode:
           type: string
           example: string
@@ -2851,11 +2852,6 @@ components:
       type: object
       description: Placeholder schema for unresolved reference 'SaveTransactionCustomerRequest'.
         Replace with real DTO if available.
-      example: {}
-    T:
-      type: object
-      description: Placeholder schema for unresolved reference 'T'. Replace with real
-        DTO if available.
       example: {}
     TransactionCustomerMessageResponse:
       type: object
