@@ -3,13 +3,14 @@ info:
   title: deposit-withdrawal-channel v0
   description: Service API for deposit-withdrawal-channel v0
   version: 0.1.0
+
   x-generation-options:
     type: object
     api-domain: Intranet
     api-company: Garanti
-    api-use-ssl: true
+    api-use-ssl: yes
     api-auth: token
-    api-auth-version: '3'
+    api-auth-version: "3"
     smart-config-description: deposit-withdrawal-channel Channel Service API YAML
     generator-backend-servers:
       type: object
@@ -20,579 +21,50 @@ info:
   contact:
     email: api.support@garanti.com.tr
     name: Garanti API Support Team
+
 tags:
-- name: deposit-withdrawal-channel
-  description: deposit-withdrawal-channel
-- name: ChequeCommissionInfoService
-  description: Endpoints backed by gRPC service `ChequeCommissionInfoService`. Auto-synced
-    from proto.
-- name: DigitalOrderGrpcService
-  description: Endpoints backed by gRPC service `DigitalOrderGrpcService`. Auto-synced
-    from proto.
-- name: GoldDocumentGrpcService
-  description: Endpoints backed by gRPC service `GoldDocumentGrpcService`. Auto-synced
-    from proto.
-- name: OperationCodeGrpcService
-  description: Endpoints backed by gRPC service `OperationCodeGrpcService`. Auto-synced
-    from proto.
-- name: ReceiptService
-  description: Endpoints backed by gRPC service `ReceiptService`. Auto-synced from
-    proto.
-- name: TransactionGrpcService
-  description: Endpoints backed by gRPC service `TransactionGrpcService`. Auto-synced
-    from proto.
-- name: TransactionCustomerGrpcService
-  description: Endpoints backed by gRPC service `TransactionCustomerGrpcService`.
-    Auto-synced from proto.
+  - name: deposit-withdrawal-channel
+    description: deposit-withdrawal-channel
+
 security:
-- BearerAuth: []
+  - BearerAuth: []
+
 servers:
-- url: https://apigw-dev.apps-t.fw.garanti.com.tr:443/deposit-withdrawal-mngt/deposit-withdrawal-ch/v0
+  - url: 'https://apigw-dev.apps-t.fw.garanti.com.tr:443/deposit-withdrawal-mngt/deposit-withdrawal-ch/v0'
+
 paths:
-  /createTransaction:
+  # Approve Controller Endpoints
+  /approve/list:
     post:
       tags:
-      - Transaction-Grpc-Service
-      operationId: createTransaction
-      summary: createTransaction
-      description: createTransaction
+        - Approve-Controller
+      operationId: listProcessManagement
+      summary: List process management
+      description: List process management for approval workflow
       parameters:
-      - $ref: '#/components/parameters/AcceptHeader'
-      - $ref: '#/components/parameters/ContentTypeHeader'
-      - $ref: '#/components/parameters/ChannelHeader'
-      - $ref: '#/components/parameters/IpHeader'
-      - $ref: '#/components/parameters/DialectHeader'
-      - $ref: '#/components/parameters/GuidHeader'
-      - $ref: '#/components/parameters/ClientTraceIdlHeader'
-      - $ref: '#/components/parameters/AuthorizationTokenHeader'
-      - $ref: '#/components/parameters/TenantGeolocationHeader'
-      - $ref: '#/components/parameters/TenantAppIdHeader'
-      - $ref: '#/components/parameters/ApiKeyHeader'
-      - $ref: '#/components/parameters/UserIdHeader'
-      - $ref: '#/components/parameters/ClientIdHeader'
-      - $ref: '#/components/parameters/RequestTraceFlagHeader'
+        ##### Required ####
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/ChannelHeader'
+        - $ref: '#/components/parameters/IpHeader'
+        - $ref: '#/components/parameters/DialectHeader'
+        - $ref: '#/components/parameters/GuidHeader'
+        - $ref: '#/components/parameters/ClientTraceIdlHeader'
+        #### Optional ####
+        - $ref: '#/components/parameters/AuthorizationTokenHeader'
+        - $ref: '#/components/parameters/TenantGeolocationHeader'
+        - $ref: '#/components/parameters/TenantAppIdHeader'
+        - $ref: '#/components/parameters/ApiKeyHeader'
+        - $ref: '#/components/parameters/UserIdHeader'
+        - $ref: '#/components/parameters/ClientIdHeader'
+        - $ref: '#/components/parameters/RequestTraceFlagHeader'
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TransactionGrpcRequest'
-            example:
-              operationType: DEPOSIT
-              customerNumber: 12345678
-              customerAccount: TR123456789012345678901234
-              transactionAmount: 1000.5
-              currency: TRY
-              channel: BRANCH
-              request:
-              - PARAM1
-              - PARAM2
-        required: true
-      responses:
-        '200':
-          $ref: '#/components/responses/HttpOKwithTransactionGrpcResponseResult'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbiden'
-        '405':
-          $ref: '#/components/responses/MethodNotAllowed'
-        '500':
-          $ref: '#/components/responses/ServerError'
-  /listCustomerRelationshipTypes:
-    post:
-      tags:
-      - Transaction-Customer-Grpc-Service
-      operationId: listCustomerRelationshipTypes
-      summary: listCustomerRelationshipTypes
-      description: listCustomerRelationshipTypes
-      parameters:
-      - $ref: '#/components/parameters/AcceptHeader'
-      - $ref: '#/components/parameters/ContentTypeHeader'
-      - $ref: '#/components/parameters/ChannelHeader'
-      - $ref: '#/components/parameters/IpHeader'
-      - $ref: '#/components/parameters/DialectHeader'
-      - $ref: '#/components/parameters/GuidHeader'
-      - $ref: '#/components/parameters/ClientTraceIdlHeader'
-      - $ref: '#/components/parameters/AuthorizationTokenHeader'
-      - $ref: '#/components/parameters/TenantGeolocationHeader'
-      - $ref: '#/components/parameters/TenantAppIdHeader'
-      - $ref: '#/components/parameters/ApiKeyHeader'
-      - $ref: '#/components/parameters/UserIdHeader'
-      - $ref: '#/components/parameters/ClientIdHeader'
-      - $ref: '#/components/parameters/RequestTraceFlagHeader'
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CustomerRelationshipTypeRequest'
-            example:
-              headerInfo:
-                command: LIST
-                sourceProgramId: WEBAPI
-                unitNum: '001'
-                channelCode: INTERNET
-                moduleCode: CUSTOMER
-                submoduleCode: RELATION
-              serverData:
-                userId: USER123
-                referenceId: REF123456789
-        required: true
-      responses:
-        '200':
-          $ref: '#/components/responses/HttpOKwithCustomerRelationshipTypeResponseResult'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbiden'
-        '405':
-          $ref: '#/components/responses/MethodNotAllowed'
-        '500':
-          $ref: '#/components/responses/ServerError'
-  /listRepresentativePersons:
-    post:
-      tags:
-      - Transaction-Customer-Grpc-Service
-      operationId: listRepresentativePersons
-      summary: listRepresentativePersons
-      description: listRepresentativePersons
-      parameters:
-      - $ref: '#/components/parameters/AcceptHeader'
-      - $ref: '#/components/parameters/ContentTypeHeader'
-      - $ref: '#/components/parameters/ChannelHeader'
-      - $ref: '#/components/parameters/IpHeader'
-      - $ref: '#/components/parameters/DialectHeader'
-      - $ref: '#/components/parameters/GuidHeader'
-      - $ref: '#/components/parameters/ClientTraceIdlHeader'
-      - $ref: '#/components/parameters/AuthorizationTokenHeader'
-      - $ref: '#/components/parameters/TenantGeolocationHeader'
-      - $ref: '#/components/parameters/TenantAppIdHeader'
-      - $ref: '#/components/parameters/ApiKeyHeader'
-      - $ref: '#/components/parameters/UserIdHeader'
-      - $ref: '#/components/parameters/ClientIdHeader'
-      - $ref: '#/components/parameters/RequestTraceFlagHeader'
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RepresentativePersonRequest'
-            example:
-              customerNum: '123456'
-              customerNum2: '654321'
-              relationTypeText: GUARDIAN
-              acceptableLatency: '5'
-              shareRate: '100'
-              shareAmount: '1000'
-              confirmationDate: '2023-01-01'
-              headerInfo:
-                command: LIST
-                sourceProgramId: WEBAPI
-                unitNum: '001'
-                channelCode: INTERNET
-                moduleCode: CUSTOMER
-                submoduleCode: RELATION
-              serverData:
-                userId: USER123
-                referenceId: REF123456789
-        required: true
-      responses:
-        '200':
-          $ref: '#/components/responses/HttpOKwithRepresentativePersonResponseResult'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbiden'
-        '405':
-          $ref: '#/components/responses/MethodNotAllowed'
-        '500':
-          $ref: '#/components/responses/ServerError'
-  /getOperationCode:
-    post:
-      tags:
-      - Transaction-Customer-Grpc-Service
-      operationId: getOperationCode
-      summary: getOperationCode
-      description: getOperationCode
-      parameters:
-      - $ref: '#/components/parameters/AcceptHeader'
-      - $ref: '#/components/parameters/ContentTypeHeader'
-      - $ref: '#/components/parameters/ChannelHeader'
-      - $ref: '#/components/parameters/IpHeader'
-      - $ref: '#/components/parameters/DialectHeader'
-      - $ref: '#/components/parameters/GuidHeader'
-      - $ref: '#/components/parameters/ClientTraceIdlHeader'
-      - $ref: '#/components/parameters/AuthorizationTokenHeader'
-      - $ref: '#/components/parameters/TenantGeolocationHeader'
-      - $ref: '#/components/parameters/TenantAppIdHeader'
-      - $ref: '#/components/parameters/ApiKeyHeader'
-      - $ref: '#/components/parameters/UserIdHeader'
-      - $ref: '#/components/parameters/ClientIdHeader'
-      - $ref: '#/components/parameters/RequestTraceFlagHeader'
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/OperationCodeGrpcRequest'
-            example:
-              operatorCustomer:
-              - operatorCustomerNum: '12345678'
-              accountCustomerNum: '87654321'
-              accountBranch: '002'
-        required: true
-      responses:
-        '200':
-          $ref: '#/components/responses/HttpOKwithOperationCodeGrpcResponseResult'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbiden'
-        '405':
-          $ref: '#/components/responses/MethodNotAllowed'
-        '500':
-          $ref: '#/components/responses/ServerError'
-components:
-  securitySchemes:
-    BearerAuth:
-      type: http
-      scheme: bearer
-  headers:
-    Access-Control-Allow-Origin:
-      description: '*.garantibbva.com.tr'
-      schema:
-        type: string
-    GUID:
-      description: Header GUID
-      schema:
-        $ref: '#/components/parameters/GuidHeader'
-  schemas:
-    TransactionGrpcRequest:
-      type: object
-      description: Request model for transaction operations
-      example:
-        operationType: DEPOSIT
-        customerNumber: 12345678
-        customerAccount: TR123456789012345678901234
-        transactionAmount: 1000.5
-        currency: TRY
-        channel: BRANCH
-        request:
-        - PARAM1
-        - PARAM2
-      properties:
-        operationType:
-          type: string
-          description: Type of operation to be performed
-          example: DEPOSIT
-        customerNumber:
-          type: integer
-          format: int32
-          description: Customer identification number
-          example: 12345678
-        customerAccount:
-          type: string
-          description: Customer account number
-          example: TR123456789012345678901234
-        transactionAmount:
-          type: number
-          format: bigdecimal
-          description: Amount to be processed in the transaction
-          example: 1000.5
-        currency:
-          type: string
-          description: Currency code for the transaction
-          example: TRY
-        channel:
-          type: string
-          description: Channel through which the transaction is initiated
-          example: BRANCH
-        request:
-          type: array
-          description: Additional parameters for the request
-          items:
-            type: string
-            example: PARAM1
-            description: Items of `request`.
-          example:
-          - string
-    TransactionGrpcResponse:
-      type: object
-      description: Response model for transaction operations
-      example:
-        message: Transaction completed successfully
-      properties:
-        message:
-          type: string
-          description: Response message indicating transaction status
-          example: Transaction completed successfully
-    CustomerRelationshipTypeRequest:
-      type: object
-      description: Request model for customer relationship type operations
-      example:
-        headerInfo:
-          command: LIST
-          sourceProgramId: WEBAPI
-          unitNum: '001'
-          channelCode: INTERNET
-          moduleCode: CUSTOMER
-          submoduleCode: RELATION
-        serverData:
-          userId: USER123
-          referenceId: REF123456789
-      properties:
-        headerInfo:
-          allOf:
-          - $ref: '#/components/schemas/HeaderInfo'
-          description: Field `headerInfo`.
-        serverData:
-          allOf:
-          - $ref: '#/components/schemas/ServerData'
-          description: Field `serverData`.
-    CustomerRelationshipTypeResponse:
-      type: object
-      description: Response model for customer relationship type operations
-      example:
-        customerRelationshipTypes:
-        - description: GUARDIAN
-        - description: PROXY
-      properties:
-        customerRelationshipTypes:
-          type: array
-          description: List of available customer relationship types
-          items:
-            allOf:
-            - $ref: '#/components/schemas/CustomerRelationshipType'
-            description: Items of `customerRelationshipTypes`.
-          example: []
-    CustomerRelationshipType:
-      type: object
-      description: Model representing a customer relationship type
-      example:
-        description: GUARDIAN
-      properties:
-        description:
-          type: string
-          description: Description of the customer relationship type
-          example: GUARDIAN
-    RepresentativePersonRequest:
-      type: object
-      description: Request model for representative person operations
-      example:
-        customerNum: '123456'
-        customerNum2: '654321'
-        relationTypeText: GUARDIAN
-        acceptableLatency: '5'
-        shareRate: '100'
-        shareAmount: '1000'
-        confirmationDate: '2023-01-01'
-        headerInfo:
-          command: LIST
-          sourceProgramId: WEBAPI
-          unitNum: '001'
-          channelCode: INTERNET
-          moduleCode: CUSTOMER
-          submoduleCode: RELATION
-        serverData:
-          userId: USER123
-          referenceId: REF123456789
-      properties:
-        customerNum:
-          type: string
-          description: Primary customer number
-          example: '123456'
-        customerNum2:
-          type: string
-          description: Secondary customer number
-          example: '654321'
-        relationTypeText:
-          type: string
-          description: Type of relationship between customers
-          example: GUARDIAN
-        acceptableLatency:
-          type: string
-          description: Acceptable latency in seconds
-          example: '5'
-        shareRate:
-          type: string
-          description: Rate of sharing between entities
-          example: '100'
-        shareAmount:
-          type: string
-          description: Amount to be shared
-          example: '1000'
-        confirmationDate:
-          type: string
-          description: Date of confirmation
-          example: '2023-01-01'
-        headerInfo:
-          allOf:
-          - $ref: '#/components/schemas/HeaderInfo'
-          description: Field `headerInfo`.
-        serverData:
-          allOf:
-          - $ref: '#/components/schemas/ServerData'
-          description: Field `serverData`.
-    RepresentativePersonResponse:
-      type: object
-      description: Response model for representative person operations
-      example:
-        representativePerson:
-        - name: John
-          surname: Doe
-      properties:
-        representativePerson:
-          type: array
-          description: List of representative persons
-          items:
-            allOf:
-            - $ref: '#/components/schemas/RepresentativePerson'
-            description: Items of `representativePerson`.
-          example: []
-    RepresentativePerson:
-      type: object
-      description: Model representing a representative person
-      example:
-        name: John
-        surname: Doe
-      properties:
-        name:
-          type: string
-          description: First name of the representative person
-          example: John
-        surname:
-          type: string
-          description: Last name of the representative person
-          example: Doe
-    OperationCodeGrpcRequest:
-      type: object
-      description: Request model for operation code service
-      example:
-        operatorCustomer:
-        - operatorCustomerNum: '12345678'
-        accountCustomerNum: '87654321'
-        accountBranch: '002'
-      properties:
-        operatorCustomer:
-          type: array
-          description: List of operator customers
-          items:
-            allOf:
-            - $ref: '#/components/schemas/Customer'
-            description: Items of `operatorCustomer`.
-          example: []
-        accountCustomerNum:
-          type: string
-          description: Account customer number
-          example: '87654321'
-        accountBranch:
-          type: string
-          description: Account branch code
-          example: '002'
-    Customer:
-      type: object
-      description: Customer information model
-      example:
-        operatorCustomerNum: '12345678'
-      properties:
-        operatorCustomerNum:
-          type: string
-          description: Operator customer number
-          example: '12345678'
-    OperationCodeGrpcResponse:
-      type: object
-      description: Response model for operation code service
-      example:
-        opCode1: CODE1
-        opCode2: CODE2
-      properties:
-        opCode1:
-          type: string
-          description: First operation code
-          example: CODE1
-        opCode2:
-          type: string
-          description: Second operation code
-          example: CODE2
-    HeaderInfo:
-      type: object
-      description: Common header information structure for requests
-      example:
-        command: LIST
-        sourceProgramId: WEBAPI
-        unitNum: '001'
-        channelCode: INTERNET
-        moduleCode: CUSTOMER
-        submoduleCode: RELATION
-      properties:
-        command:
-          type: string
-          description: Command to be executed
-          example: LIST
-        sourceProgramId:
-          type: string
-          description: Source program identifier
-          example: WEBAPI
-        unitNum:
-          type: string
-          description: Unit number
-          example: '001'
-        channelCode:
-          type: string
-          description: Channel code for the request
-          example: INTERNET
-        moduleCode:
-          type: string
-          description: Module code for the request
-          example: CUSTOMER
-        submoduleCode:
-          type: string
-          description: Submodule code for the request
-          example: RELATION
-    ServerData:
-      type: object
-      description: Common server data structure for requests
-      example:
-        userId: USER123
-        referenceId: REF123456789
-      properties:
-        userId:
-          type: string
-          description: User identifier
-          example: USER123
-        referenceId:
-          type: string
-          description: Reference identifier for tracking
-          example: REF123456789
-    BigDecimal:
-      type: object
-      description: Decimal type from proto (scale/precision/value).
-      properties:
-        scale:
-          type: integer
-          format: int32
-          minimum: 0
-          description: Number of fractional digits.
-          example: 2
-        precision:
-          type: integer
-          format: int32
-          minimum: 0
-          description: Total number of significant digits.
-          example: 10
-        value:
-          type: string
-          format: byte
-          description: Big-endian binary integer content, base64-encoded.
-          example: AAECAw==
-      additionalProperties: false
-  responses:
-    HttpOKwithTransactionGrpcResponseResult:
+              $ref: '#/components/schemas/TransactionStatusUpdateResponseDto'
+            
+    HttpOKwithTransactionFilterResponseDtoList:
       description: OK.
       headers:
         Access-Control-Allow-Origin:
@@ -602,8 +74,11 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/TransactionGrpcResponse'
-    HttpOKwithCustomerRelationshipTypeResponseResult:
+            type: array
+            items:
+              $ref: '#/components/schemas/TransactionFilterResponseDto'
+              
+    HttpOKwithAccountTransactionRulesResponseDto:
       description: OK.
       headers:
         Access-Control-Allow-Origin:
@@ -613,8 +88,10 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/CustomerRelationshipTypeResponse'
-    HttpOKwithRepresentativePersonResponseResult:
+            $ref: '#/components/schemas/AccountTransactionRulesResponseDto'
+
+    # Transaction Customer Controller Responses
+    HttpOKwithRepresentativePersonDtoList:
       description: OK.
       headers:
         Access-Control-Allow-Origin:
@@ -624,8 +101,11 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/RepresentativePersonResponse'
-    HttpOKwithOperationCodeGrpcResponseResult:
+            type: array
+            items:
+              $ref: '#/components/schemas/RepresentativePersonDto'
+              
+    HttpOKwithSaveRepresentativePersonDto:
       description: OK.
       headers:
         Access-Control-Allow-Origin:
@@ -635,7 +115,84 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/OperationCodeGrpcResponse'
+            $ref: '#/components/schemas/SaveRepresentativePersonDto'
+            
+    HttpOKwithCustomerInfoResponseDto:
+      description: OK.
+      headers:
+        Access-Control-Allow-Origin:
+          $ref: '#/components/headers/Access-Control-Allow-Origin'
+        GUID:
+          $ref: '#/components/headers/GUID'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CustomerInfoResponseDto'
+            
+    HttpOKwithExtendedCustomerInfoDto:
+      description: OK.
+      headers:
+        Access-Control-Allow-Origin:
+          $ref: '#/components/headers/Access-Control-Allow-Origin'
+        GUID:
+          $ref: '#/components/headers/GUID'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ExtendedCustomerInfoDto'
+            
+    HttpOKwithGetKpsInfoResponseDto:
+      description: OK.
+      headers:
+        Access-Control-Allow-Origin:
+          $ref: '#/components/headers/Access-Control-Allow-Origin'
+        GUID:
+          $ref: '#/components/headers/GUID'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GetKpsInfoResponseDto'
+            
+    HttpOKwithTransactionMessageResponseDto:
+      description: OK.
+      headers:
+        Access-Control-Allow-Origin:
+          $ref: '#/components/headers/Access-Control-Allow-Origin'
+        GUID:
+          $ref: '#/components/headers/GUID'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TransactionMessageResponseDto'
+
+    # User Context Controller Responses
+    HttpOKwithIntegerResult:
+      description: OK.
+      headers:
+        Access-Control-Allow-Origin:
+          $ref: '#/components/headers/Access-Control-Allow-Origin'
+        GUID:
+          $ref: '#/components/headers/GUID'
+      content:
+        application/json:
+          schema:
+            type: integer
+            format: int32
+
+    # Cheque Controller Responses
+    HttpOKwithChequeCostInfoResponseDto:
+      description: OK.
+      headers:
+        Access-Control-Allow-Origin:
+          $ref: '#/components/headers/Access-Control-Allow-Origin'
+        GUID:
+          $ref: '#/components/headers/GUID'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ChequeCostInfoResponseDto'
+
+    # Common error responses
     BadRequest:
       description: Bad request.
       headers:
@@ -675,48 +232,48 @@ components:
     AuthorizationTokenHeader:
       name: Authorization
       in: header
-      description: Oauth Access token information
-      example: Bearer 4c4f8643-29e1-4b7f-b62c-03ea78dad48e
+      description: 'Oauth Access token information'
+      example: 'Bearer 4c4f8643-29e1-4b7f-b62c-03ea78dad48e'
       required: false
       schema:
         type: string
     ContentTypeHeader:
       name: Content-Type
       in: header
-      description: application/json , application/xml
-      example: application/json
+      description: 'application/json , application/xml'
+      example: 'application/json'
       required: true
       schema:
         type: string
     AcceptHeader:
       name: Accept
       in: header
-      description: application/json , application/xml
-      example: application/json
+      description: 'application/json , application/xml'
+      example: 'application/json'
       required: true
       schema:
         type: string
     ChannelHeader:
       name: channel
       in: header
-      description: Information on which channel the request comes
-      example: ATM
+      description: 'Information on which channel the request comes'
+      example: 'ATM'
       required: true
       schema:
         type: string
     IpHeader:
       name: ip
       in: header
-      description: End User Client IP
-      example: 127.0.0.1
+      description: 'End User Client IP'
+      example: '127.0.0.1'
       required: true
       schema:
         type: string
     DialectHeader:
       name: dialect
       in: header
-      description: TR (Turkish) , EN (English) , RO (Romanca)
-      example: TR
+      description: 'TR (Turkish) , EN (English) , RO (Romanca)'
+      example: 'TR'
       required: true
       schema:
         maxLength: 2
@@ -724,17 +281,16 @@ components:
     TenantCompanyHeader:
       name: tenant-company-id
       in: header
-      description: The id of the company from where the request is originated from
-        (GAR, GFC, GES)
-      example: GAR
+      description: 'The id of the company from where the request is originated from (GAR, GFC, GES)'
+      example: 'GAR'
       required: true
       schema:
         maxLength: 3
         type: string
     TenantGeolocationHeader:
       name: tenant-geolocation
-      description: Location of where the request originated from.
-      example: TUR
+      description: 'Location of where the request originated from.'
+      example: 'TUR'
       in: header
       required: false
       schema:
@@ -742,16 +298,16 @@ components:
         type: string
     TenantAppIdHeader:
       name: tenant-app-id
-      description: Application or Service identdification number
-      example: 7e6584354f5e6624518686f6eb124265
+      description: 'Application or Service identdification number'
+      example: '7e6584354f5e6624518686f6eb124265'
       in: header
       required: false
       schema:
         type: string
     ApiKeyHeader:
       name: api-key
-      description: It is needed for Customer and Third-Party Services
-      example: l7xx766d3fc85ca74b4bbe582e529e62747a
+      description: 'It is needed for Customer and Third-Party Services'
+      example: 'l7xx766d3fc85ca74b4bbe582e529e62747a'
       in: header
       required: false
       schema:
@@ -759,8 +315,7 @@ components:
     GuidHeader:
       name: guid
       in: header
-      description: It is used to process trace. The GUID  must be a unique value for
-        each request
+      description: 'It is used to process trace. The GUID  must be a unique value for each request'
       example: '123456789012345678901234567'
       required: true
       schema:
@@ -768,24 +323,22 @@ components:
     UserIdHeader:
       name: user-id
       description: 'User Id '
-      example: ME07684
+      example: 'ME07684'
       in: header
       required: false
       schema:
         type: string
     ClientIdHeader:
       name: client-id
-      description: The client Id is defined by access manager for getting authorization
-        code and access token
-      example: QqWCRHVzntITMgBoa61f
+      description: 'The client Id is defined by access manager for getting authorization code and access token'
+      example: 'QqWCRHVzntITMgBoa61f'
       in: header
       required: false
       schema:
         type: string
     RequestTraceFlagHeader:
       name: request-trace-flag
-      description: 'true: log the request-response paylod in backend application.false:
-        DO NOT log the request-response paylod in backend application.'
+      description: 'true: log the request-response paylod in backend application.false: DO NOT log the request-response paylod in backend application.'
       example: 'true'
       in: header
       required: false
@@ -793,9 +346,8 @@ components:
         type: string
     ClientTraceIdlHeader:
       name: x-client-trace-id
-      description: It is used to process trace. It must be a unique value for each
-        request
-      example: a03debf792229fdbc6bc8a6e9b9df464
+      description: 'It is used to process trace. It must be a unique value for each request'
+      example: 'a03debf792229fdbc6bc8a6e9b9df464'
       in: header
       required: true
       schema:
@@ -807,4 +359,1633 @@ components:
       in: header
       required: true
       schema:
+        type: string/ChequeCostInfoRequestDto'
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/HttpOKwithChequeCostInfoResponseDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbiden'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+components:
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+  headers:
+    Access-Control-Allow-Origin:
+      description: '*.garantibbva.com.tr'
+      schema:
         type: string
+    GUID:
+      description: Header GUID
+      schema:
+        $ref: '#/components/parameters/GuidHeader'
+  schemas:
+    # Approve Controller DTOs
+    ProcessRequestDto:
+      type: object
+      description: "Request model for process management"
+      properties:
+        processId:
+          type: string
+          description: "Process identifier"
+        status:
+          type: string
+          description: "Process status"
+          
+    ProcessResponseDto:
+      type: object
+      description: "Response model for process management"
+      properties:
+        processId:
+          type: string
+          description: "Process identifier"
+        status:
+          type: string
+          description: "Process status"
+          
+    PaginationResultDto:
+      type: object
+      description: "Pagination result wrapper"
+      properties:
+        content:
+          type: array
+          description: "List of results"
+          items:
+            type: object
+        totalElements:
+          type: integer
+          description: "Total number of elements"
+          
+    ProcessStateChangeRequestDto:
+      type: object
+      description: "Request model for process state change"
+      properties:
+        processId:
+          type: string
+          description: "Process identifier"
+        newState:
+          type: string
+          description: "New state for the process"
+          
+    ProcessStateChangeResponseDto:
+      type: object
+      description: "Response model for process state change"
+      properties:
+        success:
+          type: boolean
+          description: "Operation success status"
+        message:
+          type: string
+          description: "Response message"
+          
+    ApproveBulkFraudProcessRequestDto:
+      type: object
+      description: "Request model for bulk fraud process approval"
+      properties:
+        processIds:
+          type: array
+          description: "List of process identifiers"
+          items:
+            type: string
+            
+    ApproveBulkFraudProcessResponseDto:
+      type: object
+      description: "Response model for bulk fraud process approval"
+      properties:
+        successCount:
+          type: integer
+          description: "Number of successfully processed items"
+        failureCount:
+          type: integer
+          description: "Number of failed items"
+
+    # Digital Order DTOs
+    DigitalOrderReadRequestDto:
+      type: object
+      description: "Request model for reading digital orders"
+      properties:
+        instructionId:
+          type: integer
+          format: int64
+          description: "Instruction identifier"
+        customerNum:
+          type: integer
+          format: int32
+          description: "Customer number"
+
+    DigitalOrderReadResponseDto:
+      type: object
+      description: "Response model for reading digital orders"
+      properties:
+        readBranchInstructionDepositWithdrawal:
+          type: array
+          description: "List of branch instructions"
+          items:
+            type: object
+
+    # Gold Document DTOs
+    CreateSinglePdfRequestDto:
+      type: object
+      description: "Request model for creating single PDF document"
+      properties:
+        documentType:
+          type: string
+          description: "Type of document"
+        documentStatus:
+          type: string
+          description: "Document status"
+          
+    CreateSinglePdfResponseDto:
+      type: object
+      description: "Response model for creating single PDF document"
+      properties:
+        documentId:
+          type: string
+          description: "Created document identifier"
+        returnCode:
+          type: string
+          description: "Return code"
+          
+    GetSinglePdfRequestDto:
+      type: object
+      description: "Request model for getting single PDF document"
+      properties:
+        documentId:
+          type: string
+          description: "Document identifier"
+          
+    GetPdfResponseDto:
+      type: object
+      description: "Response model for getting PDF document"
+      properties:
+        pdfData:
+          type: string
+          description: "Base64 encoded PDF data"
+        returnCode:
+          type: string
+          description: "Return code"
+
+    # Operation Code DTOs
+    OperationCodeRequestDto:
+      type: object
+      description: "Request model for operation code"
+      properties:
+        operatorCustomer:
+          type: array
+          description: "List of operator customers"
+          items:
+            type: object
+            properties:
+              operatorCustomerNum:
+                type: string
+                description: "Operator customer number"
+        accountCustomerNum:
+          type: string
+          description: "Account customer number"
+        accountBranch:
+          type: string
+          description: "Account branch"
+          
+    OperationCodeResponseDto:
+      type: object
+      description: "Response model for operation code"
+      properties:
+        opCode1:
+          type: string
+          description: "First operation code"
+        opCode2:
+          type: string
+          description: "Second operation code"
+          
+    GetBulkOperationCodeResponseDto:
+      type: object
+      description: "Response model for bulk operation codes"
+      properties:
+        operationCodes:
+          type: array
+          description: "List of operation codes"
+          items:
+            type: object
+            properties:
+              processMainCode:
+                type: string
+                description: "Main process code"
+              processSubCode:
+                type: string
+                description: "Sub process code"
+              processDescription:
+                type: string
+                description: "Process description"
+
+    # Transaction Controller DTOs
+    FindTransactionRequestDto:
+      type: object
+      description: "Request model for finding transactions"
+      properties:
+        customerNumber:
+          type: integer
+          format: int32
+          description: "Customer number"
+          
+    TransactionListDto:
+      type: object
+      description: "Response model for transaction list"
+      properties:
+        transactions:
+          type: array
+          description: "List of transactions"
+          items:
+            type: object
+            
+    TrnxCompleteWithdrawalRequestDto:
+      type: object
+      description: "Request model for completing withdrawal transaction"
+      properties:
+        operationType:
+          type: string
+          description: "Type of operation"
+        customerNumber:
+          type: integer
+          format: int32
+          description: "Customer number"
+        transactionAmount:
+          type: number
+          description: "Transaction amount"
+          
+    TrnxCompleteWithdrawalResponseDto:
+      type: object
+      description: "Response model for completing withdrawal transaction"
+      properties:
+        instanceId:
+          type: string
+          description: "Instance identifier"
+        approvalRequired:
+          type: boolean
+          description: "Approval requirement flag"
+          
+    TransactionStatusUpdateRequestDto:
+      type: object
+      description: "Request model for transaction status update"
+      properties:
+        instanceId:
+          type: string
+          description: "Instance identifier"
+        newStatus:
+          type: string
+          description: "New status"
+          
+    TransactionStatusUpdateResponseDto:
+      type: object
+      description: "Response model for transaction status update"
+      properties:
+        success:
+          type: boolean
+          description: "Success status"
+          
+    TransactionFilterRequestDto:
+      type: object
+      description: "Request model for transaction filter"
+      properties:
+        statusCode:
+          type: string
+          description: "Status code filter"
+        ownerUnitNum:
+          type: string
+          description: "Owner unit number"
+          
+    TransactionFilterResponseDto:
+      type: object
+      description: "Response model for filtered transactions"
+      properties:
+        instanceId:
+          type: string
+          description: "Instance identifier"
+        customerNameAndSurname:
+          type: string
+          description: "Customer full name"
+          
+    AccountTransactionRulesRequestDto:
+      type: object
+      description: "Request model for account transaction rules"
+      properties:
+        debitUnitNum:
+          type: integer
+          format: int32
+          description: "Debit unit number"
+        debitAccountNum:
+          type: integer
+          format: int32
+          description: "Debit account number"
+          
+    AccountTransactionRulesResponseDto:
+      type: object
+      description: "Response model for account transaction rules"
+      properties:
+        messages:
+          type: array
+          description: "Validation messages"
+          items:
+            type: string
+
+    # Transaction Customer Controller DTOs
+    RepresentativePersonRequestDto:
+      type: object
+      description: "Request model for representative person operations"
+      properties:
+        customerNum:
+          type: string
+          description: "Primary customer number"
+        customerNum2:
+          type: string
+          description: "Secondary customer number"
+        relationTypeText:
+          type: string
+          description: "Type of relationship between customers"
+        headerInfo:
+          $ref: '#/components/schemas/HeaderInfo'
+        serverData:
+          $ref: '#/components/schemas/ServerData'
+          
+    RepresentativePersonDto:
+      type: object
+      description: "Model representing a representative person"
+      properties:
+        name:
+          type: string
+          description: "First name"
+        surname:
+          type: string
+          description: "Last name"
+        customerNum:
+          type: string
+          description: "Customer number"
+          
+    SaveRepresentativePersonRequestDto:
+      type: object
+      description: "Request model for saving representative person"
+      properties:
+        customerNum:
+          type: string
+          description: "Customer number"
+        opnDefinedKey:
+          type: string
+          description: "Operation defined key"
+        partyType:
+          type: string
+          description: "Party type"
+        recordStatus:
+          type: string
+          description: "Record status"
+        serverData:
+          $ref: '#/components/schemas/ServerData'
+          
+    SaveRepresentativePersonDto:
+      type: object
+      description: "Response model for saving representative person"
+      properties:
+        customerNum:
+          type: string
+          description: "Customer number"
+        name:
+          type: string
+          description: "First name"
+        surname:
+          type: string
+          description: "Last name"
+          
+    CustomerInfoRequestDto:
+      type: object
+      description: "Request model for customer information"
+      properties:
+        customerNum:
+          type: string
+          description: "Customer number"
+          
+    CustomerInfoResponseDto:
+      type: object
+      description: "Response model for customer information"
+      properties:
+        customerNum:
+          type: string
+          description: "Customer number"
+        name:
+          type: string
+          description: "Customer name"
+        surname:
+          type: string
+          description: "Customer surname"
+        citizen:
+          type: string
+          description: "Citizenship information"
+          
+    ExtendedCustomerInfoDto:
+      type: object
+      description: "Response model for extended customer information"
+      properties:
+        customerNum:
+          type: string
+          description: "Customer number"
+        name:
+          type: string
+          description: "Customer name"
+        surname:
+          type: string
+          description: "Customer surname"
+        birthDate:
+          type: string
+          description: "Birth date"
+        birthPlace:
+          type: string
+          description: "Birth place"
+          
+    GetKpsInfoRequestDto:
+      type: object
+      description: "Request model for KPS information"
+      properties:
+        nationalId:
+          type: string
+          description: "National identification number"
+        birthDate:
+          type: string
+          description: "Birth date"
+          
+    GetKpsInfoResponseDto:
+      type: object
+      description: "Response model for KPS information"
+      properties:
+        nationalIdNum:
+          type: string
+          description: "National identification number"
+        name:
+          type: string
+          description: "Name"
+        surname:
+          type: string
+          description: "Surname"
+        birthDate:
+          type: string
+          description: "Birth date"
+          
+    SaveTransactionCustomerRequestDto:
+      type: object
+      description: "Request model for saving transaction customer"
+      properties:
+        nationalIdNum:
+          type: string
+          description: "National identification number"
+        name:
+          type: string
+          description: "Customer name"
+        surname:
+          type: string
+          description: "Customer surname"
+          
+    TransactionMessageResponseDto:
+      type: object
+      description: "Response model for transaction message"
+      properties:
+        message:
+          type: string
+          description: "Response message"
+        customerNum:
+          type: integer
+          format: int32
+          description: "Customer number"
+
+    # Cheque Controller DTOs
+    ChequeCostInfoRequestDto:
+      type: object
+      description: "Request model for cheque cost information"
+      properties:
+        customerNo:
+          type: string
+          description: "Customer number"
+        chequeAmount:
+          type: object
+          properties:
+            amount:
+              type: number
+              description: "Cheque amount"
+            currency:
+              type: string
+              description: "Currency code"
+              
+    ChequeCostInfoResponseDto:
+      type: object
+      description: "Response model for cheque cost information"
+      properties:
+        cost:
+          type: object
+          properties:
+            amount:
+              type: number
+              description: "Cost amount"
+            currency:
+              type: string
+              description: "Currency code"
+        isCommissionFree:
+          type: boolean
+          description: "Commission free flag"
+
+    # Common schemas
+    HeaderInfo:
+      type: object
+      description: "Common header information structure for requests"
+      properties:
+        command:
+          type: string
+          description: "Command to be executed"
+        sourceProgramId:
+          type: string
+          description: "Source program identifier"
+        unitNum:
+          type: string
+          description: "Unit number"
+        channelCode:
+          type: string
+          description: "Channel code for the request"
+        moduleCode:
+          type: string
+          description: "Module code for the request"
+        submoduleCode:
+          type: string
+          description: "Submodule code for the request"
+          
+    ServerData:
+      type: object
+      description: "Common server data structure for requests"
+      properties:
+        userId:
+          type: string
+          description: "User identifier"
+        referenceId:
+          type: string
+          description: "Reference identifier for tracking"
+  
+  ####  Ark Objects (to use it refer to Ark Composer documentation) ####
+  responses:
+    # Approve Controller Responses
+    HttpOKwithPaginationResultDto:
+      description: OK.
+      headers:
+        Access-Control-Allow-Origin:
+          $ref: '#/components/headers/Access-Control-Allow-Origin'
+        GUID:
+          $ref: '#/components/headers/GUID'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/PaginationResultDto'
+            
+    HttpOKwithProcessStateChangeResponseDto:
+      description: OK.
+      headers:
+        Access-Control-Allow-Origin:
+          $ref: '#/components/headers/Access-Control-Allow-Origin'
+        GUID:
+          $ref: '#/components/headers/GUID'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProcessStateChangeResponseDto'
+            
+    HttpOKwithApproveBulkFraudProcessResponseDto:
+      description: OK.
+      headers:
+        Access-Control-Allow-Origin:
+          $ref: '#/components/headers/Access-Control-Allow-Origin'
+        GUID:
+          $ref: '#/components/headers/GUID'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ApproveBulkFraudProcessResponseDto'
+
+    # Digital Order Responses
+    HttpOKwithDigitalOrderReadResponseDto:
+      description: OK.
+      headers:
+        Access-Control-Allow-Origin:
+          $ref: '#/components/headers/Access-Control-Allow-Origin'
+        GUID:
+          $ref: '#/components/headers/GUID'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/DigitalOrderReadResponseDto'
+
+    # Gold Document Responses
+    HttpOKwithCreateSinglePdfResponseDto:
+      description: OK.
+      headers:
+        Access-Control-Allow-Origin:
+          $ref: '#/components/headers/Access-Control-Allow-Origin'
+        GUID:
+          $ref: '#/components/headers/GUID'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CreateSinglePdfResponseDto'
+            
+    HttpOKwithGetPdfResponseDto:
+      description: OK.
+      headers:
+        Access-Control-Allow-Origin:
+          $ref: '#/components/headers/Access-Control-Allow-Origin'
+        GUID:
+          $ref: '#/components/headers/GUID'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GetPdfResponseDto'
+
+    # Operation Code Responses
+    HttpOKwithOperationCodeResponseDto:
+      description: OK.
+      headers:
+        Access-Control-Allow-Origin:
+          $ref: '#/components/headers/Access-Control-Allow-Origin'
+        GUID:
+          $ref: '#/components/headers/GUID'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/OperationCodeResponseDto'
+            
+    HttpOKwithGetBulkOperationCodeResponseDto:
+      description: OK.
+      headers:
+        Access-Control-Allow-Origin:
+          $ref: '#/components/headers/Access-Control-Allow-Origin'
+        GUID:
+          $ref: '#/components/headers/GUID'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/GetBulkOperationCodeResponseDto'
+
+    # Transaction Controller Responses
+    HttpOKwithTransactionListDto:
+      description: OK.
+      headers:
+        Access-Control-Allow-Origin:
+          $ref: '#/components/headers/Access-Control-Allow-Origin'
+        GUID:
+          $ref: '#/components/headers/GUID'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TransactionListDto'
+            
+    HttpOKwithTrnxCompleteWithdrawalResponseDto:
+      description: OK.
+      headers:
+        Access-Control-Allow-Origin:
+          $ref: '#/components/headers/Access-Control-Allow-Origin'
+        GUID:
+          $ref: '#/components/headers/GUID'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/TrnxCompleteWithdrawalResponseDto'
+            
+    HttpOKwithTransactionStatusUpdateResponseDto:
+      description: OK.
+      headers:
+        Access-Control-Allow-Origin:
+          $ref: '#/components/headers/Access-Control-Allow-Origin'
+        GUID:
+          $ref: '#/components/headers/GUID'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas
+        - $ref: '#/components/parameters/TenantAppIdHeader'
+        - $ref: '#/components/parameters/ApiKeyHeader'
+        - $ref: '#/components/parameters/UserIdHeader'
+        - $ref: '#/components/parameters/ClientIdHeader'
+        - $ref: '#/components/parameters/RequestTraceFlagHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveRepresentativePersonRequestDto'
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/HttpOKwithSaveRepresentativePersonDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbiden'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /withdrawal/get-customer-info:
+    post:
+      tags:
+        - Transaction-Customer-Controller
+      operationId: getCustomerInfo
+      summary: Get customer information
+      description: Get customer information by customer number
+      parameters:
+        ##### Required ####
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/ChannelHeader'
+        - $ref: '#/components/parameters/IpHeader'
+        - $ref: '#/components/parameters/DialectHeader'
+        - $ref: '#/components/parameters/GuidHeader'
+        - $ref: '#/components/parameters/ClientTraceIdlHeader'
+        #### Optional ####
+        - $ref: '#/components/parameters/AuthorizationTokenHeader'
+        - $ref: '#/components/parameters/TenantGeolocationHeader'
+        - $ref: '#/components/parameters/TenantAppIdHeader'
+        - $ref: '#/components/parameters/ApiKeyHeader'
+        - $ref: '#/components/parameters/UserIdHeader'
+        - $ref: '#/components/parameters/ClientIdHeader'
+        - $ref: '#/components/parameters/RequestTraceFlagHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerInfoRequestDto'
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/HttpOKwithCustomerInfoResponseDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbiden'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /withdrawal/get-extended-customer-info:
+    post:
+      tags:
+        - Transaction-Customer-Controller
+      operationId: getExtendedCustomerInfo
+      summary: Get extended customer information
+      description: Get extended customer information including additional details
+      parameters:
+        ##### Required ####
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/ChannelHeader'
+        - $ref: '#/components/parameters/IpHeader'
+        - $ref: '#/components/parameters/DialectHeader'
+        - $ref: '#/components/parameters/GuidHeader'
+        - $ref: '#/components/parameters/ClientTraceIdlHeader'
+        #### Optional ####
+        - $ref: '#/components/parameters/AuthorizationTokenHeader'
+        - $ref: '#/components/parameters/TenantGeolocationHeader'
+        - $ref: '#/components/parameters/TenantAppIdHeader'
+        - $ref: '#/components/parameters/ApiKeyHeader'
+        - $ref: '#/components/parameters/UserIdHeader'
+        - $ref: '#/components/parameters/ClientIdHeader'
+        - $ref: '#/components/parameters/RequestTraceFlagHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerInfoRequestDto'
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/HttpOKwithExtendedCustomerInfoDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbiden'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /withdrawal/get-kps-info:
+    post:
+      tags:
+        - Transaction-Customer-Controller
+      operationId: getKpsInfo
+      summary: Get KPS information
+      description: Get KPS (Identity Verification System) information
+      parameters:
+        ##### Required ####
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/ChannelHeader'
+        - $ref: '#/components/parameters/IpHeader'
+        - $ref: '#/components/parameters/DialectHeader'
+        - $ref: '#/components/parameters/GuidHeader'
+        - $ref: '#/components/parameters/ClientTraceIdlHeader'
+        #### Optional ####
+        - $ref: '#/components/parameters/AuthorizationTokenHeader'
+        - $ref: '#/components/parameters/TenantGeolocationHeader'
+        - $ref: '#/components/parameters/TenantAppIdHeader'
+        - $ref: '#/components/parameters/ApiKeyHeader'
+        - $ref: '#/components/parameters/UserIdHeader'
+        - $ref: '#/components/parameters/ClientIdHeader'
+        - $ref: '#/components/parameters/RequestTraceFlagHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetKpsInfoRequestDto'
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/HttpOKwithGetKpsInfoResponseDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbiden'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /withdrawal/save-transaction-customer:
+    post:
+      tags:
+        - Transaction-Customer-Controller
+      operationId: saveTransactionCustomer
+      summary: Save transaction customer
+      description: Save transaction customer information
+      parameters:
+        ##### Required ####
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/ChannelHeader'
+        - $ref: '#/components/parameters/IpHeader'
+        - $ref: '#/components/parameters/DialectHeader'
+        - $ref: '#/components/parameters/GuidHeader'
+        - $ref: '#/components/parameters/ClientTraceIdlHeader'
+        #### Optional ####
+        - $ref: '#/components/parameters/AuthorizationTokenHeader'
+        - $ref: '#/components/parameters/TenantGeolocationHeader'
+        - $ref: '#/components/parameters/TenantAppIdHeader'
+        - $ref: '#/components/parameters/ApiKeyHeader'
+        - $ref: '#/components/parameters/UserIdHeader'
+        - $ref: '#/components/parameters/ClientIdHeader'
+        - $ref: '#/components/parameters/RequestTraceFlagHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveTransactionCustomerRequestDto'
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/HttpOKwithTransactionMessageResponseDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbiden'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  # User Context Controller Endpoints
+  /withdrawal/get-user-branch-code:
+    post:
+      tags:
+        - User-Context-Controller
+      operationId: getUserBranchCode
+      summary: Get user branch code
+      description: Get the branch code for the current user
+      parameters:
+        ##### Required ####
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/ChannelHeader'
+        - $ref: '#/components/parameters/IpHeader'
+        - $ref: '#/components/parameters/DialectHeader'
+        - $ref: '#/components/parameters/GuidHeader'
+        - $ref: '#/components/parameters/ClientTraceIdlHeader'
+        #### Optional ####
+        - $ref: '#/components/parameters/AuthorizationTokenHeader'
+        - $ref: '#/components/parameters/TenantGeolocationHeader'
+        - $ref: '#/components/parameters/TenantAppIdHeader'
+        - $ref: '#/components/parameters/ApiKeyHeader'
+        - $ref: '#/components/parameters/UserIdHeader'
+        - $ref: '#/components/parameters/ClientIdHeader'
+        - $ref: '#/components/parameters/RequestTraceFlagHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/HttpOKwithIntegerResult'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbiden'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  # Cheque Cost Info Endpoint (not in any controller file but in error)
+  /cheque-cost-info:
+    post:
+      tags:
+        - Cheque-Controller
+      operationId: chequeCostInfo
+      summary: Get cheque cost information
+      description: Get cost information for cheque operations
+      parameters:
+        ##### Required ####
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/ChannelHeader'
+        - $ref: '#/components/parameters/IpHeader'
+        - $ref: '#/components/parameters/DialectHeader'
+        - $ref: '#/components/parameters/GuidHeader'
+        - $ref: '#/components/parameters/ClientTraceIdlHeader'
+        #### Optional ####
+        - $ref: '#/components/parameters/AuthorizationTokenHeader'
+        - $ref: '#/components/parameters/TenantGeolocationHeader'
+        - $ref: '#/components/parameters/TenantAppIdHeader'
+        - $ref: '#/components/parameters/ApiKeyHeader'
+        - $ref: '#/components/parameters/UserIdHeader'
+        - $ref: '#/components/parameters/ClientIdHeader'
+        - $ref: '#/components/parameters/RequestTraceFlagHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcessRequestDto'
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/HttpOKwithPaginationResultDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbiden'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /approve/approve:
+    post:
+      tags:
+        - Approve-Controller
+      operationId: approve
+      summary: Approve process
+      description: Approve a process in the workflow
+      parameters:
+        ##### Required ####
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/ChannelHeader'
+        - $ref: '#/components/parameters/IpHeader'
+        - $ref: '#/components/parameters/DialectHeader'
+        - $ref: '#/components/parameters/GuidHeader'
+        - $ref: '#/components/parameters/ClientTraceIdlHeader'
+        #### Optional ####
+        - $ref: '#/components/parameters/AuthorizationTokenHeader'
+        - $ref: '#/components/parameters/TenantGeolocationHeader'
+        - $ref: '#/components/parameters/TenantAppIdHeader'
+        - $ref: '#/components/parameters/ApiKeyHeader'
+        - $ref: '#/components/parameters/UserIdHeader'
+        - $ref: '#/components/parameters/ClientIdHeader'
+        - $ref: '#/components/parameters/RequestTraceFlagHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcessStateChangeRequestDto'
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/HttpOKwithProcessStateChangeResponseDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbiden'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /approve/reject:
+    post:
+      tags:
+        - Approve-Controller
+      operationId: reject
+      summary: Reject process
+      description: Reject a process in the workflow
+      parameters:
+        ##### Required ####
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/ChannelHeader'
+        - $ref: '#/components/parameters/IpHeader'
+        - $ref: '#/components/parameters/DialectHeader'
+        - $ref: '#/components/parameters/GuidHeader'
+        - $ref: '#/components/parameters/ClientTraceIdlHeader'
+        #### Optional ####
+        - $ref: '#/components/parameters/AuthorizationTokenHeader'
+        - $ref: '#/components/parameters/TenantGeolocationHeader'
+        - $ref: '#/components/parameters/TenantAppIdHeader'
+        - $ref: '#/components/parameters/ApiKeyHeader'
+        - $ref: '#/components/parameters/UserIdHeader'
+        - $ref: '#/components/parameters/ClientIdHeader'
+        - $ref: '#/components/parameters/RequestTraceFlagHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcessStateChangeRequestDto'
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/HttpOKwithProcessStateChangeResponseDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbiden'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /approve/changeStatusFraudProcess:
+    post:
+      tags:
+        - Approve-Controller
+      operationId: changeStatusFraudProcess
+      summary: Change status of fraud process
+      description: Change the status of a fraud process in bulk
+      parameters:
+        ##### Required ####
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/ChannelHeader'
+        - $ref: '#/components/parameters/IpHeader'
+        - $ref: '#/components/parameters/DialectHeader'
+        - $ref: '#/components/parameters/GuidHeader'
+        - $ref: '#/components/parameters/ClientTraceIdlHeader'
+        #### Optional ####
+        - $ref: '#/components/parameters/AuthorizationTokenHeader'
+        - $ref: '#/components/parameters/TenantGeolocationHeader'
+        - $ref: '#/components/parameters/TenantAppIdHeader'
+        - $ref: '#/components/parameters/ApiKeyHeader'
+        - $ref: '#/components/parameters/UserIdHeader'
+        - $ref: '#/components/parameters/ClientIdHeader'
+        - $ref: '#/components/parameters/RequestTraceFlagHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApproveBulkFraudProcessRequestDto'
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/HttpOKwithApproveBulkFraudProcessResponseDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbiden'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  # Digital Order Controller Endpoints
+  /withdrawal/read-digital-order:
+    post:
+      tags:
+        - Digital-Order-Controller
+      operationId: readDigitalOrder
+      summary: Read digital order
+      description: Read digital order information
+      parameters:
+        ##### Required ####
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/ChannelHeader'
+        - $ref: '#/components/parameters/IpHeader'
+        - $ref: '#/components/parameters/DialectHeader'
+        - $ref: '#/components/parameters/GuidHeader'
+        - $ref: '#/components/parameters/ClientTraceIdlHeader'
+        #### Optional ####
+        - $ref: '#/components/parameters/AuthorizationTokenHeader'
+        - $ref: '#/components/parameters/TenantGeolocationHeader'
+        - $ref: '#/components/parameters/TenantAppIdHeader'
+        - $ref: '#/components/parameters/ApiKeyHeader'
+        - $ref: '#/components/parameters/UserIdHeader'
+        - $ref: '#/components/parameters/ClientIdHeader'
+        - $ref: '#/components/parameters/RequestTraceFlagHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DigitalOrderReadRequestDto'
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/HttpOKwithDigitalOrderReadResponseDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbiden'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  # Gold Document Controller Endpoints
+  /withdrawal/create-gold-document:
+    post:
+      tags:
+        - Gold-Document-Controller
+      operationId: createSinglePdf
+      summary: Create gold document
+      description: Create a single PDF gold document
+      parameters:
+        ##### Required ####
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/ChannelHeader'
+        - $ref: '#/components/parameters/IpHeader'
+        - $ref: '#/components/parameters/DialectHeader'
+        - $ref: '#/components/parameters/GuidHeader'
+        - $ref: '#/components/parameters/ClientTraceIdlHeader'
+        #### Optional ####
+        - $ref: '#/components/parameters/AuthorizationTokenHeader'
+        - $ref: '#/components/parameters/TenantGeolocationHeader'
+        - $ref: '#/components/parameters/TenantAppIdHeader'
+        - $ref: '#/components/parameters/ApiKeyHeader'
+        - $ref: '#/components/parameters/UserIdHeader'
+        - $ref: '#/components/parameters/ClientIdHeader'
+        - $ref: '#/components/parameters/RequestTraceFlagHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSinglePdfRequestDto'
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/HttpOKwithCreateSinglePdfResponseDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbiden'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /withdrawal/get-gold-document:
+    post:
+      tags:
+        - Gold-Document-Controller
+      operationId: getSinglePdf
+      summary: Get gold document
+      description: Get a single PDF gold document
+      parameters:
+        ##### Required ####
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/ChannelHeader'
+        - $ref: '#/components/parameters/IpHeader'
+        - $ref: '#/components/parameters/DialectHeader'
+        - $ref: '#/components/parameters/GuidHeader'
+        - $ref: '#/components/parameters/ClientTraceIdlHeader'
+        #### Optional ####
+        - $ref: '#/components/parameters/AuthorizationTokenHeader'
+        - $ref: '#/components/parameters/TenantGeolocationHeader'
+        - $ref: '#/components/parameters/TenantAppIdHeader'
+        - $ref: '#/components/parameters/ApiKeyHeader'
+        - $ref: '#/components/parameters/UserIdHeader'
+        - $ref: '#/components/parameters/ClientIdHeader'
+        - $ref: '#/components/parameters/RequestTraceFlagHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetSinglePdfRequestDto'
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/HttpOKwithGetPdfResponseDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbiden'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  # Operation Code Controller Endpoints
+  /withdrawal/get-operation-code:
+    post:
+      tags:
+        - Operation-Code-Controller
+      operationId: getOperationCode
+      summary: Get operation code
+      description: Get operation code for withdrawal operations
+      parameters:
+        ##### Required ####
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/ChannelHeader'
+        - $ref: '#/components/parameters/IpHeader'
+        - $ref: '#/components/parameters/DialectHeader'
+        - $ref: '#/components/parameters/GuidHeader'
+        - $ref: '#/components/parameters/ClientTraceIdlHeader'
+        #### Optional ####
+        - $ref: '#/components/parameters/AuthorizationTokenHeader'
+        - $ref: '#/components/parameters/TenantGeolocationHeader'
+        - $ref: '#/components/parameters/TenantAppIdHeader'
+        - $ref: '#/components/parameters/ApiKeyHeader'
+        - $ref: '#/components/parameters/UserIdHeader'
+        - $ref: '#/components/parameters/ClientIdHeader'
+        - $ref: '#/components/parameters/RequestTraceFlagHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OperationCodeRequestDto'
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/HttpOKwithOperationCodeResponseDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbiden'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /withdrawal/get-bulk-operation-codes:
+    post:
+      tags:
+        - Operation-Code-Controller
+      operationId: getBulkOperationCodes
+      summary: Get bulk operation codes
+      description: Get bulk operation codes for withdrawal operations
+      parameters:
+        ##### Required ####
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/ChannelHeader'
+        - $ref: '#/components/parameters/IpHeader'
+        - $ref: '#/components/parameters/DialectHeader'
+        - $ref: '#/components/parameters/GuidHeader'
+        - $ref: '#/components/parameters/ClientTraceIdlHeader'
+        #### Optional ####
+        - $ref: '#/components/parameters/AuthorizationTokenHeader'
+        - $ref: '#/components/parameters/TenantGeolocationHeader'
+        - $ref: '#/components/parameters/TenantAppIdHeader'
+        - $ref: '#/components/parameters/ApiKeyHeader'
+        - $ref: '#/components/parameters/UserIdHeader'
+        - $ref: '#/components/parameters/ClientIdHeader'
+        - $ref: '#/components/parameters/RequestTraceFlagHeader'
+      responses:
+        '200':
+          $ref: '#/components/responses/HttpOKwithGetBulkOperationCodeResponseDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbiden'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  # Transaction Controller Endpoints
+  /withdrawal/find-transaction-by-customer-number:
+    post:
+      tags:
+        - Transaction-Controller
+      operationId: findTransactionByCustomerNumber
+      summary: Find transaction by customer number
+      description: Find transactions associated with a customer number
+      parameters:
+        ##### Required ####
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/ChannelHeader'
+        - $ref: '#/components/parameters/IpHeader'
+        - $ref: '#/components/parameters/DialectHeader'
+        - $ref: '#/components/parameters/GuidHeader'
+        - $ref: '#/components/parameters/ClientTraceIdlHeader'
+        #### Optional ####
+        - $ref: '#/components/parameters/AuthorizationTokenHeader'
+        - $ref: '#/components/parameters/TenantGeolocationHeader'
+        - $ref: '#/components/parameters/TenantAppIdHeader'
+        - $ref: '#/components/parameters/ApiKeyHeader'
+        - $ref: '#/components/parameters/UserIdHeader'
+        - $ref: '#/components/parameters/ClientIdHeader'
+        - $ref: '#/components/parameters/RequestTraceFlagHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FindTransactionRequestDto'
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/HttpOKwithTransactionListDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbiden'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /withdrawal/trnx-complete-withdrawal:
+    post:
+      tags:
+        - Transaction-Controller
+      operationId: trnxCompleteWithdrawal
+      summary: Complete withdrawal transaction
+      description: Complete a withdrawal transaction
+      parameters:
+        ##### Required ####
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/ChannelHeader'
+        - $ref: '#/components/parameters/IpHeader'
+        - $ref: '#/components/parameters/DialectHeader'
+        - $ref: '#/components/parameters/GuidHeader'
+        - $ref: '#/components/parameters/ClientTraceIdlHeader'
+        #### Optional ####
+        - $ref: '#/components/parameters/AuthorizationTokenHeader'
+        - $ref: '#/components/parameters/TenantGeolocationHeader'
+        - $ref: '#/components/parameters/TenantAppIdHeader'
+        - $ref: '#/components/parameters/ApiKeyHeader'
+        - $ref: '#/components/parameters/UserIdHeader'
+        - $ref: '#/components/parameters/ClientIdHeader'
+        - $ref: '#/components/parameters/RequestTraceFlagHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrnxCompleteWithdrawalRequestDto'
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/HttpOKwithTrnxCompleteWithdrawalResponseDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbiden'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /withdrawal/transaction-status-update:
+    post:
+      tags:
+        - Transaction-Controller
+      operationId: updateTransactionStatus
+      summary: Update transaction status
+      description: Update the status of a transaction
+      parameters:
+        ##### Required ####
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/ChannelHeader'
+        - $ref: '#/components/parameters/IpHeader'
+        - $ref: '#/components/parameters/DialectHeader'
+        - $ref: '#/components/parameters/GuidHeader'
+        - $ref: '#/components/parameters/ClientTraceIdlHeader'
+        #### Optional ####
+        - $ref: '#/components/parameters/AuthorizationTokenHeader'
+        - $ref: '#/components/parameters/TenantGeolocationHeader'
+        - $ref: '#/components/parameters/TenantAppIdHeader'
+        - $ref: '#/components/parameters/ApiKeyHeader'
+        - $ref: '#/components/parameters/UserIdHeader'
+        - $ref: '#/components/parameters/ClientIdHeader'
+        - $ref: '#/components/parameters/RequestTraceFlagHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionStatusUpdateRequestDto'
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/HttpOKwithTransactionStatusUpdateResponseDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbiden'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /withdrawal/find-transactions-by-filters:
+    post:
+      tags:
+        - Transaction-Controller
+      operationId: findTransactionsByJoinFilters
+      summary: Find transactions by filters
+      description: Find transactions using multiple join filters
+      parameters:
+        ##### Required ####
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/ChannelHeader'
+        - $ref: '#/components/parameters/IpHeader'
+        - $ref: '#/components/parameters/DialectHeader'
+        - $ref: '#/components/parameters/GuidHeader'
+        - $ref: '#/components/parameters/ClientTraceIdlHeader'
+        #### Optional ####
+        - $ref: '#/components/parameters/AuthorizationTokenHeader'
+        - $ref: '#/components/parameters/TenantGeolocationHeader'
+        - $ref: '#/components/parameters/TenantAppIdHeader'
+        - $ref: '#/components/parameters/ApiKeyHeader'
+        - $ref: '#/components/parameters/UserIdHeader'
+        - $ref: '#/components/parameters/ClientIdHeader'
+        - $ref: '#/components/parameters/RequestTraceFlagHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionFilterRequestDto'
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/HttpOKwithTransactionFilterResponseDtoList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbiden'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /withdrawal/account-transaction-rules:
+    post:
+      tags:
+        - Transaction-Controller
+      operationId: accountTransactionRules
+      summary: Account transaction rules
+      description: Get account transaction rules and validation
+      parameters:
+        ##### Required ####
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/ChannelHeader'
+        - $ref: '#/components/parameters/IpHeader'
+        - $ref: '#/components/parameters/DialectHeader'
+        - $ref: '#/components/parameters/GuidHeader'
+        - $ref: '#/components/parameters/ClientTraceIdlHeader'
+        #### Optional ####
+        - $ref: '#/components/parameters/AuthorizationTokenHeader'
+        - $ref: '#/components/parameters/TenantGeolocationHeader'
+        - $ref: '#/components/parameters/TenantAppIdHeader'
+        - $ref: '#/components/parameters/ApiKeyHeader'
+        - $ref: '#/components/parameters/UserIdHeader'
+        - $ref: '#/components/parameters/ClientIdHeader'
+        - $ref: '#/components/parameters/RequestTraceFlagHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountTransactionRulesRequestDto'
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/HttpOKwithAccountTransactionRulesResponseDto'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbiden'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  # Transaction Customer Controller Endpoints
+  /withdrawal/list-representative-persons:
+    post:
+      tags:
+        - Transaction-Customer-Controller
+      operationId: listRepresentativePersons
+      summary: List representative persons
+      description: List representative persons for a customer
+      parameters:
+        ##### Required ####
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/ChannelHeader'
+        - $ref: '#/components/parameters/IpHeader'
+        - $ref: '#/components/parameters/DialectHeader'
+        - $ref: '#/components/parameters/GuidHeader'
+        - $ref: '#/components/parameters/ClientTraceIdlHeader'
+        #### Optional ####
+        - $ref: '#/components/parameters/AuthorizationTokenHeader'
+        - $ref: '#/components/parameters/TenantGeolocationHeader'
+        - $ref: '#/components/parameters/TenantAppIdHeader'
+        - $ref: '#/components/parameters/ApiKeyHeader'
+        - $ref: '#/components/parameters/UserIdHeader'
+        - $ref: '#/components/parameters/ClientIdHeader'
+        - $ref: '#/components/parameters/RequestTraceFlagHeader'
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RepresentativePersonRequestDto'
+        required: true
+      responses:
+        '200':
+          $ref: '#/components/responses/HttpOKwithRepresentativePersonDtoList'
+        '400':
+          $ref: '#/components/responses/BadRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/Forbiden'
+        '405':
+          $ref: '#/components/responses/MethodNotAllowed'
+        '500':
+          $ref: '#/components/responses/ServerError'
+
+  /withdrawal/save-representative-person:
+    post:
+      tags:
+        - Transaction-Customer-Controller
+      operationId: saveRepresentativePerson
+      summary: Save representative person
+      description: Save a representative person for a customer
+      parameters:
+        ##### Required ####
+        - $ref: '#/components/parameters/AcceptHeader'
+        - $ref: '#/components/parameters/ContentTypeHeader'
+        - $ref: '#/components/parameters/ChannelHeader'
+        - $ref: '#/components/parameters/IpHeader'
+        - $ref: '#/components/parameters/DialectHeader'
+        - $ref: '#/components/parameters/GuidHeader'
+        - $ref: '#/components/parameters/ClientTraceIdlHeader'
+        #### Optional ####
+        - $ref: '#/components/parameters/AuthorizationTokenHeader'
+        - $ref: '#/components/parameters/TenantGeolocationHeader'
