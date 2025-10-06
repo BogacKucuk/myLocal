@@ -2,16 +2,9 @@ schemas:
   TransactionGrpcRequest:
     type: object
     description: Request model for transaction operations
-    example:
-      operationType: DEPOSIT
-      customerNumber: 12345678
-      customerAccount: TR123456789012345678901234
-      transactionAmount: 1000.5
-      currency: TRY
-      channel: BRANCH
-      request:
-      - PARAM1
-      - PARAM2
+    example: {operationType: DEPOSIT, customerNumber: 12345678, customerAccount: TR123456789012345678901234,
+      transactionAmount: 1000.5, currency: TRY, channel: BRANCH, request: [PARAM1,
+        PARAM2]}
     properties:
       operationType:
         type: string
@@ -48,8 +41,7 @@ schemas:
   TransactionGrpcResponse:
     type: object
     description: Response model for transaction operations
-    example:
-      message: Transaction completed successfully
+    example: {message: Transaction completed successfully}
     properties:
       message:
         type: string
@@ -58,17 +50,9 @@ schemas:
   CustomerRelationshipTypeRequest:
     type: object
     description: Request model for customer relationship type operations
-    example:
-      headerInfo:
-        command: LIST
-        sourceProgramId: WEBAPI
-        unitNum: '001'
-        channelCode: INTERNET
-        moduleCode: CUSTOMER
-        submoduleCode: RELATION
-      serverData:
-        userId: USER123
-        referenceId: REF123456789
+    example: {headerInfo: {command: LIST, sourceProgramId: WEBAPI, unitNum: '001',
+        channelCode: INTERNET, moduleCode: CUSTOMER, submoduleCode: RELATION}, serverData: {
+        userId: USER123, referenceId: REF123456789}}
     properties:
       headerInfo:
         $ref: '#/components/schemas/HeaderInfo'
@@ -77,10 +61,7 @@ schemas:
   CustomerRelationshipTypeResponse:
     type: object
     description: Response model for customer relationship type operations
-    example:
-      customerRelationshipTypes:
-      - description: GUARDIAN
-      - description: PROXY
+    example: {customerRelationshipTypes: [{description: GUARDIAN}, {description: PROXY}]}
     properties:
       customerRelationshipTypes:
         type: array
@@ -90,8 +71,7 @@ schemas:
   CustomerRelationshipType:
     type: object
     description: Model representing a customer relationship type
-    example:
-      description: GUARDIAN
+    example: {description: GUARDIAN}
     properties:
       description:
         type: string
