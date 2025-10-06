@@ -23,27 +23,6 @@ info:
 tags:
 - name: deposit-withdrawal-channel
   description: deposit-withdrawal-channel
-- name: ChequeCommissionInfoService
-  description: Endpoints backed by gRPC service `ChequeCommissionInfoService`. Auto-synced
-    from proto.
-- name: DigitalOrderGrpcService
-  description: Endpoints backed by gRPC service `DigitalOrderGrpcService`. Auto-synced
-    from proto.
-- name: GoldDocumentGrpcService
-  description: Endpoints backed by gRPC service `GoldDocumentGrpcService`. Auto-synced
-    from proto.
-- name: OperationCodeGrpcService
-  description: Endpoints backed by gRPC service `OperationCodeGrpcService`. Auto-synced
-    from proto.
-- name: ReceiptService
-  description: Endpoints backed by gRPC service `ReceiptService`. Auto-synced from
-    proto.
-- name: TransactionGrpcService
-  description: Endpoints backed by gRPC service `TransactionGrpcService`. Auto-synced
-    from proto.
-- name: TransactionCustomerGrpcService
-  description: Endpoints backed by gRPC service `TransactionCustomerGrpcService`.
-    Auto-synced from proto.
 security:
 - BearerAuth: []
 servers:
@@ -464,6 +443,7 @@ components:
       description: '*.garantibbva.com.tr'
       schema:
         type: string
+        example: string
     GUID:
       description: Header GUID
       schema:
@@ -543,10 +523,12 @@ components:
           referenceId: REF123456789
       properties:
         headerInfo:
-          $ref: '#/components/schemas/HeaderInfo'
+          allOf:
+          - $ref: '#/components/schemas/HeaderInfo'
           description: Field `headerInfo`.
         serverData:
-          $ref: '#/components/schemas/ServerData'
+          allOf:
+          - $ref: '#/components/schemas/ServerData'
           description: Field `serverData`.
     CustomerRelationshipTypeResponse:
       type: object
@@ -604,10 +586,12 @@ components:
           description: Field `confirmationDate`.
           example: string
         headerInfo:
-          $ref: '#/components/schemas/HeaderInfo'
+          allOf:
+          - $ref: '#/components/schemas/HeaderInfo'
           description: Field `headerInfo`.
         serverData:
-          $ref: '#/components/schemas/ServerData'
+          allOf:
+          - $ref: '#/components/schemas/ServerData'
           description: Field `serverData`.
       additionalProperties: false
       description: 'Schema auto-generated from proto: RepresentativePersonRequest.'
@@ -739,16 +723,20 @@ components:
           description: Field `customerNo`.
           example: string
         opCode:
-          $ref: '#/components/schemas/GetOperationCodeResponse'
+          allOf:
+          - $ref: '#/components/schemas/GetOperationCodeResponse'
           description: Field `opCode`.
         chequeAmount:
-          $ref: '#/components/schemas/Money'
+          allOf:
+          - $ref: '#/components/schemas/Money'
           description: Field `chequeAmount`.
         account:
-          $ref: '#/components/schemas/Account'
+          allOf:
+          - $ref: '#/components/schemas/Account'
           description: Field `account`.
         commissionServerData:
-          $ref: '#/components/schemas/CommissionServerData'
+          allOf:
+          - $ref: '#/components/schemas/CommissionServerData'
           description: Field `commissionServerData`.
       additionalProperties: false
       description: 'Schema auto-generated from proto: ChequeCommissionInfoRequest.'
@@ -796,7 +784,8 @@ components:
       type: object
       properties:
         amount:
-          $ref: '#/components/schemas/BigDecimal'
+          allOf:
+          - $ref: '#/components/schemas/BigDecimal'
           description: Field `amount`.
         currency:
           type: string
@@ -821,7 +810,8 @@ components:
       type: object
       properties:
         cost:
-          $ref: '#/components/schemas/Money'
+          allOf:
+          - $ref: '#/components/schemas/Money'
           description: Field `cost`.
         isCommissionFree:
           type: boolean
@@ -853,7 +843,8 @@ components:
           description: Field `branchCode`.
           example: 123
         amount:
-          $ref: '#/components/schemas/BigDecimal'
+          allOf:
+          - $ref: '#/components/schemas/BigDecimal'
           description: Field `amount`.
         currencyCode:
           type: string
@@ -922,7 +913,8 @@ components:
           description: Field `branchCode`.
           example: 123
         amount:
-          $ref: '#/components/schemas/BigDecimal'
+          allOf:
+          - $ref: '#/components/schemas/BigDecimal'
           description: Field `amount`.
         currencyCode:
           type: string
@@ -993,7 +985,8 @@ components:
           description: Field `commissionRate`.
           example: 123.45
         transactionAmount:
-          $ref: '#/components/schemas/BigDecimal'
+          allOf:
+          - $ref: '#/components/schemas/BigDecimal'
           description: Field `transactionAmount`.
         customerInfo:
           type: array
@@ -1002,7 +995,8 @@ components:
           description: Field `customerInfo`.
           example: []
         branchInfo:
-          $ref: '#/components/schemas/BranchInfo'
+          allOf:
+          - $ref: '#/components/schemas/BranchInfo'
           description: Field `branchInfo`.
       additionalProperties: false
       description: 'Schema auto-generated from proto: CreateSinglePdfGrpcRequest.'
@@ -1179,7 +1173,8 @@ components:
           description: Field `currencyCode`.
           example: string
         transactionAmount:
-          $ref: '#/components/schemas/BigDecimal'
+          allOf:
+          - $ref: '#/components/schemas/BigDecimal'
           description: Field `transactionAmount`.
         customerName:
           type: string
@@ -1194,7 +1189,8 @@ components:
           description: Field `customerTckn`.
           example: string
         accountBalanceAmount:
-          $ref: '#/components/schemas/BigDecimal'
+          allOf:
+          - $ref: '#/components/schemas/BigDecimal'
           description: Field `accountBalanceAmount`.
         addressLine1:
           type: string
@@ -1270,10 +1266,12 @@ components:
       type: object
       properties:
         createReceiptTransaction:
-          $ref: '#/components/schemas/CreateReceiptTransaction'
+          allOf:
+          - $ref: '#/components/schemas/CreateReceiptTransaction'
           description: Field `createReceiptTransaction`.
         createReceiptErrorComponent:
-          $ref: '#/components/schemas/CreateReceiptErrorComponent'
+          allOf:
+          - $ref: '#/components/schemas/CreateReceiptErrorComponent'
           description: Field `createReceiptErrorComponent`.
       additionalProperties: false
       description: 'Schema auto-generated from proto: CreateReceiptGrpcResponse.'
@@ -1479,17 +1477,20 @@ components:
           description: Field `approvalUnitNum`.
           example: 123
         transactionAmount:
-          $ref: '#/components/schemas/BigDecimal'
+          allOf:
+          - $ref: '#/components/schemas/BigDecimal'
           description: Field `transactionAmount`.
         currencyCode:
           type: string
           description: Field `currencyCode`.
           example: string
         transactionTLAmount:
-          $ref: '#/components/schemas/BigDecimal'
+          allOf:
+          - $ref: '#/components/schemas/BigDecimal'
           description: Field `transactionTLAmount`.
         currencyRate:
-          $ref: '#/components/schemas/BigDecimal'
+          allOf:
+          - $ref: '#/components/schemas/BigDecimal'
           description: Field `currencyRate`.
         currencyType:
           type: string
@@ -1552,21 +1553,24 @@ components:
           description: Field `gmaticId`.
           example: string
         commisionAmount:
-          $ref: '#/components/schemas/BigDecimal'
+          allOf:
+          - $ref: '#/components/schemas/BigDecimal'
           description: Field `commisionAmount`.
         commisionCurrencyCode:
           type: string
           description: Field `commisionCurrencyCode`.
           example: string
         chargeAmount:
-          $ref: '#/components/schemas/BigDecimal'
+          allOf:
+          - $ref: '#/components/schemas/BigDecimal'
           description: Field `chargeAmount`.
         chargeCurrencyCode:
           type: string
           description: Field `chargeCurrencyCode`.
           example: string
         taxAmount:
-          $ref: '#/components/schemas/BigDecimal'
+          allOf:
+          - $ref: '#/components/schemas/BigDecimal'
           description: Field `taxAmount`.
         taxCurrencyCode:
           type: string
@@ -1640,7 +1644,8 @@ components:
       type: object
       properties:
         transaction:
-          $ref: '#/components/schemas/Transaction'
+          allOf:
+          - $ref: '#/components/schemas/Transaction'
           description: Field `transaction`.
       additionalProperties: false
       description: 'Schema auto-generated from proto: FindTransactionByIdGrpcResponse.'
@@ -1687,7 +1692,8 @@ components:
           description: Field `customerAccountNum`.
           example: 123
         transactionAmount:
-          $ref: '#/components/schemas/BigDecimal'
+          allOf:
+          - $ref: '#/components/schemas/BigDecimal'
           description: Field `transactionAmount`.
         createUserId:
           type: string
@@ -1722,7 +1728,8 @@ components:
           description: Field `surveyIfoId`.
           example: string
         commissionAmount:
-          $ref: '#/components/schemas/BigDecimal'
+          allOf:
+          - $ref: '#/components/schemas/BigDecimal'
           description: Field `commissionAmount`.
         commissionCurrencyCode:
           type: string
@@ -1733,7 +1740,8 @@ components:
           description: Field `priceInqueryId`.
           example: string
         chargeAmount:
-          $ref: '#/components/schemas/BigDecimal'
+          allOf:
+          - $ref: '#/components/schemas/BigDecimal'
           description: Field `chargeAmount`.
         chargeCurrencyCode:
           type: string
@@ -1790,10 +1798,12 @@ components:
           description: Field `processingPersonInfo`.
           example: []
         atmInfo:
-          $ref: '#/components/schemas/AtmInfoRequest'
+          allOf:
+          - $ref: '#/components/schemas/AtmInfoRequest'
           description: Field `atmInfo`.
         commissionAccountInfo:
-          $ref: '#/components/schemas/CommissionAccountInfo'
+          allOf:
+          - $ref: '#/components/schemas/CommissionAccountInfo'
           description: Field `commissionAccountInfo`.
         isNotificationToProsecutor:
           type: boolean
@@ -1808,7 +1818,8 @@ components:
           description: Field `customerSurname`.
           example: string
         accountBalanceAmount:
-          $ref: '#/components/schemas/BigDecimal'
+          allOf:
+          - $ref: '#/components/schemas/BigDecimal'
           description: Field `accountBalanceAmount`.
         addressLine1:
           type: string
@@ -1996,10 +2007,12 @@ components:
           description: Field `financialFamilyCode`.
           example: string
         transactionAmountMin:
-          $ref: '#/components/schemas/BigDecimal'
+          allOf:
+          - $ref: '#/components/schemas/BigDecimal'
           description: Field `transactionAmountMin`.
         transactionAmountMax:
-          $ref: '#/components/schemas/BigDecimal'
+          allOf:
+          - $ref: '#/components/schemas/BigDecimal'
           description: Field `transactionAmountMax`.
       additionalProperties: false
       description: 'Schema auto-generated from proto: FindTransactionsByJoinFiltersGrpcRequest.'
@@ -2023,7 +2036,8 @@ components:
           description: Field `approveType`.
           example: string
         transactionAmount:
-          $ref: '#/components/schemas/BigDecimal'
+          allOf:
+          - $ref: '#/components/schemas/BigDecimal'
           description: Field `transactionAmount`.
         status:
           type: string
@@ -2079,6 +2093,7 @@ components:
           type: array
           items:
             type: string
+            example: string
           description: Field `oprtnCustList`.
           example:
           - string
@@ -2091,11 +2106,13 @@ components:
           type: array
           items:
             type: string
+            example: string
           description: Field `messages`.
           example:
           - string
         accountUsableBalanceAmount:
-          $ref: '#/components/schemas/BigDecimal'
+          allOf:
+          - $ref: '#/components/schemas/BigDecimal'
           description: Field `accountUsableBalanceAmount`.
         debitUnitNum:
           type: integer
@@ -2154,7 +2171,8 @@ components:
           description: Field `recordStatus`.
           example: string
         serverData:
-          $ref: '#/components/schemas/ServerData'
+          allOf:
+          - $ref: '#/components/schemas/ServerData'
           description: Field `serverData`.
       additionalProperties: false
       description: 'Schema auto-generated from proto: SaveRepresentativePersonRequest.'
@@ -2243,6 +2261,7 @@ components:
           type: array
           items:
             type: string
+            example: string
           description: Field `operantMessages`.
           example:
           - string
@@ -2635,6 +2654,7 @@ components:
       required: false
       schema:
         type: string
+        example: string
     ContentTypeHeader:
       name: Content-Type
       in: header
@@ -2643,6 +2663,7 @@ components:
       required: true
       schema:
         type: string
+        example: string
     AcceptHeader:
       name: Accept
       in: header
@@ -2651,6 +2672,7 @@ components:
       required: true
       schema:
         type: string
+        example: string
     ChannelHeader:
       name: channel
       in: header
@@ -2659,6 +2681,7 @@ components:
       required: true
       schema:
         type: string
+        example: string
     IpHeader:
       name: ip
       in: header
@@ -2667,6 +2690,7 @@ components:
       required: true
       schema:
         type: string
+        example: string
     DialectHeader:
       name: dialect
       in: header
@@ -2676,6 +2700,7 @@ components:
       schema:
         maxLength: 2
         type: string
+        example: string
     TenantCompanyHeader:
       name: tenant-company-id
       in: header
@@ -2686,6 +2711,7 @@ components:
       schema:
         maxLength: 3
         type: string
+        example: string
     TenantGeolocationHeader:
       name: tenant-geolocation
       description: Location of where the request originated from.
@@ -2695,6 +2721,7 @@ components:
       schema:
         maxLength: 3
         type: string
+        example: string
     TenantAppIdHeader:
       name: tenant-app-id
       description: Application or Service identdification number
@@ -2703,6 +2730,7 @@ components:
       required: false
       schema:
         type: string
+        example: string
     ApiKeyHeader:
       name: api-key
       description: It is needed for Customer and Third-Party Services
@@ -2711,6 +2739,7 @@ components:
       required: false
       schema:
         type: string
+        example: string
     GuidHeader:
       name: guid
       in: header
@@ -2720,6 +2749,7 @@ components:
       required: true
       schema:
         type: string
+        example: string
     UserIdHeader:
       name: user-id
       description: 'User Id '
@@ -2728,6 +2758,7 @@ components:
       required: false
       schema:
         type: string
+        example: string
     ClientIdHeader:
       name: client-id
       description: The client Id is defined by access manager for getting authorization
@@ -2737,6 +2768,7 @@ components:
       required: false
       schema:
         type: string
+        example: string
     RequestTraceFlagHeader:
       name: request-trace-flag
       description: 'true: log the request-response paylod in backend application.false:
@@ -2746,6 +2778,7 @@ components:
       required: false
       schema:
         type: string
+        example: string
     ClientTraceIdlHeader:
       name: x-client-trace-id
       description: It is used to process trace. It must be a unique value for each
@@ -2755,6 +2788,7 @@ components:
       required: true
       schema:
         type: string
+        example: string
     ForwardedForHeader:
       name: x-forwareded-for
       description: It is used to inform the originated IP address of a client
@@ -2763,3 +2797,4 @@ components:
       required: true
       schema:
         type: string
+        example: string
