@@ -23,6 +23,27 @@ info:
 tags:
 - name: deposit-withdrawal-channel
   description: deposit-withdrawal-channel
+- name: ChequeCommissionInfoService
+  description: Endpoints backed by gRPC service `ChequeCommissionInfoService`. Auto-synced
+    from proto.
+- name: DigitalOrderGrpcService
+  description: Endpoints backed by gRPC service `DigitalOrderGrpcService`. Auto-synced
+    from proto.
+- name: GoldDocumentGrpcService
+  description: Endpoints backed by gRPC service `GoldDocumentGrpcService`. Auto-synced
+    from proto.
+- name: OperationCodeGrpcService
+  description: Endpoints backed by gRPC service `OperationCodeGrpcService`. Auto-synced
+    from proto.
+- name: ReceiptService
+  description: Endpoints backed by gRPC service `ReceiptService`. Auto-synced from
+    proto.
+- name: TransactionGrpcService
+  description: Endpoints backed by gRPC service `TransactionGrpcService`. Auto-synced
+    from proto.
+- name: TransactionCustomerGrpcService
+  description: Endpoints backed by gRPC service `TransactionCustomerGrpcService`.
+    Auto-synced from proto.
 security:
 - BearerAuth: []
 servers:
