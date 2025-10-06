@@ -36,42 +36,84 @@ paths:
       summary: createTransaction
       description: createTransaction
       parameters:
-      - $ref: '#/components/parameters/AcceptHeader'
-      - $ref: '#/components/parameters/ContentTypeHeader'
-      - $ref: '#/components/parameters/ChannelHeader'
-      - $ref: '#/components/parameters/IpHeader'
-      - $ref: '#/components/parameters/DialectHeader'
-      - $ref: '#/components/parameters/GuidHeader'
-      - $ref: '#/components/parameters/ClientTraceIdlHeader'
-      - $ref: '#/components/parameters/AuthorizationTokenHeader'
-      - $ref: '#/components/parameters/TenantGeolocationHeader'
-      - $ref: '#/components/parameters/TenantAppIdHeader'
-      - $ref: '#/components/parameters/ApiKeyHeader'
-      - $ref: '#/components/parameters/UserIdHeader'
-      - $ref: '#/components/parameters/ClientIdHeader'
-      - $ref: '#/components/parameters/RequestTraceFlagHeader'
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TransactionGrpcRequest'
+              type: object
+              description: Generic object (auto-fixed from invalid ref 'TransactionGrpcRequest').
+              example: {}
             example: {operationType: DEPOSIT, customerNumber: 12345678, customerAccount: TR123456789012345678901234,
               transactionAmount: 1000.5, currency: TRY, channel: BRANCH, request: [
                 PARAM1, PARAM2]}
         required: true
       responses:
         '200':
-          $ref: '#/components/responses/HttpOKwithTransactionGrpcResponseResult'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
         '400':
-          $ref: '#/components/responses/BadRequest'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
         '403':
-          $ref: '#/components/responses/Forbiden'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
         '405':
-          $ref: '#/components/responses/MethodNotAllowed'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
         '500':
-          $ref: '#/components/responses/ServerError'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
   /listCustomerRelationshipTypes:
     post:
       tags:
@@ -80,42 +122,84 @@ paths:
       summary: listCustomerRelationshipTypes
       description: listCustomerRelationshipTypes
       parameters:
-      - $ref: '#/components/parameters/AcceptHeader'
-      - $ref: '#/components/parameters/ContentTypeHeader'
-      - $ref: '#/components/parameters/ChannelHeader'
-      - $ref: '#/components/parameters/IpHeader'
-      - $ref: '#/components/parameters/DialectHeader'
-      - $ref: '#/components/parameters/GuidHeader'
-      - $ref: '#/components/parameters/ClientTraceIdlHeader'
-      - $ref: '#/components/parameters/AuthorizationTokenHeader'
-      - $ref: '#/components/parameters/TenantGeolocationHeader'
-      - $ref: '#/components/parameters/TenantAppIdHeader'
-      - $ref: '#/components/parameters/ApiKeyHeader'
-      - $ref: '#/components/parameters/UserIdHeader'
-      - $ref: '#/components/parameters/ClientIdHeader'
-      - $ref: '#/components/parameters/RequestTraceFlagHeader'
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CustomerRelationshipTypeRequest'
+              type: object
+              description: Generic object (auto-fixed from invalid ref 'CustomerRelationshipTypeRequest').
+              example: {}
             example: {headerInfo: {command: LIST, sourceProgramId: WEBAPI, unitNum: '001',
                 channelCode: INTERNET, moduleCode: CUSTOMER, submoduleCode: RELATION},
               serverData: {userId: USER123, referenceId: REF123456789}}
         required: true
       responses:
         '200':
-          $ref: '#/components/responses/HttpOKwithCustomerRelationshipTypeResponseResult'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
         '400':
-          $ref: '#/components/responses/BadRequest'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
         '403':
-          $ref: '#/components/responses/Forbiden'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
         '405':
-          $ref: '#/components/responses/MethodNotAllowed'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
         '500':
-          $ref: '#/components/responses/ServerError'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
   /listRepresentativePersons:
     post:
       tags:
@@ -124,25 +208,55 @@ paths:
       summary: listRepresentativePersons
       description: listRepresentativePersons
       parameters:
-      - $ref: '#/components/parameters/AcceptHeader'
-      - $ref: '#/components/parameters/ContentTypeHeader'
-      - $ref: '#/components/parameters/ChannelHeader'
-      - $ref: '#/components/parameters/IpHeader'
-      - $ref: '#/components/parameters/DialectHeader'
-      - $ref: '#/components/parameters/GuidHeader'
-      - $ref: '#/components/parameters/ClientTraceIdlHeader'
-      - $ref: '#/components/parameters/AuthorizationTokenHeader'
-      - $ref: '#/components/parameters/TenantGeolocationHeader'
-      - $ref: '#/components/parameters/TenantAppIdHeader'
-      - $ref: '#/components/parameters/ApiKeyHeader'
-      - $ref: '#/components/parameters/UserIdHeader'
-      - $ref: '#/components/parameters/ClientIdHeader'
-      - $ref: '#/components/parameters/RequestTraceFlagHeader'
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RepresentativePersonRequest'
+              type: object
+              description: Generic object (auto-fixed from invalid ref 'RepresentativePersonRequest').
+              example: {}
             example: {customerNum: '123456', customerNum2: '654321', relationTypeText: GUARDIAN,
               acceptableLatency: '5', shareRate: '100', shareAmount: '1000', confirmationDate: '2023-01-01',
               headerInfo: {command: LIST, sourceProgramId: WEBAPI, unitNum: '001',
@@ -151,17 +265,29 @@ paths:
         required: true
       responses:
         '200':
-          $ref: '#/components/responses/HttpOKwithRepresentativePersonResponseResult'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
         '400':
-          $ref: '#/components/responses/BadRequest'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
         '403':
-          $ref: '#/components/responses/Forbiden'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
         '405':
-          $ref: '#/components/responses/MethodNotAllowed'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
         '500':
-          $ref: '#/components/responses/ServerError'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
   /getOperationCode:
     post:
       tags:
@@ -170,41 +296,83 @@ paths:
       summary: getOperationCode
       description: getOperationCode
       parameters:
-      - $ref: '#/components/parameters/AcceptHeader'
-      - $ref: '#/components/parameters/ContentTypeHeader'
-      - $ref: '#/components/parameters/ChannelHeader'
-      - $ref: '#/components/parameters/IpHeader'
-      - $ref: '#/components/parameters/DialectHeader'
-      - $ref: '#/components/parameters/GuidHeader'
-      - $ref: '#/components/parameters/ClientTraceIdlHeader'
-      - $ref: '#/components/parameters/AuthorizationTokenHeader'
-      - $ref: '#/components/parameters/TenantGeolocationHeader'
-      - $ref: '#/components/parameters/TenantAppIdHeader'
-      - $ref: '#/components/parameters/ApiKeyHeader'
-      - $ref: '#/components/parameters/UserIdHeader'
-      - $ref: '#/components/parameters/ClientIdHeader'
-      - $ref: '#/components/parameters/RequestTraceFlagHeader'
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
+      - type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
       requestBody:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/OperationCodeGrpcRequest'
+              type: object
+              description: Generic object (auto-fixed from invalid ref 'OperationCodeGrpcRequest').
+              example: {}
             example: {operatorCustomer: [{operatorCustomerNum: '12345678'}], accountCustomerNum: '87654321',
               accountBranch: '002'}
         required: true
       responses:
         '200':
-          $ref: '#/components/responses/HttpOKwithOperationCodeGrpcResponseResult'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
         '400':
-          $ref: '#/components/responses/BadRequest'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
         '403':
-          $ref: '#/components/responses/Forbiden'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
         '405':
-          $ref: '#/components/responses/MethodNotAllowed'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
         '500':
-          $ref: '#/components/responses/ServerError'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
 components:
   securitySchemes:
     BearerAuth:
@@ -218,7 +386,9 @@ components:
     GUID:
       description: Header GUID
       schema:
-        $ref: '#/components/parameters/GuidHeader'
+        type: object
+        description: Generic object (auto-fixed from invalid ref).
+        example: {}
   schemas:
     TransactionFilterResponseDto:
       type: object
@@ -1740,7 +1910,9 @@ components:
           description: Field "field"
         direction:
           allOf:
-          - $ref: '#/components/schemas/SortDirection'
+          - type: object
+            description: Generic object (auto-fixed from invalid ref 'SortDirection').
+            example: {}
           description: Field "direction"
           example: {}
       example: {field: string, direction: {}}
@@ -1975,7 +2147,9 @@ components:
         records:
           type: array
           items:
-            $ref: '#/components/schemas/T'
+            type: object
+            description: Generic object (auto-fixed from invalid ref 'T').
+            example: {}
           description: Field "records"
           example: [string]
       example: {totalCount: 123, records: [string]}
@@ -2110,81 +2284,125 @@ components:
       description: OK.
       headers:
         Access-Control-Allow-Origin:
-          $ref: '#/components/headers/Access-Control-Allow-Origin'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
         GUID:
-          $ref: '#/components/headers/GUID'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/TransactionGrpcResponse'
+            type: object
+            description: Generic object (auto-fixed from invalid ref 'TransactionGrpcResponse').
+            example: {}
     HttpOKwithCustomerRelationshipTypeResponseResult:
       description: OK.
       headers:
         Access-Control-Allow-Origin:
-          $ref: '#/components/headers/Access-Control-Allow-Origin'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
         GUID:
-          $ref: '#/components/headers/GUID'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/CustomerRelationshipTypeResponse'
+            type: object
+            description: Generic object (auto-fixed from invalid ref 'CustomerRelationshipTypeResponse').
+            example: {}
     HttpOKwithRepresentativePersonResponseResult:
       description: OK.
       headers:
         Access-Control-Allow-Origin:
-          $ref: '#/components/headers/Access-Control-Allow-Origin'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
         GUID:
-          $ref: '#/components/headers/GUID'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/RepresentativePersonResponse'
+            type: object
+            description: Generic object (auto-fixed from invalid ref 'RepresentativePersonResponse').
+            example: {}
     HttpOKwithOperationCodeGrpcResponseResult:
       description: OK.
       headers:
         Access-Control-Allow-Origin:
-          $ref: '#/components/headers/Access-Control-Allow-Origin'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
         GUID:
-          $ref: '#/components/headers/GUID'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/OperationCodeGrpcResponse'
+            type: object
+            description: Generic object (auto-fixed from invalid ref 'OperationCodeGrpcResponse').
+            example: {}
     BadRequest:
       description: Bad request.
       headers:
         Access-Control-Allow-Origin:
-          $ref: '#/components/headers/Access-Control-Allow-Origin'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
         GUID:
-          $ref: '#/components/headers/GUID'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
     Forbiden:
       description: Forbidden
       headers:
         Access-Control-Allow-Origin:
-          $ref: '#/components/headers/Access-Control-Allow-Origin'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
         GUID:
-          $ref: '#/components/headers/GUID'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
     MethodNotAllowed:
       description: Method not allowed.
       headers:
         Access-Control-Allow-Origin:
-          $ref: '#/components/headers/Access-Control-Allow-Origin'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
         GUID:
-          $ref: '#/components/headers/GUID'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
     ServerError:
       description: Internal Server error.
       headers:
         Access-Control-Allow-Origin:
-          $ref: '#/components/headers/Access-Control-Allow-Origin'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
         GUID:
-          $ref: '#/components/headers/GUID'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
     Unauthorized:
       description: Unauthorized.
       headers:
         Access-Control-Allow-Origin:
-          $ref: '#/components/headers/Access-Control-Allow-Origin'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
         GUID:
-          $ref: '#/components/headers/GUID'
+          type: object
+          description: Generic object (auto-fixed from invalid ref).
+          example: {}
   parameters:
     AuthorizationTokenHeader:
       name: Authorization
