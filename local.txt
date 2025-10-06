@@ -2,7 +2,7 @@ openapi: 3.0.0
 info:
   title: deposit-withdrawal-channel v0
   description: Service API for deposit-withdrawal-channel v0
-  version: 0.1.7
+  version: 0.1.0
   x-generation-options:
     type: object
     api-domain: Intranet
@@ -23,1202 +23,219 @@ info:
 tags:
 - name: deposit-withdrawal-channel
   description: deposit-withdrawal-channel
-- name: ChequeCommissionInfoService
-  description: Endpoints backed by gRPC service `ChequeCommissionInfoService`. Auto-synced
-    from proto.
-- name: DigitalOrderGrpcService
-  description: Endpoints backed by gRPC service `DigitalOrderGrpcService`. Auto-synced
-    from proto.
-- name: GoldDocumentGrpcService
-  description: Endpoints backed by gRPC service `GoldDocumentGrpcService`. Auto-synced
-    from proto.
-- name: OperationCodeGrpcService
-  description: Endpoints backed by gRPC service `OperationCodeGrpcService`. Auto-synced
-    from proto.
-- name: ReceiptService
-  description: Endpoints backed by gRPC service `ReceiptService`. Auto-synced from
-    proto.
-- name: TransactionGrpcService
-  description: Endpoints backed by gRPC service `TransactionGrpcService`. Auto-synced
-    from proto.
-- name: TransactionCustomerGrpcService
-  description: Endpoints backed by gRPC service `TransactionCustomerGrpcService`.
-    Auto-synced from proto.
 security:
 - BearerAuth: []
 servers:
 - url: https://apigw-dev.apps-t.fw.garanti.com.tr:443/deposit-withdrawal-mngt/deposit-withdrawal-ch/v0
 paths:
-  /cheque-cost-info:
+  /createTransaction:
     post:
       tags:
-      - ChequeCommissionInfoService
-      description: commission info
-      summary: Çek Komisyon Bilgisi Sorgula
-      operationId: chequeCommissionInfo
+      - Transaction-Grpc-Service
+      operationId: createTransaction
+      summary: createTransaction
+      description: createTransaction
+      parameters:
+      - $ref: '#/components/parameters/AcceptHeader'
+      - $ref: '#/components/parameters/ContentTypeHeader'
+      - $ref: '#/components/parameters/ChannelHeader'
+      - $ref: '#/components/parameters/IpHeader'
+      - $ref: '#/components/parameters/DialectHeader'
+      - $ref: '#/components/parameters/GuidHeader'
+      - $ref: '#/components/parameters/ClientTraceIdlHeader'
+      - $ref: '#/components/parameters/AuthorizationTokenHeader'
+      - $ref: '#/components/parameters/TenantGeolocationHeader'
+      - $ref: '#/components/parameters/TenantAppIdHeader'
+      - $ref: '#/components/parameters/ApiKeyHeader'
+      - $ref: '#/components/parameters/UserIdHeader'
+      - $ref: '#/components/parameters/ClientIdHeader'
+      - $ref: '#/components/parameters/RequestTraceFlagHeader'
       requestBody:
-        required: true
         content:
           application/json:
             schema:
-              type: object
-              description: Generic object (auto-fixed from invalid $ref 'ChequeCommissionInfoRequest').
-              example: {}
+              $ref: '#/components/schemas/TransactionGrpcRequest'
+            example:
+              operationType: DEPOSIT
+              customerNumber: 12345678
+              customerAccount: TR123456789012345678901234
+              transactionAmount: 1000.5
+              currency: TRY
+              channel: BRANCH
+              request:
+              - PARAM1
+              - PARAM2
+        required: true
       responses:
         '200':
-          description: Success
-          content:
-            application/json:
-              schema:
-                type: object
-                description: Generic object (auto-fixed from invalid $ref 'ChequeCommissionInfoResponse').
-                example: {}
+          $ref: '#/components/responses/HttpOKwithTransactionGrpcResponseResult'
         '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                type: object
+          $ref: '#/components/responses/BadRequest'
         '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                type: object
+          $ref: '#/components/responses/Forbiden'
         '405':
-          description: Method Not Allowed
-          content:
-            application/json:
-              schema:
-                type: object
+          $ref: '#/components/responses/MethodNotAllowed'
         '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                type: object
-  /approve/list:
+          $ref: '#/components/responses/ServerError'
+  /listCustomerRelationshipTypes:
     post:
-      summary: TransactionCustomerGrpcService.ListRepresentativePersons
       tags:
-      - TransactionCustomerGrpcService
-      description: Calls gRPC `TransactionCustomerGrpcService.ListRepresentativePersons`
-        with `RepresentativePersonRequest` → `RepresentativePersonResponse`.
+      - Transaction-Customer-Grpc-Service
+      operationId: listCustomerRelationshipTypes
+      summary: listCustomerRelationshipTypes
+      description: listCustomerRelationshipTypes
+      parameters:
+      - $ref: '#/components/parameters/AcceptHeader'
+      - $ref: '#/components/parameters/ContentTypeHeader'
+      - $ref: '#/components/parameters/ChannelHeader'
+      - $ref: '#/components/parameters/IpHeader'
+      - $ref: '#/components/parameters/DialectHeader'
+      - $ref: '#/components/parameters/GuidHeader'
+      - $ref: '#/components/parameters/ClientTraceIdlHeader'
+      - $ref: '#/components/parameters/AuthorizationTokenHeader'
+      - $ref: '#/components/parameters/TenantGeolocationHeader'
+      - $ref: '#/components/parameters/TenantAppIdHeader'
+      - $ref: '#/components/parameters/ApiKeyHeader'
+      - $ref: '#/components/parameters/UserIdHeader'
+      - $ref: '#/components/parameters/ClientIdHeader'
+      - $ref: '#/components/parameters/RequestTraceFlagHeader'
       requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerRelationshipTypeRequest'
+            example:
+              headerInfo:
+                command: LIST
+                sourceProgramId: WEBAPI
+                unitNum: '001'
+                channelCode: INTERNET
+                moduleCode: CUSTOMER
+                submoduleCode: RELATION
+              serverData:
+                userId: USER123
+                referenceId: REF123456789
         required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              description: Generic object (auto-fixed from invalid $ref 'RepresentativePersonRequest').
-              example: {}
       responses:
         '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                description: Generic object (auto-fixed from invalid $ref 'RepresentativePersonResponse').
-                example: {}
+          $ref: '#/components/responses/HttpOKwithCustomerRelationshipTypeResponseResult'
         '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                type: object
+          $ref: '#/components/responses/BadRequest'
         '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                type: object
+          $ref: '#/components/responses/Forbiden'
         '405':
-          description: Method Not Allowed
-          content:
-            application/json:
-              schema:
-                type: object
+          $ref: '#/components/responses/MethodNotAllowed'
         '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                type: object
-      x-grpc:
-        service: TransactionCustomerGrpcService
-        rpc: ListRepresentativePersons
-  /approve/approve:
+          $ref: '#/components/responses/ServerError'
+  /listRepresentativePersons:
     post:
-      summary: Operation
-      tags: []
-      description: Automatically generated operation based on controller mapping.
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                type: object
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                type: object
-        '405':
-          description: Method Not Allowed
-          content:
-            application/json:
-              schema:
-                type: object
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                type: object
-  /approve/reject:
-    post:
-      summary: Operation
-      tags: []
-      description: Automatically generated operation based on controller mapping.
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                type: object
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                type: object
-        '405':
-          description: Method Not Allowed
-          content:
-            application/json:
-              schema:
-                type: object
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                type: object
-  /approve/changeStatusFraudProcess:
-    post:
-      summary: Operation
-      tags: []
-      description: Automatically generated operation based on controller mapping.
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                type: object
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                type: object
-        '405':
-          description: Method Not Allowed
-          content:
-            application/json:
-              schema:
-                type: object
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                type: object
-  /withdrawal/read-digital-order:
-    post:
-      summary: DigitalOrderGrpcService.ReadDigitalOrder
       tags:
-      - DigitalOrderGrpcService
-      description: Calls gRPC `DigitalOrderGrpcService.ReadDigitalOrder` with `DigitalOrderReadRequest`
-        → `DigitalOrderReadResponse`.
+      - Transaction-Customer-Grpc-Service
+      operationId: listRepresentativePersons
+      summary: listRepresentativePersons
+      description: listRepresentativePersons
+      parameters:
+      - $ref: '#/components/parameters/AcceptHeader'
+      - $ref: '#/components/parameters/ContentTypeHeader'
+      - $ref: '#/components/parameters/ChannelHeader'
+      - $ref: '#/components/parameters/IpHeader'
+      - $ref: '#/components/parameters/DialectHeader'
+      - $ref: '#/components/parameters/GuidHeader'
+      - $ref: '#/components/parameters/ClientTraceIdlHeader'
+      - $ref: '#/components/parameters/AuthorizationTokenHeader'
+      - $ref: '#/components/parameters/TenantGeolocationHeader'
+      - $ref: '#/components/parameters/TenantAppIdHeader'
+      - $ref: '#/components/parameters/ApiKeyHeader'
+      - $ref: '#/components/parameters/UserIdHeader'
+      - $ref: '#/components/parameters/ClientIdHeader'
+      - $ref: '#/components/parameters/RequestTraceFlagHeader'
       requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RepresentativePersonRequest'
+            example:
+              customerNum: '123456'
+              customerNum2: '654321'
+              relationTypeText: GUARDIAN
+              acceptableLatency: '5'
+              shareRate: '100'
+              shareAmount: '1000'
+              confirmationDate: '2023-01-01'
+              headerInfo:
+                command: LIST
+                sourceProgramId: WEBAPI
+                unitNum: '001'
+                channelCode: INTERNET
+                moduleCode: CUSTOMER
+                submoduleCode: RELATION
+              serverData:
+                userId: USER123
+                referenceId: REF123456789
         required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              description: Generic object (auto-fixed from invalid $ref 'DigitalOrderReadRequest').
-              example: {}
       responses:
         '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                description: Generic object (auto-fixed from invalid $ref 'DigitalOrderReadResponse').
-                example: {}
+          $ref: '#/components/responses/HttpOKwithRepresentativePersonResponseResult'
         '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                type: object
+          $ref: '#/components/responses/BadRequest'
         '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                type: object
+          $ref: '#/components/responses/Forbiden'
         '405':
-          description: Method Not Allowed
-          content:
-            application/json:
-              schema:
-                type: object
+          $ref: '#/components/responses/MethodNotAllowed'
         '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                type: object
-      x-grpc:
-        service: DigitalOrderGrpcService
-        rpc: ReadDigitalOrder
-  /withdrawal/create-gold-document:
+          $ref: '#/components/responses/ServerError'
+  /getOperationCode:
     post:
-      summary: Operation
-      tags: []
-      description: Automatically generated operation based on controller mapping.
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                type: object
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                type: object
-        '405':
-          description: Method Not Allowed
-          content:
-            application/json:
-              schema:
-                type: object
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                type: object
-  /withdrawal/get-gold-document:
-    post:
-      summary: Operation
-      tags: []
-      description: Automatically generated operation based on controller mapping.
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                type: object
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                type: object
-        '405':
-          description: Method Not Allowed
-          content:
-            application/json:
-              schema:
-                type: object
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                type: object
-  /withdrawal/get-operation-code:
-    post:
-      summary: OperationCodeGrpcService.GetOperationCodeGrpcService
       tags:
-      - OperationCodeGrpcService
-      description: Calls gRPC `OperationCodeGrpcService.GetOperationCodeGrpcService`
-        with `OperationCodeGrpcRequest` → `OperationCodeGrpcResponse`.
+      - Transaction-Customer-Grpc-Service
+      operationId: getOperationCode
+      summary: getOperationCode
+      description: getOperationCode
+      parameters:
+      - $ref: '#/components/parameters/AcceptHeader'
+      - $ref: '#/components/parameters/ContentTypeHeader'
+      - $ref: '#/components/parameters/ChannelHeader'
+      - $ref: '#/components/parameters/IpHeader'
+      - $ref: '#/components/parameters/DialectHeader'
+      - $ref: '#/components/parameters/GuidHeader'
+      - $ref: '#/components/parameters/ClientTraceIdlHeader'
+      - $ref: '#/components/parameters/AuthorizationTokenHeader'
+      - $ref: '#/components/parameters/TenantGeolocationHeader'
+      - $ref: '#/components/parameters/TenantAppIdHeader'
+      - $ref: '#/components/parameters/ApiKeyHeader'
+      - $ref: '#/components/parameters/UserIdHeader'
+      - $ref: '#/components/parameters/ClientIdHeader'
+      - $ref: '#/components/parameters/RequestTraceFlagHeader'
       requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OperationCodeGrpcRequest'
+            example:
+              operatorCustomer:
+              - operatorCustomerNum: '12345678'
+              accountCustomerNum: '87654321'
+              accountBranch: '002'
         required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              description: Generic object (auto-fixed from invalid $ref 'OperationCodeGrpcRequest').
-              example: {}
       responses:
         '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                description: Generic object (auto-fixed from invalid $ref 'OperationCodeGrpcResponse').
-                example: {}
+          $ref: '#/components/responses/HttpOKwithOperationCodeGrpcResponseResult'
         '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                type: object
+          $ref: '#/components/responses/BadRequest'
         '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                type: object
+          $ref: '#/components/responses/Forbiden'
         '405':
-          description: Method Not Allowed
-          content:
-            application/json:
-              schema:
-                type: object
+          $ref: '#/components/responses/MethodNotAllowed'
         '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                type: object
-      x-grpc:
-        service: OperationCodeGrpcService
-        rpc: GetOperationCodeGrpcService
-  /withdrawal/get-bulk-operation-codes:
-    post:
-      summary: Operation
-      tags: []
-      description: Automatically generated operation based on controller mapping.
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                type: object
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                type: object
-        '405':
-          description: Method Not Allowed
-          content:
-            application/json:
-              schema:
-                type: object
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                type: object
-  /withdrawal/find-transaction-by-customer-number:
-    post:
-      summary: TransactionGrpcService.FindTransactionByCustomerNumber
-      tags:
-      - TransactionGrpcService
-      description: Calls gRPC `TransactionGrpcService.FindTransactionByCustomerNumber`
-        with `FindTransactionByCustomerNumberGrpcRequest` → `FindTransactionByCustomerNumberGrpcResponse`.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              description: Generic object (auto-fixed from invalid $ref 'FindTransactionByCustomerNumberGrpcRequest').
-              example: {}
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                description: Generic object (auto-fixed from invalid $ref 'FindTransactionByCustomerNumberGrpcResponse').
-                example: {}
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                type: object
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                type: object
-        '405':
-          description: Method Not Allowed
-          content:
-            application/json:
-              schema:
-                type: object
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                type: object
-      x-grpc:
-        service: TransactionGrpcService
-        rpc: FindTransactionByCustomerNumber
-  /withdrawal/trnx-complete-withdrawal:
-    post:
-      summary: TransactionGrpcService.TrnxCompleteWithdrawal
-      tags:
-      - TransactionGrpcService
-      description: Calls gRPC `TransactionGrpcService.TrnxCompleteWithdrawal` with
-        `TrnxCompleteWithdrawalGrpcRequest` → `TrnxCompleteWithdrawalGrpcResponse`.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              description: Generic object (auto-fixed from invalid $ref 'TrnxCompleteWithdrawalGrpcRequest').
-              example: {}
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                description: Generic object (auto-fixed from invalid $ref 'TrnxCompleteWithdrawalGrpcResponse').
-                example: {}
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                type: object
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                type: object
-        '405':
-          description: Method Not Allowed
-          content:
-            application/json:
-              schema:
-                type: object
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                type: object
-      x-grpc:
-        service: TransactionGrpcService
-        rpc: TrnxCompleteWithdrawal
-  /withdrawal/transaction-status-update:
-    post:
-      summary: Operation
-      tags: []
-      description: Automatically generated operation based on controller mapping.
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                type: object
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                type: object
-        '405':
-          description: Method Not Allowed
-          content:
-            application/json:
-              schema:
-                type: object
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                type: object
-  /withdrawal/find-transactions-by-filters:
-    post:
-      summary: Operation
-      tags: []
-      description: Automatically generated operation based on controller mapping.
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                type: object
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                type: object
-        '405':
-          description: Method Not Allowed
-          content:
-            application/json:
-              schema:
-                type: object
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                type: object
-  /withdrawal/account-transaction-rules:
-    post:
-      summary: TransactionGrpcService.AccountTransactionRules
-      tags:
-      - TransactionGrpcService
-      description: Calls gRPC `TransactionGrpcService.AccountTransactionRules` with
-        `AccountTransactionRulesGrpcRequest` → `AccountTransactionRulesGrpcResponse`.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              description: Generic object (auto-fixed from invalid $ref 'AccountTransactionRulesGrpcRequest').
-              example: {}
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                description: Generic object (auto-fixed from invalid $ref 'AccountTransactionRulesGrpcResponse').
-                example: {}
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                type: object
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                type: object
-        '405':
-          description: Method Not Allowed
-          content:
-            application/json:
-              schema:
-                type: object
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                type: object
-      x-grpc:
-        service: TransactionGrpcService
-        rpc: AccountTransactionRules
-  /withdrawal/list-representative-persons:
-    post:
-      summary: TransactionCustomerGrpcService.ListRepresentativePersons
-      tags:
-      - TransactionCustomerGrpcService
-      description: Calls gRPC `TransactionCustomerGrpcService.ListRepresentativePersons`
-        with `RepresentativePersonRequest` → `RepresentativePersonResponse`.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              description: Generic object (auto-fixed from invalid $ref 'RepresentativePersonRequest').
-              example: {}
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                description: Generic object (auto-fixed from invalid $ref 'RepresentativePersonResponse').
-                example: {}
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                type: object
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                type: object
-        '405':
-          description: Method Not Allowed
-          content:
-            application/json:
-              schema:
-                type: object
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                type: object
-      x-grpc:
-        service: TransactionCustomerGrpcService
-        rpc: ListRepresentativePersons
-  /withdrawal/save-representative-person:
-    post:
-      summary: TransactionCustomerGrpcService.SaveRepresentativePerson
-      tags:
-      - TransactionCustomerGrpcService
-      description: Calls gRPC `TransactionCustomerGrpcService.SaveRepresentativePerson`
-        with `SaveRepresentativePersonRequest` → `SaveRepresentativePersonResponse`.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              description: Generic object (auto-fixed from invalid $ref 'SaveRepresentativePersonRequest').
-              example: {}
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                description: Generic object (auto-fixed from invalid $ref 'SaveRepresentativePersonResponse').
-                example: {}
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                type: object
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                type: object
-        '405':
-          description: Method Not Allowed
-          content:
-            application/json:
-              schema:
-                type: object
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                type: object
-      x-grpc:
-        service: TransactionCustomerGrpcService
-        rpc: SaveRepresentativePerson
-  /withdrawal/get-customer-info:
-    post:
-      summary: TransactionCustomerGrpcService.GetCustomerInfoGrpcService
-      tags:
-      - TransactionCustomerGrpcService
-      description: Calls gRPC `TransactionCustomerGrpcService.GetCustomerInfoGrpcService`
-        with `CustomerInfoGrpcRequest` → `CustomerInfoGrpcResponse`.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              description: Generic object (auto-fixed from invalid $ref 'CustomerInfoGrpcRequest').
-              example: {}
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                description: Generic object (auto-fixed from invalid $ref 'CustomerInfoGrpcResponse').
-                example: {}
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                type: object
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                type: object
-        '405':
-          description: Method Not Allowed
-          content:
-            application/json:
-              schema:
-                type: object
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                type: object
-      x-grpc:
-        service: TransactionCustomerGrpcService
-        rpc: GetCustomerInfoGrpcService
-  /withdrawal/get-extended-customer-info:
-    post:
-      summary: TransactionCustomerGrpcService.GetExtendedCustomerInfo
-      tags:
-      - TransactionCustomerGrpcService
-      description: Calls gRPC `TransactionCustomerGrpcService.GetExtendedCustomerInfo`
-        with `CustomerInfoGrpcRequest` → `ExtendedCustomerInfoGrpcResponse`.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              description: Generic object (auto-fixed from invalid $ref 'CustomerInfoGrpcRequest').
-              example: {}
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                description: Generic object (auto-fixed from invalid $ref 'ExtendedCustomerInfoGrpcResponse').
-                example: {}
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                type: object
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                type: object
-        '405':
-          description: Method Not Allowed
-          content:
-            application/json:
-              schema:
-                type: object
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                type: object
-      x-grpc:
-        service: TransactionCustomerGrpcService
-        rpc: GetExtendedCustomerInfo
-  /withdrawal/get-kps-info:
-    post:
-      summary: TransactionCustomerGrpcService.GetKpsInfo
-      tags:
-      - TransactionCustomerGrpcService
-      description: Calls gRPC `TransactionCustomerGrpcService.GetKpsInfo` with `GetKpsInfoRequest`
-        → `GetKpsInfoResponse`.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              description: Generic object (auto-fixed from invalid $ref 'GetKpsInfoRequest').
-              example: {}
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                description: Generic object (auto-fixed from invalid $ref 'GetKpsInfoResponse').
-                example: {}
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                type: object
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                type: object
-        '405':
-          description: Method Not Allowed
-          content:
-            application/json:
-              schema:
-                type: object
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                type: object
-      x-grpc:
-        service: TransactionCustomerGrpcService
-        rpc: GetKpsInfo
-  /withdrawal/save-transaction-customer:
-    post:
-      summary: TransactionCustomerGrpcService.SaveTransactionCustomer
-      tags:
-      - TransactionCustomerGrpcService
-      description: Calls gRPC `TransactionCustomerGrpcService.SaveTransactionCustomer`
-        with `SaveTransactionCustomerRequest` → `TransactionCustomerMessageResponse`.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-              description: Generic object (auto-fixed from invalid $ref 'SaveTransactionCustomerRequest').
-              example: {}
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-                description: Generic object (auto-fixed from invalid $ref 'TransactionCustomerMessageResponse').
-                example: {}
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                type: object
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                type: object
-        '405':
-          description: Method Not Allowed
-          content:
-            application/json:
-              schema:
-                type: object
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                type: object
-      x-grpc:
-        service: TransactionCustomerGrpcService
-        rpc: SaveTransactionCustomer
-  /withdrawal/get-user-branch-code:
-    post:
-      summary: Operation
-      tags: []
-      description: Automatically generated operation based on controller mapping.
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-        '400':
-          description: Bad Request
-          content:
-            application/json:
-              schema:
-                type: object
-        '401':
-          description: Unauthorized
-          content:
-            application/json:
-              schema:
-                type: object
-        '403':
-          description: Forbidden
-          content:
-            application/json:
-              schema:
-                type: object
-        '405':
-          description: Method Not Allowed
-          content:
-            application/json:
-              schema:
-                type: object
-        '500':
-          description: Internal Server Error
-          content:
-            application/json:
-              schema:
-                type: object
+          $ref: '#/components/responses/ServerError'
 components:
   securitySchemes:
     BearerAuth:
@@ -1232,1682 +249,365 @@ components:
     GUID:
       description: Header GUID
       schema:
-        type: object
-        description: Generic object (auto-fixed from invalid $ref).
-        example: {}
+        $ref: '#/components/parameters/GuidHeader'
   schemas:
-    GetChequeCostResponse:
+    TransactionGrpcRequest:
       type: object
-      description: 'Schema from code DTO: GetChequeCostResponse.'
-      properties:
-        cost:
-          $ref: '#/components/schemas/ChequeMoney'
-        isCommissionFree:
-          type: boolean
-          example: true
-          description: Field `isCommissionFree`.
-      example: {cost: {}, isCommissionFree: true}
-    ChequeMoney:
-      type: object
-      description: 'Schema from code DTO: ChequeMoney.'
-      properties:
-        amount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field `amount`.
-        currency:
-          type: string
-          example: string
-          description: Field `currency`.
-      example: {amount: 100.5, currency: string}
-    GetChequeCostRequest:
-      type: object
-      description: 'Schema from code DTO: GetChequeCostRequest.'
-      properties:
-        customerNo:
-          type: string
-          example: string
-          description: Field `customerNo`.
-        opCode:
-          $ref: '#/components/schemas/OperationCode'
-        chequeAmount:
-          $ref: '#/components/schemas/ChequeMoney'
-        account:
-          $ref: '#/components/schemas/Account'
-        commissionServerData:
-          $ref: '#/components/schemas/CommissionServerData'
-      example: {customerNo: string, opCode: {}, chequeAmount: {}, account: {}, commissionServerData: {}}
-    OperationCode:
-      type: object
-      description: 'Schema from code DTO: OperationCode.'
-      properties:
-        opCode1:
-          type: string
-          example: string
-          description: Field `opCode1`.
-        opCode2:
-          type: string
-          example: string
-          description: Field `opCode2`.
-      example: {opCode1: string, opCode2: string}
-    Account:
-      type: object
-      description: 'Schema from code DTO: Account.'
-      properties:
-        branch:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `branch`.
-        number:
-          type: string
-          example: string
-          description: Field `number`.
-      example: {branch: 123, number: string}
-    CommissionServerData:
-      type: object
-      description: 'Schema from code DTO: CommissionServerData.'
-      properties:
-        userId:
-          type: string
-          example: string
-          description: Field `userId`.
-        referenceId:
-          type: string
-          example: string
-          description: Field `referenceId`.
-      example: {userId: string, referenceId: string}
-    PaginationResultDto:
-      type: object
-      description: 'Schema from code DTO: PaginationResultDto.'
-      properties:
-        totalCount:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `totalCount`.
-        records:
-          type: array
-          items:
-            type: object
-            description: Generic object (auto-fixed from invalid $ref 'T').
-            example: {}
-          description: Field `records`.
-          example: [string]
-      example: {totalCount: 123, records: [string]}
-    ProcessResponseDto:
-      type: object
-      description: 'Schema from code DTO: ProcessResponseDto.'
-      properties:
-        moneyTransactionId:
-          type: string
-          example: string
-          description: Field `moneyTransactionId`.
-        status:
-          type: string
-          example: string
-          description: Field `status`.
-        approveOrder:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `approveOrder`.
-        approveType:
-          type: string
-          example: string
-          description: Field `approveType`.
-        approveUserRole:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `approveUserRole`.
-        approveUserId:
-          type: string
-          example: string
-          description: Field `approveUserId`.
-        approveDate:
-          type: string
-          example: string
-          description: Field `approveDate`.
-        approvalUnitNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `approvalUnitNum`.
-        transactionAmount:
-          type: string
-          example: string
-          description: Field `transactionAmount`.
-        customerNumber:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `customerNumber`.
-        createUserId:
-          type: string
-          example: string
-          description: Field `createUserId`.
-        requestText:
-          type: string
-          example: string
-          description: Field `requestText`.
-        instanceId:
-          type: string
-          example: string
-          description: Field `instanceId`.
-      example: {moneyTransactionId: string, status: string, approveOrder: 123, approveType: string,
-        approveUserRole: 123, approveUserId: string, approveDate: string, approvalUnitNum: 123,
-        transactionAmount: string, customerNumber: 123, createUserId: string, requestText: string,
-        instanceId: string}
-    ProcessRequestDto:
-      type: object
-      description: 'Schema from code DTO: ProcessRequestDto.'
-      properties:
-        pagination:
-          $ref: '#/components/schemas/PageableInboundDto'
-        filter:
-          $ref: '#/components/schemas/ProcessFilterRequestDto'
-      example: {pagination: {}, filter: {}}
-    PageableInboundDto:
-      type: object
-      description: 'Schema from code DTO: PageableInboundDto.'
-      properties:
-        page:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `page`.
-        size:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `size`.
-        sort:
-          $ref: '#/components/schemas/SortInboundDto'
-      example: {page: 123, size: 123, sort: {}}
-    SortInboundDto:
-      type: object
-      description: 'Schema from code DTO: SortInboundDto.'
-      properties:
-        field:
-          type: string
-          example: string
-          description: Field `field`.
-        direction:
-          type: string
-          enum:
-          - SORT_DIRECTION_ASC
-          - SORT_DIRECTION_DESC
-          example: SORT_DIRECTION_ASC
-          description: Field `direction`.
-      example: {field: string, direction: SORT_DIRECTION_ASC}
-    ProcessFilterRequestDto:
-      type: object
-      description: 'Schema from code DTO: ProcessFilterRequestDto.'
-      properties:
-        status:
-          type: string
-          example: string
-          description: Field `status`.
-        approveType:
-          type: string
-          example: string
-          description: Field `approveType`.
-        approvalUnitNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `approvalUnitNum`.
-        transactionAmountMin:
-          type: string
-          example: string
-          description: Field `transactionAmountMin`.
-        transactionAmountMax:
-          type: string
-          example: string
-          description: Field `transactionAmountMax`.
-        approveDateFirst:
-          type: string
-          example: string
-          description: Field `approveDateFirst`.
-        approveDateLast:
-          type: string
-          example: string
-          description: Field `approveDateLast`.
-        approveOrder:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `approveOrder`.
-        financialSubFamilyCode:
-          type: string
-          example: string
-          description: Field `financialSubFamilyCode`.
-        financialFamilyCode:
-          type: string
-          example: string
-          description: Field `financialFamilyCode`.
-      example: {status: string, approveType: string, approvalUnitNum: 123, transactionAmountMin: string,
-        transactionAmountMax: string, approveDateFirst: string, approveDateLast: string,
-        approveOrder: 123, financialSubFamilyCode: string, financialFamilyCode: string}
-    ProcessStateChangeResponseDto:
-      type: object
-      description: 'Schema from code DTO: ProcessStateChangeResponseDto.'
-      properties:
-        message:
-          type: string
-          example: string
-          description: Field `message`.
-      example: {message: string}
-    ProcessStateChangeRequestDto:
-      type: object
-      description: 'Schema from code DTO: ProcessStateChangeRequestDto.'
+      description: Request model for transaction operations
+      example:
+        operationType: DEPOSIT
+        customerNumber: 12345678
+        customerAccount: TR123456789012345678901234
+        transactionAmount: 1000.5
+        currency: TRY
+        channel: BRANCH
+        request:
+        - PARAM1
+        - PARAM2
       properties:
         operationType:
           type: string
-          example: string
-          description: Field `operationType`.
-        instanceId:
-          type: string
-          example: string
-          description: Field `instanceId`.
-      example: {operationType: string, instanceId: string}
-    ApproveBulkFraudProcessResponseDto:
-      type: object
-      description: 'Schema from code DTO: ApproveBulkFraudProcessResponseDto.'
-      properties:
-        message:
-          type: string
-          example: string
-          description: Field `message`.
-      example: {message: string}
-    ApproveBulkFraudProcessRequestDto:
-      type: object
-      description: 'Schema from code DTO: ApproveBulkFraudProcessRequestDto.'
-      properties:
-        instanceId:
-          type: string
-          example: string
-          description: Field `instanceId`.
-        status:
-          type: string
-          example: string
-          description: Field `status`.
-      example: {instanceId: string, status: string}
-    DigitalOrderReadResponseDto:
-      type: object
-      description: 'Schema from code DTO: DigitalOrderReadResponseDto.'
-      properties:
-        readBranchInstructionDepositWithdrawal:
-          type: array
-          items:
-            $ref: '#/components/schemas/ReadBranchInstructionDepositWithdrawalDto'
-          description: Field `readBranchInstructionDepositWithdrawal`.
-          example: [string]
-      example: {readBranchInstructionDepositWithdrawal: [string]}
-    ReadBranchInstructionDepositWithdrawalDto:
-      type: object
-      description: 'Schema from code DTO: ReadBranchInstructionDepositWithdrawalDto.'
-      properties:
-        instructionId:
-          type: string
-          format: int64
-          example: '123456789'
-          description: Field `instructionId`.
-        customerNum:
+          description: Type of operation to be performed
+          example: DEPOSIT
+        customerNumber:
           type: integer
           format: int32
-          example: 123
-          description: Field `customerNum`.
-        accountNumber:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `accountNumber`.
-        branchCode:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `branchCode`.
-        amount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field `amount`.
-        currencyCode:
+          description: Customer identification number
+          example: 12345678
+        customerAccount:
           type: string
-          example: string
-          description: Field `currencyCode`.
-        identityNumber:
-          type: string
-          example: string
-          description: Field `identityNumber`.
-        documentId:
-          type: string
-          example: string
-          description: Field `documentId`.
-        transactionDate:
-          type: string
-          example: string
-          description: Field `transactionDate`.
-        status:
-          type: string
-          example: string
-          description: Field `status`.
-        transactionType:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `transactionType`.
-        processUnitNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `processUnitNum`.
-      example: {instructionId: '123456789', customerNum: 123, accountNumber: 123,
-        branchCode: 123, amount: 100.5, currencyCode: string, identityNumber: string,
-        documentId: string, transactionDate: string, status: string, transactionType: 123,
-        processUnitNum: 123}
-    DigitalOrderReadRequestDto:
-      type: object
-      description: 'Schema from code DTO: DigitalOrderReadRequestDto.'
-      properties:
-        instructionId:
-          type: string
-          format: int64
-          example: '123456789'
-          description: Field `instructionId`.
-        customerNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `customerNum`.
-        accountNumber:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `accountNumber`.
-        branchCode:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `branchCode`.
-        amount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field `amount`.
-        currencyCode:
-          type: string
-          example: string
-          description: Field `currencyCode`.
-        identityNumber:
-          type: string
-          example: string
-          description: Field `identityNumber`.
-        documentId:
-          type: string
-          example: string
-          description: Field `documentId`.
-        transactionDate:
-          type: string
-          example: string
-          description: Field `transactionDate`.
-        status:
-          type: string
-          example: string
-          description: Field `status`.
-        transactionType:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `transactionType`.
-        processUnitNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `processUnitNum`.
-      example: {instructionId: '123456789', customerNum: 123, accountNumber: 123,
-        branchCode: 123, amount: 100.5, currencyCode: string, identityNumber: string,
-        documentId: string, transactionDate: string, status: string, transactionType: 123,
-        processUnitNum: 123}
-    CreateSinglePdfResponseDto:
-      type: object
-      description: 'Schema from code DTO: CreateSinglePdfResponseDto.'
-      properties:
-        returnCode:
-          type: string
-          example: string
-          description: Field `returnCode`.
-        returnMsg:
-          type: string
-          example: string
-          description: Field `returnMsg`.
-        documentId:
-          type: string
-          example: string
-          description: Field `documentId`.
-      example: {returnCode: string, returnMsg: string, documentId: string}
-    CreateSinglePdfRequestDto:
-      type: object
-      description: 'Schema from code DTO: CreateSinglePdfRequestDto.'
-      properties:
-        documentType:
-          type: string
-          example: string
-          description: Field `documentType`.
-        documentStatus:
-          type: string
-          example: string
-          description: Field `documentStatus`.
-        async:
-          type: string
-          example: string
-          description: Field `async`.
-        userId:
-          type: string
-          example: string
-          description: Field `userId`.
-        authUserId:
-          type: string
-          example: string
-          description: Field `authUserId`.
-        xmlData:
-          type: string
-          example: string
-          description: Field `xmlData`.
-        date:
-          type: string
-          example: string
-          description: Field `date`.
-        commissionRate:
-          type: number
-          format: double
-          example: 123.45
-          description: Field `commissionRate`.
+          description: Customer account number
+          example: TR123456789012345678901234
         transactionAmount:
           type: number
           format: bigdecimal
-          example: 100.5
-          description: Field `transactionAmount`.
-        customerInfo:
+          description: Amount to be processed in the transaction
+          example: 1000.5
+        currency:
+          type: string
+          description: Currency code for the transaction
+          example: TRY
+        channel:
+          type: string
+          description: Channel through which the transaction is initiated
+          example: BRANCH
+        request:
           type: array
+          description: Additional parameters for the request
           items:
-            $ref: '#/components/schemas/CustomerInfo'
-          description: Field `customerInfo`.
-          example: [string]
-        branchInfo:
-          $ref: '#/components/schemas/BranchInfo'
-      example: {documentType: string, documentStatus: string, async: string, userId: string,
-        authUserId: string, xmlData: string, date: string, commissionRate: 123.45,
-        transactionAmount: 100.5, customerInfo: [string], branchInfo: {}}
-    CustomerInfo:
+            type: string
+            example: PARAM1
+    TransactionGrpcResponse:
       type: object
-      description: 'Schema from code DTO: CustomerInfo.'
+      description: Response model for transaction operations
+      example:
+        message: Transaction completed successfully
       properties:
-        customerFullName:
+        message:
           type: string
-          example: string
-          description: Field `customerFullName`.
-        customerNumber:
-          type: string
-          format: int64
-          example: '123456789'
-          description: Field `customerNumber`.
-        customerAddress:
-          type: string
-          example: string
-          description: Field `customerAddress`.
-        accountType:
-          type: string
-          example: string
-          description: Field `accountType`.
-        tckn:
-          type: string
-          example: string
-          description: Field `tckn`.
-        nationality:
-          type: string
-          example: string
-          description: Field `nationality`.
-      example: {customerFullName: string, customerNumber: '123456789', customerAddress: string,
-        accountType: string, tckn: string, nationality: string}
-    BranchInfo:
+          description: Response message indicating transaction status
+          example: Transaction completed successfully
+    CustomerRelationshipTypeRequest:
       type: object
-      description: 'Schema from code DTO: BranchInfo.'
+      description: Request model for customer relationship type operations
+      example:
+        headerInfo:
+          command: LIST
+          sourceProgramId: WEBAPI
+          unitNum: '001'
+          channelCode: INTERNET
+          moduleCode: CUSTOMER
+          submoduleCode: RELATION
+        serverData:
+          userId: USER123
+          referenceId: REF123456789
       properties:
-        branchName:
-          type: string
-          example: string
-          description: Field `branchName`.
-        branchCity:
-          type: string
-          example: string
-          description: Field `branchCity`.
-        branchDistrict:
-          type: string
-          example: string
-          description: Field `branchDistrict`.
-        countryCode:
-          type: string
-          example: string
-          description: Field `countryCode`.
-        branchAddress:
-          type: string
-          example: string
-          description: Field `branchAddress`.
-        referenceNumber:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `referenceNumber`.
-      example: {branchName: string, branchCity: string, branchDistrict: string, countryCode: string,
-        branchAddress: string, referenceNumber: 123}
-    GetPdfResponseDto:
+        headerInfo:
+          $ref: '#/components/schemas/HeaderInfo'
+        serverData:
+          $ref: '#/components/schemas/ServerData'
+    CustomerRelationshipTypeResponse:
       type: object
-      description: 'Schema from code DTO: GetPdfResponseDto.'
+      description: Response model for customer relationship type operations
+      example:
+        customerRelationshipTypes:
+        - description: GUARDIAN
+        - description: PROXY
       properties:
-        returnCode:
-          type: string
-          example: string
-          description: Field `returnCode`.
-        returnMsg:
-          type: string
-          example: string
-          description: Field `returnMsg`.
-        printType:
-          type: string
-          example: string
-          description: Field `printType`.
-        paperTrayText:
-          type: string
-          example: string
-          description: Field `paperTrayText`.
-        secPaperTrayText:
-          type: string
-          example: string
-          description: Field `secPaperTrayText`.
-        pdfData:
-          type: string
-          example: string
-          description: Field `pdfData`.
-      example: {returnCode: string, returnMsg: string, printType: string, paperTrayText: string,
-        secPaperTrayText: string, pdfData: string}
-    GetSinglePdfRequestDto:
+        customerRelationshipTypes:
+          type: array
+          description: List of available customer relationship types
+          items:
+            $ref: '#/components/schemas/CustomerRelationshipType'
+    CustomerRelationshipType:
       type: object
-      description: 'Schema from code DTO: GetSinglePdfRequestDto.'
+      description: Model representing a customer relationship type
+      example:
+        description: GUARDIAN
       properties:
-        documentId:
+        description:
           type: string
-          example: string
-          description: Field `documentId`.
-        userId:
-          type: string
-          example: string
-          description: Field `userId`.
-        authUserId:
-          type: string
-          example: string
-          description: Field `authUserId`.
-      example: {documentId: string, userId: string, authUserId: string}
-    OperationCodeResponseDto:
+          description: Description of the customer relationship type
+          example: GUARDIAN
+    RepresentativePersonRequest:
       type: object
-      description: 'Schema from code DTO: OperationCodeResponseDto.'
+      description: Request model for representative person operations
+      example:
+        customerNum: '123456'
+        customerNum2: '654321'
+        relationTypeText: GUARDIAN
+        acceptableLatency: '5'
+        shareRate: '100'
+        shareAmount: '1000'
+        confirmationDate: '2023-01-01'
+        headerInfo:
+          command: LIST
+          sourceProgramId: WEBAPI
+          unitNum: '001'
+          channelCode: INTERNET
+          moduleCode: CUSTOMER
+          submoduleCode: RELATION
+        serverData:
+          userId: USER123
+          referenceId: REF123456789
       properties:
-        opCode1:
+        customerNum:
           type: string
-          example: string
-          description: Field `opCode1`.
-        opCode2:
+          description: Primary customer number
+          example: '123456'
+        customerNum2:
           type: string
-          example: string
-          description: Field `opCode2`.
-      example: {opCode1: string, opCode2: string}
-    OperationCodeRequestDto:
+          description: Secondary customer number
+          example: '654321'
+        relationTypeText:
+          type: string
+          description: Type of relationship between customers
+          example: GUARDIAN
+        acceptableLatency:
+          type: string
+          description: Acceptable latency in seconds
+          example: '5'
+        shareRate:
+          type: string
+          description: Rate of sharing between entities
+          example: '100'
+        shareAmount:
+          type: string
+          description: Amount to be shared
+          example: '1000'
+        confirmationDate:
+          type: string
+          description: Date of confirmation
+          example: '2023-01-01'
+        headerInfo:
+          $ref: '#/components/schemas/HeaderInfo'
+        serverData:
+          $ref: '#/components/schemas/ServerData'
+    RepresentativePersonResponse:
       type: object
-      description: 'Schema from code DTO: OperationCodeRequestDto.'
+      description: Response model for representative person operations
+      example:
+        representativePerson:
+        - name: John
+          surname: Doe
+      properties:
+        representativePerson:
+          type: array
+          description: List of representative persons
+          items:
+            $ref: '#/components/schemas/RepresentativePerson'
+    RepresentativePerson:
+      type: object
+      description: Model representing a representative person
+      example:
+        name: John
+        surname: Doe
+      properties:
+        name:
+          type: string
+          description: First name of the representative person
+          example: John
+        surname:
+          type: string
+          description: Last name of the representative person
+          example: Doe
+    OperationCodeGrpcRequest:
+      type: object
+      description: Request model for operation code service
+      example:
+        operatorCustomer:
+        - operatorCustomerNum: '12345678'
+        accountCustomerNum: '87654321'
+        accountBranch: '002'
       properties:
         operatorCustomer:
           type: array
+          description: List of operator customers
           items:
-            $ref: '#/components/schemas/OpCodeCustomerDto'
-          description: Field `operatorCustomer`.
-          example: [string]
+            $ref: '#/components/schemas/Customer'
         accountCustomerNum:
           type: string
-          example: string
-          description: Field `accountCustomerNum`.
+          description: Account customer number
+          example: '87654321'
         accountBranch:
           type: string
-          example: string
-          description: Field `accountBranch`.
-        accountNumber:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `accountNumber`.
-      example: {operatorCustomer: [string], accountCustomerNum: string, accountBranch: string,
-        accountNumber: 123}
-    OpCodeCustomerDto:
+          description: Account branch code
+          example: '002'
+    Customer:
       type: object
-      description: 'Schema from code DTO: OpCodeCustomerDto.'
+      description: Customer information model
+      example:
+        operatorCustomerNum: '12345678'
       properties:
         operatorCustomerNum:
           type: string
-          example: string
-          description: Field `operatorCustomerNum`.
-      example: {operatorCustomerNum: string}
-    GetBulkOperationCodeResponseDto:
+          description: Operator customer number
+          example: '12345678'
+    OperationCodeGrpcResponse:
       type: object
-      description: 'Schema from code DTO: GetBulkOperationCodeResponseDto.'
+      description: Response model for operation code service
+      example:
+        opCode1: CODE1
+        opCode2: CODE2
       properties:
-        operationCodeItems:
-          type: array
-          items:
-            type: object
-            description: Generic object (auto-fixed from invalid $ref 'OperationCodeItem').
-            example: {}
-          description: Field `operationCodeItems`.
-          example: [string]
-        processMainCode:
-          type: object
-          description: Generic object (auto-fixed from invalid $ref).
-          example: {}
-        processSubCode:
+        opCode1:
           type: string
-          example: string
-          description: Field `processSubCode`.
-        processDescription:
+          description: First operation code
+          example: CODE1
+        opCode2:
           type: string
-          example: string
-          description: Field `processDescription`.
-      example: {operationCodeItems: [string], processMainCode: {}, processSubCode: string,
-        processDescription: string}
-    TransactionListDto:
-      type: object
-      description: 'Schema from code DTO: TransactionListDto.'
-      properties:
-        transactions:
-          type: array
-          items:
-            $ref: '#/components/schemas/TransactionDto'
-          description: Field `transactions`.
-          example: [string]
-      example: {transactions: [string]}
-    TransactionDto:
-      type: object
-      description: 'Schema from code DTO: TransactionDto.'
-      properties:
-        operationType:
-          type: string
-          example: string
-          description: Field `operationType`.
-        processDate:
-          type: string
-          example: string
-          description: Field `processDate`.
-        customerNumber:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `customerNumber`.
-        accountBranchCode:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `accountBranchCode`.
-        customerAccountNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `customerAccountNum`.
-        ownerUnitNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `ownerUnitNum`.
-        approvalUnitNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `approvalUnitNum`.
-        transactionAmount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field `transactionAmount`.
-        currencyCode:
-          type: string
-          example: string
-          description: Field `currencyCode`.
-        transactionTLAmount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field `transactionTLAmount`.
-        currencyRate:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field `currencyRate`.
-        currencyType:
-          type: string
-          example: string
-          description: Field `currencyType`.
-        rateType:
-          type: string
-          example: string
-          description: Field `rateType`.
-        channelCode:
-          type: string
-          example: string
-          description: Field `channelCode`.
-        channelType:
-          type: string
-          example: string
-          description: Field `channelType`.
-        channelDetailText:
-          type: string
-          example: string
-          description: Field `channelDetailText`.
-        financialDomainCode:
-          type: string
-          example: string
-          description: Field `financialDomainCode`.
-        financialFamilyCode:
-          type: string
-          example: string
-          description: Field `financialFamilyCode`.
-        financialSubFamilyCode:
-          type: string
-          example: string
-          description: Field `financialSubFamilyCode`.
-        purposeValueCode:
-          type: string
-          example: string
-          description: Field `purposeValueCode`.
-        receiptInfoId:
-          type: string
-          example: string
-          description: Field `receiptInfoId`.
-        contractInfoId:
-          type: string
-          example: string
-          description: Field `contractInfoId`.
-        accountingGuid:
-          type: string
-          example: string
-          description: Field `accountingGuid`.
-        priceInqueryId:
-          type: string
-          example: string
-          description: Field `priceInqueryId`.
-        surveyInfoId:
-          type: string
-          example: string
-          description: Field `surveyInfoId`.
-        gmaticId:
-          type: string
-          example: string
-          description: Field `gmaticId`.
-        commisionAmount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field `commisionAmount`.
-        commisionCurrencyCode:
-          type: string
-          example: string
-          description: Field `commisionCurrencyCode`.
-        chargeAmount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field `chargeAmount`.
-        chargeCurrencyCode:
-          type: string
-          example: string
-          description: Field `chargeCurrencyCode`.
-        taxAmount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field `taxAmount`.
-        taxCurrencyCode:
-          type: string
-          example: string
-          description: Field `taxCurrencyCode`.
-        statusCode:
-          type: string
-          example: string
-          description: Field `statusCode`.
-        cicsTxnId:
-          type: string
-          example: string
-          description: Field `cicsTxnId`.
-        checkNumber:
-          type: string
-          example: string
-          description: Field `checkNumber`.
-        goldValuationId:
-          type: string
-          example: string
-          description: Field `goldValuationId`.
-        prosecutorNotificationInfo:
-          type: string
-          example: string
-          description: Field `prosecutorNotificationInfo`.
-        transactionRelationType:
-          type: string
-          example: string
-          description: Field `transactionRelationType`.
-        transactionExplanationText:
-          type: string
-          example: string
-          description: Field `transactionExplanationText`.
-        requestText:
-          type: string
-          example: string
-          description: Field `requestText`.
-      example: {operationType: string, processDate: string, customerNumber: 123, accountBranchCode: 123,
-        customerAccountNum: 123, ownerUnitNum: 123, approvalUnitNum: 123, transactionAmount: 100.5,
-        currencyCode: string, transactionTLAmount: 100.5, currencyRate: 100.5, currencyType: string,
-        rateType: string, channelCode: string, channelType: string, channelDetailText: string,
-        financialDomainCode: string, financialFamilyCode: string, financialSubFamilyCode: string,
-        purposeValueCode: string, receiptInfoId: string, contractInfoId: string, accountingGuid: string,
-        priceInqueryId: string, surveyInfoId: string, gmaticId: string, commisionAmount: 100.5,
-        commisionCurrencyCode: string, chargeAmount: 100.5, chargeCurrencyCode: string,
-        taxAmount: 100.5, taxCurrencyCode: string, statusCode: string, cicsTxnId: string,
-        checkNumber: string, goldValuationId: string, prosecutorNotificationInfo: string,
-        transactionRelationType: string, transactionExplanationText: string, requestText: string}
-    FindTransactionRequestDto:
-      type: object
-      description: 'Schema from code DTO: FindTransactionRequestDto.'
-      properties:
-        customerNumber:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `customerNumber`.
-      example: {customerNumber: 123}
-    TrnxCompleteWithdrawalRequestDto:
-      type: object
-      description: 'Schema from code DTO: TrnxCompleteWithdrawalRequestDto.'
-      properties:
-        operationType:
-          type: string
-          example: string
-          description: Field `operationType`.
-        customerNumber:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `customerNumber`.
-        accountBranchCode:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `accountBranchCode`.
-        customerAccountNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `customerAccountNum`.
-        transactionAmount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field `transactionAmount`.
-        createUserId:
-          type: string
-          example: string
-          description: Field `createUserId`.
-        channelCode:
-          type: string
-          example: string
-          description: Field `channelCode`.
-        channelDetailText:
-          type: string
-          example: string
-          description: Field `channelDetailText`.
-        operation1Code:
-          type: string
-          example: string
-          description: Field `operation1Code`.
-        operation2Code:
-          type: string
-          example: string
-          description: Field `operation2Code`.
-        relatedProductCode:
-          type: string
-          example: string
-          description: Field `relatedProductCode`.
-        purposeValueCode:
-          type: string
-          example: string
-          description: Field `purposeValueCode`.
-        surveyIfoId:
-          type: string
-          example: string
-          description: Field `surveyIfoId`.
-        commissionAmount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field `commissionAmount`.
-        commissionCurrencyCode:
-          type: string
-          example: string
-          description: Field `commissionCurrencyCode`.
-        priceInqueryId:
-          type: string
-          example: string
-          description: Field `priceInqueryId`.
-        chargeAmount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field `chargeAmount`.
-        chargeCurrencyCode:
-          type: string
-          example: string
-          description: Field `chargeCurrencyCode`.
-        requestText:
-          type: string
-          example: string
-          description: Field `requestText`.
-        transactionExplanationText:
-          type: string
-          example: string
-          description: Field `transactionExplanationText`.
-        checkNumber:
-          type: string
-          example: string
-          description: Field `checkNumber`.
-        goldValuationId:
-          type: string
-          example: string
-          description: Field `goldValuationId`.
-        prosecutorNotificationInfo:
-          type: string
-          example: string
-          description: Field `prosecutorNotificationInfo`.
-        transactionRelationType:
-          type: string
-          example: string
-          description: Field `transactionRelationType`.
-        gmaticId:
-          type: string
-          example: string
-          description: Field `gmaticId`.
-        currencyCode:
-          type: string
-          example: string
-          description: Field `currencyCode`.
-        tcNumber:
-          type: string
-          example: string
-          description: Field `tcNumber`.
-        birthDate:
-          type: string
-          example: string
-          description: Field `birthDate`.
-        isCheck:
-          type: boolean
-          example: true
-          description: Field `isCheck`.
-        atmInfo:
-          $ref: '#/components/schemas/AtmInfoRequest'
-        processingPersonInfo:
-          type: array
-          items:
-            $ref: '#/components/schemas/ProcessingPersonInfoRequest'
-          description: Field `processingPersonInfo`.
-          example: [string]
-        customerName:
-          type: string
-          example: string
-          description: Field `customerName`.
-        customerSurname:
-          type: string
-          example: string
-          description: Field `customerSurname`.
-        accountBalanceAmount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field `accountBalanceAmount`.
-        addressLine1:
-          type: string
-          example: string
-          description: Field `addressLine1`.
-        addressLine2:
-          type: string
-          example: string
-          description: Field `addressLine2`.
-        regionName:
-          type: string
-          example: string
-          description: Field `regionName`.
-        districtName:
-          type: string
-          example: string
-          description: Field `districtName`.
-        cityName:
-          type: string
-          example: string
-          description: Field `cityName`.
-        postalCode:
-          type: string
-          example: string
-          description: Field `postalCode`.
-        phoneNumber:
-          type: string
-          example: string
-          description: Field `phoneNumber`.
-        cicsTxnId:
-          type: string
-          example: string
-          description: Field `cicsTxnId`.
-        sourceId:
-          type: string
-          example: string
-          description: Field `sourceId`.
-        kpsValidationBypass:
-          type: boolean
-          example: true
-          description: Field `kpsValidationBypass`.
-      example: {operationType: string, customerNumber: 123, accountBranchCode: 123,
-        customerAccountNum: 123, transactionAmount: 100.5, createUserId: string, channelCode: string,
-        channelDetailText: string, operation1Code: string, operation2Code: string,
-        relatedProductCode: string, purposeValueCode: string, surveyIfoId: string,
-        commissionAmount: 100.5, commissionCurrencyCode: string, priceInqueryId: string,
-        chargeAmount: 100.5, chargeCurrencyCode: string, requestText: string, transactionExplanationText: string,
-        checkNumber: string, goldValuationId: string, prosecutorNotificationInfo: string,
-        transactionRelationType: string, gmaticId: string, currencyCode: string, tcNumber: string,
-        birthDate: string, isCheck: true, atmInfo: {}, processingPersonInfo: [string],
-        customerName: string, customerSurname: string, accountBalanceAmount: 100.5,
-        addressLine1: string, addressLine2: string, regionName: string, districtName: string,
-        cityName: string, postalCode: string, phoneNumber: string, cicsTxnId: string,
-        sourceId: string, kpsValidationBypass: true}
-    AtmInfoRequest:
-      type: object
-      description: 'Schema from code DTO: AtmInfoRequest.'
-      properties:
-        cardNo:
-          type: string
-          example: string
-          description: Field `cardNo`.
-        isQr:
-          type: boolean
-          example: true
-          description: Field `isQr`.
-        qrId:
-          type: string
-          example: string
-          description: Field `qrId`.
-        atmNumber:
-          type: string
-          example: string
-          description: Field `atmNumber`.
-        isCommission:
-          type: boolean
-          example: true
-          description: Field `isCommission`.
-      example: {cardNo: string, isQr: true, qrId: string, atmNumber: string, isCommission: true}
-    ProcessingPersonInfoRequest:
-      type: object
-      description: 'Schema from code DTO: ProcessingPersonInfoRequest.'
-      properties:
-        statusCode:
-          type: string
-          example: string
-          description: Field `statusCode`.
-        processCustomerNum:
-          type: string
-          example: string
-          description: Field `processCustomerNum`.
-      example: {statusCode: string, processCustomerNum: string}
-    TransactionStatusUpdateResponseDto:
-      type: object
-      description: 'Schema from code DTO: TransactionStatusUpdateResponseDto.'
-      properties:
-        success:
-          type: boolean
-          example: true
-          description: Field `success`.
-      example: {success: true}
-    TransactionStatusUpdateRequestDto:
-      type: object
-      description: 'Schema from code DTO: TransactionStatusUpdateRequestDto.'
-      properties:
-        instanceId:
-          type: string
-          example: string
-          description: Field `instanceId`.
-        status:
-          type: string
-          example: string
-          description: Field `status`.
-        approveInstanceId:
-          type: string
-          example: string
-          description: Field `approveInstanceId`.
-      example: {instanceId: string, status: string, approveInstanceId: string}
-    TransactionFilterResponseDto:
-      type: object
-      description: 'Schema from code DTO: TransactionFilterResponseDto.'
-      properties:
-        instanceId:
-          type: string
-          example: string
-          description: Field `instanceId`.
-        customerNameAndSurname:
-          type: string
-          example: string
-          description: Field `customerNameAndSurname`.
-        processDate:
-          type: string
-          example: string
-          description: Field `processDate`.
-        approveType:
-          type: string
-          example: string
-          description: Field `approveType`.
-        transactionAmount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field `transactionAmount`.
-        status:
-          type: string
-          example: string
-          description: Field `status`.
-        createUserId:
-          type: string
-          example: string
-          description: Field `createUserId`.
-        approveUserId:
-          type: string
-          example: string
-          description: Field `approveUserId`.
-      example: {instanceId: string, customerNameAndSurname: string, processDate: string,
-        approveType: string, transactionAmount: 100.5, status: string, createUserId: string,
-        approveUserId: string}
-    TransactionFilterRequestDto:
-      type: object
-      description: 'Schema from code DTO: TransactionFilterRequestDto.'
-      properties:
-        statusCode:
-          type: string
-          example: string
-          description: Field `statusCode`.
-        ownerUnitNum:
-          type: string
-          example: string
-          description: Field `ownerUnitNum`.
-        moneyTransactionIdStart:
-          type: string
-          example: string
-          description: Field `moneyTransactionIdStart`.
-        moneyTransactionIdEnd:
-          type: string
-          example: string
-          description: Field `moneyTransactionIdEnd`.
-        approveType:
-          type: string
-          example: string
-          description: Field `approveType`.
-        financialSubFamilyCode:
-          type: string
-          example: string
-          description: Field `financialSubFamilyCode`.
-        financialFamilyCode:
-          type: string
-          example: string
-          description: Field `financialFamilyCode`.
-        transactionAmountMin:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field `transactionAmountMin`.
-        transactionAmountMax:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field `transactionAmountMax`.
-      example: {statusCode: string, ownerUnitNum: string, moneyTransactionIdStart: string,
-        moneyTransactionIdEnd: string, approveType: string, financialSubFamilyCode: string,
-        financialFamilyCode: string, transactionAmountMin: 100.5, transactionAmountMax: 100.5}
-    AccountTransactionRulesRequestDto:
-      type: object
-      description: 'Schema from code DTO: AccountTransactionRulesRequestDto.'
-      properties:
-        debitUnitNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `debitUnitNum`.
-        debitAccountNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `debitAccountNum`.
-        transactionAmount:
-          type: string
-          example: string
-          description: Field `transactionAmount`.
-        currencyCode:
-          type: string
-          example: string
-          description: Field `currencyCode`.
-        transactionDate:
-          type: string
-          example: string
-          description: Field `transactionDate`.
-        oprtnCustList:
-          type: array
-          items:
-            type: string
-            example: string
-          description: Field `oprtnCustList`.
-          example: [string]
-      example: {debitUnitNum: 123, debitAccountNum: 123, transactionAmount: string,
-        currencyCode: string, transactionDate: string, oprtnCustList: [string]}
-    RepresentativePersonRequestDto:
-      type: object
-      description: 'Schema from code DTO: RepresentativePersonRequestDto.'
-      properties:
-        customerNum:
-          type: string
-          example: string
-          description: Field `customerNum`.
-        customerNum2:
-          type: string
-          example: string
-          description: Field `customerNum2`.
-        relationTypeText:
-          type: string
-          example: string
-          description: Field `relationTypeText`.
-        acceptableLatency:
-          type: string
-          example: string
-          description: Field `acceptableLatency`.
-        shareRate:
-          type: string
-          example: string
-          description: Field `shareRate`.
-        shareAmount:
-          type: string
-          example: string
-          description: Field `shareAmount`.
-        confirmationDate:
-          type: string
-          example: string
-          description: Field `confirmationDate`.
-      example: {customerNum: string, customerNum2: string, relationTypeText: string,
-        acceptableLatency: string, shareRate: string, shareAmount: string, confirmationDate: string}
+          description: Second operation code
+          example: CODE2
     HeaderInfo:
       type: object
-      description: 'Schema from code DTO: HeaderInfo.'
+      description: Common header information structure for requests
+      example:
+        command: LIST
+        sourceProgramId: WEBAPI
+        unitNum: '001'
+        channelCode: INTERNET
+        moduleCode: CUSTOMER
+        submoduleCode: RELATION
       properties:
         command:
           type: string
-          example: string
-          description: Field `command`.
+          description: Command to be executed
+          example: LIST
         sourceProgramId:
           type: string
-          example: string
-          description: Field `sourceProgramId`.
+          description: Source program identifier
+          example: WEBAPI
         unitNum:
           type: string
-          example: string
-          description: Field `unitNum`.
+          description: Unit number
+          example: '001'
         channelCode:
           type: string
-          example: string
-          description: Field `channelCode`.
+          description: Channel code for the request
+          example: INTERNET
         moduleCode:
           type: string
-          example: string
-          description: Field `moduleCode`.
+          description: Module code for the request
+          example: CUSTOMER
         submoduleCode:
           type: string
-          example: string
-          description: Field `submoduleCode`.
-      example: {command: string, sourceProgramId: string, unitNum: string, channelCode: string,
-        moduleCode: string, submoduleCode: string}
+          description: Submodule code for the request
+          example: RELATION
     ServerData:
       type: object
-      description: 'Schema from code DTO: ServerData.'
+      description: Common server data structure for requests
+      example:
+        userId: USER123
+        referenceId: REF123456789
       properties:
         userId:
           type: string
-          example: string
-          description: Field `userId`.
+          description: User identifier
+          example: USER123
         referenceId:
           type: string
-          example: string
-          description: Field `referenceId`.
-      example: {userId: string, referenceId: string}
-    SaveRepresentativePersonRequestDto:
-      type: object
-      description: 'Schema from code DTO: SaveRepresentativePersonRequestDto.'
-      properties:
-        customerNum:
-          type: string
-          example: string
-          description: Field `customerNum`.
-        opnDefinedKey:
-          type: string
-          example: string
-          description: Field `opnDefinedKey`.
-        partyType:
-          type: string
-          example: string
-          description: Field `partyType`.
-        recordStatus:
-          type: string
-          example: string
-          description: Field `recordStatus`.
-      example: {customerNum: string, opnDefinedKey: string, partyType: string, recordStatus: string}
-    CustomerInfoResponseDto:
-      type: object
-      description: 'Schema from code DTO: CustomerInfoResponseDto.'
-      properties:
-        customerNum:
-          type: string
-          example: string
-          description: Field `customerNum`.
-        name:
-          type: string
-          example: string
-          description: Field `name`.
-        surname:
-          type: string
-          example: string
-          description: Field `surname`.
-        citizen:
-          type: string
-          example: string
-          description: Field `citizen`.
-        mernisNum:
-          type: string
-          example: string
-          description: Field `mernisNum`.
-        birthDate:
-          type: string
-          example: string
-          description: Field `birthDate`.
-        otherNationalityId:
-          type: string
-          example: string
-          description: Field `otherNationalityId`.
-        customerType:
-          type: string
-          example: string
-          description: Field `customerType`.
-        isOperant:
-          type: boolean
-          example: true
-          description: Field `isOperant`.
-        operantMessages:
-          type: array
-          items:
-            type: string
-            example: string
-          description: Field `operantMessages`.
-          example: [string]
-        isActivePerson:
-          type: boolean
-          example: true
-          description: Field `isActivePerson`.
-        customerSubType:
-          type: string
-          example: string
-          description: Field `customerSubType`.
-        customerSubType2:
-          type: string
-          example: string
-          description: Field `customerSubType2`.
-      example: {customerNum: string, name: string, surname: string, citizen: string,
-        mernisNum: string, birthDate: string, otherNationalityId: string, customerType: string,
-        isOperant: true, operantMessages: [string], isActivePerson: true, customerSubType: string,
-        customerSubType2: string}
-    CustomerInfoRequestDto:
-      type: object
-      description: 'Schema from code DTO: CustomerInfoRequestDto.'
-      properties:
-        customerNum:
-          type: string
-          example: string
-          description: Field `customerNum`.
-      example: {customerNum: string}
-    GetKpsInfoRequestDto:
-      type: object
-      description: 'Schema from code DTO: GetKpsInfoRequestDto.'
-      properties:
-        nationalId:
-          type: string
-          example: string
-          description: Field `nationalId`.
-        birthDate:
-          type: string
-          example: string
-          description: Field `birthDate`.
-        inquiryDateMargin:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `inquiryDateMargin`.
-      example: {nationalId: string, birthDate: string, inquiryDateMargin: 123}
-    SaveTransactionCustomerRequestDto:
-      type: object
-      description: 'Schema from code DTO: SaveTransactionCustomerRequestDto.'
-      properties:
-        nationalIdNum:
-          type: string
-          example: string
-          description: Field `nationalIdNum`.
-        name:
-          type: string
-          example: string
-          description: Field `name`.
-        surname:
-          type: string
-          example: string
-          description: Field `surname`.
-        birthDate:
-          type: string
-          example: string
-          description: Field `birthDate`.
-        nationalityCode:
-          type: string
-          example: string
-          description: Field `nationalityCode`.
-        kktcNationalId:
-          type: string
-          example: string
-          description: Field `kktcNationalId`.
-        passportId:
-          type: string
-          example: string
-          description: Field `passportId`.
-        countryCode:
-          type: string
-          example: string
-          description: Field `countryCode`.
-        birthPlace:
-          type: string
-          example: string
-          description: Field `birthPlace`.
-        fatherName:
-          type: string
-          example: string
-          description: Field `fatherName`.
-        motherName:
-          type: string
-          example: string
-          description: Field `motherName`.
-        workingType:
-          type: string
-          example: string
-          description: Field `workingType`.
-        jobTitle:
-          type: string
-          example: string
-          description: Field `jobTitle`.
-        cityCode:
-          type: string
-          example: string
-          description: Field `cityCode`.
-        cityName:
-          type: string
-          example: string
-          description: Field `cityName`.
-        countyName:
-          type: string
-          example: string
-          description: Field `countyName`.
-        phoneCountryCode:
-          type: string
-          example: string
-          description: Field `phoneCountryCode`.
-        phoneNum:
-          type: string
-          example: string
-          description: Field `phoneNum`.
-        postcode:
-          type: string
-          example: string
-          description: Field `postcode`.
-        address:
-          type: string
-          example: string
-          description: Field `address`.
-        addressType:
-          type: string
-          example: string
-          description: Field `addressType`.
-        customerNum:
-          type: string
-          example: string
-          description: Field `customerNum`.
-      example: {nationalIdNum: string, name: string, surname: string, birthDate: string,
-        nationalityCode: string, kktcNationalId: string, passportId: string, countryCode: string,
-        birthPlace: string, fatherName: string, motherName: string, workingType: string,
-        jobTitle: string, cityCode: string, cityName: string, countyName: string,
-        phoneCountryCode: string, phoneNum: string, postcode: string, address: string,
-        addressType: string, customerNum: string}
+          description: Reference identifier for tracking
+          example: REF123456789
   responses:
     HttpOKwithTransactionGrpcResponseResult:
       description: OK.
       headers:
         Access-Control-Allow-Origin:
-          type: object
-          description: Generic object (auto-fixed from invalid $ref).
-          example: {}
+          $ref: '#/components/headers/Access-Control-Allow-Origin'
         GUID:
-          type: object
-          description: Generic object (auto-fixed from invalid $ref).
-          example: {}
+          $ref: '#/components/headers/GUID'
       content:
         application/json:
           schema:
-            type: object
-            description: Generic object (auto-fixed from invalid $ref 'CreateTransactionGrpcResponse').
-            example: {}
+            $ref: '#/components/schemas/TransactionGrpcResponse'
+    HttpOKwithCustomerRelationshipTypeResponseResult:
+      description: OK.
+      headers:
+        Access-Control-Allow-Origin:
+          $ref: '#/components/headers/Access-Control-Allow-Origin'
+        GUID:
+          $ref: '#/components/headers/GUID'
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/CustomerRelationshipTypeResponse'
     HttpOKwithRepresentativePersonResponseResult:
       description: OK.
       headers:
         Access-Control-Allow-Origin:
-          type: object
-          description: Generic object (auto-fixed from invalid $ref).
-          example: {}
+          $ref: '#/components/headers/Access-Control-Allow-Origin'
         GUID:
-          type: object
-          description: Generic object (auto-fixed from invalid $ref).
-          example: {}
+          $ref: '#/components/headers/GUID'
       content:
         application/json:
           schema:
-            type: object
-            description: Generic object (auto-fixed from invalid $ref 'RepresentativePersonResponse').
-            example: {}
+            $ref: '#/components/schemas/RepresentativePersonResponse'
     HttpOKwithOperationCodeGrpcResponseResult:
       description: OK.
       headers:
         Access-Control-Allow-Origin:
-          type: object
-          description: Generic object (auto-fixed from invalid $ref).
-          example: {}
+          $ref: '#/components/headers/Access-Control-Allow-Origin'
         GUID:
-          type: object
-          description: Generic object (auto-fixed from invalid $ref).
-          example: {}
+          $ref: '#/components/headers/GUID'
       content:
         application/json:
           schema:
-            type: object
-            description: Generic object (auto-fixed from invalid $ref 'OperationCodeGrpcResponse').
-            example: {}
+            $ref: '#/components/schemas/OperationCodeGrpcResponse'
     BadRequest:
       description: Bad request.
       headers:
         Access-Control-Allow-Origin:
-          type: object
-          description: Generic object (auto-fixed from invalid $ref).
-          example: {}
+          $ref: '#/components/headers/Access-Control-Allow-Origin'
         GUID:
-          type: object
-          description: Generic object (auto-fixed from invalid $ref).
-          example: {}
+          $ref: '#/components/headers/GUID'
     Forbiden:
       description: Forbidden
       headers:
         Access-Control-Allow-Origin:
-          type: object
-          description: Generic object (auto-fixed from invalid $ref).
-          example: {}
+          $ref: '#/components/headers/Access-Control-Allow-Origin'
         GUID:
-          type: object
-          description: Generic object (auto-fixed from invalid $ref).
-          example: {}
+          $ref: '#/components/headers/GUID'
     MethodNotAllowed:
       description: Method not allowed.
       headers:
         Access-Control-Allow-Origin:
-          type: object
-          description: Generic object (auto-fixed from invalid $ref).
-          example: {}
+          $ref: '#/components/headers/Access-Control-Allow-Origin'
         GUID:
-          type: object
-          description: Generic object (auto-fixed from invalid $ref).
-          example: {}
+          $ref: '#/components/headers/GUID'
     ServerError:
       description: Internal Server error.
       headers:
         Access-Control-Allow-Origin:
-          type: object
-          description: Generic object (auto-fixed from invalid $ref).
-          example: {}
+          $ref: '#/components/headers/Access-Control-Allow-Origin'
         GUID:
-          type: object
-          description: Generic object (auto-fixed from invalid $ref).
-          example: {}
+          $ref: '#/components/headers/GUID'
     Unauthorized:
       description: Unauthorized.
       headers:
         Access-Control-Allow-Origin:
-          type: object
-          description: Generic object (auto-fixed from invalid $ref).
-          example: {}
+          $ref: '#/components/headers/Access-Control-Allow-Origin'
         GUID:
-          type: object
-          description: Generic object (auto-fixed from invalid $ref).
-          example: {}
+          $ref: '#/components/headers/GUID'
   parameters:
     AuthorizationTokenHeader:
       name: Authorization
