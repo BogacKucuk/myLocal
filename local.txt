@@ -388,7 +388,7 @@ components:
     GUID:
       description: Header GUID
       schema:
-        $ref: '#/components/parameters/GuidHeader'
+        type: string
   schemas:
     # Approve Controller DTOs
     ProcessRequestDto:
