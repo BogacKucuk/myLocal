@@ -1,283 +1,44 @@
 schemas:
-  TransactionGrpcRequest:
+  BigDecimal:
     type: object
-    description: Request model for transaction operations
-    example: {operationType: DEPOSIT, customerNumber: 12345678, customerAccount: TR123456789012345678901234,
-      transactionAmount: 1000.5, currency: TRY, channel: BRANCH, request: [PARAM1,
-        PARAM2]}
+    description: Decimal type from proto (scale/precision/value).
     properties:
-      operationType:
-        type: string
-        description: Type of operation to be performed
-        example: DEPOSIT
-      customerNumber:
+      scale:
         type: integer
         format: int32
-        description: Customer identification number
-        example: 12345678
-      customerAccount:
-        type: string
-        description: Customer account number
-        example: TR123456789012345678901234
-      transactionAmount:
-        type: number
-        format: bigdecimal
-        description: Amount to be processed in the transaction
-        example: 1000.5
-      currency:
-        type: string
-        description: Currency code for the transaction
-        example: TRY
-      channel:
-        type: string
-        description: Channel through which the transaction is initiated
-        example: BRANCH
-      request:
-        type: array
-        description: Additional parameters for the request
-        items:
-          type: string
-          example: PARAM1
-          description: Field `request[]`.
-        example: [string]
-  TransactionGrpcResponse:
-    type: object
-    description: Response model for transaction operations
-    example: {message: Transaction completed successfully}
-    properties:
-      message:
-        type: string
-        description: Response message indicating transaction status
-        example: Transaction completed successfully
-  CustomerRelationshipTypeRequest:
-    type: object
-    description: Request model for customer relationship type operations
-    example: {headerInfo: {command: LIST, sourceProgramId: WEBAPI, unitNum: '001',
-        channelCode: INTERNET, moduleCode: CUSTOMER, submoduleCode: RELATION}, serverData: {
-        userId: USER123, referenceId: REF123456789}}
-    properties:
-      headerInfo:
-        allOf:
-        - $ref: '#/components/schemas/HeaderInfo'
-        description: Field `headerInfo`.
-      serverData:
-        allOf:
-        - $ref: '#/components/schemas/ServerData'
-        description: Field `serverData`.
-  CustomerRelationshipTypeResponse:
-    type: object
-    description: Response model for customer relationship type operations
-    example: {customerRelationshipTypes: [{description: GUARDIAN}, {description: PROXY}]}
-    properties:
-      customerRelationshipTypes:
-        type: array
-        description: List of available customer relationship types
-        items:
-          allOf:
-          - $ref: '#/components/schemas/CustomerRelationshipType'
-          description: Field `customerRelationshipTypes[]`.
-        example: []
-  CustomerRelationshipType:
-    type: object
-    description: Model representing a customer relationship type
-    example: {description: GUARDIAN}
-    properties:
-      description:
-        type: string
-        description: Description of the customer relationship type
-        example: GUARDIAN
-  RepresentativePersonRequest:
-    type: object
-    properties:
-      customerNum:
-        type: string
-        description: Field `customerNum`.
-        example: string
-      customerNum2:
-        type: string
-        description: Field `customerNum2`.
-        example: string
-      relationTypeText:
-        type: string
-        description: Field `relationTypeText`.
-        example: string
-      acceptableLatency:
-        type: string
-        description: Field `acceptableLatency`.
-        example: string
-      shareRate:
-        type: string
-        description: Field `shareRate`.
-        example: string
-      shareAmount:
-        type: string
-        description: Field `shareAmount`.
-        example: string
-      confirmationDate:
-        type: string
-        description: Field `confirmationDate`.
-        example: string
-      headerInfo:
-        allOf:
-        - $ref: '#/components/schemas/HeaderInfo'
-        description: Field `headerInfo`.
-      serverData:
-        allOf:
-        - $ref: '#/components/schemas/ServerData'
-        description: Field `serverData`.
-    additionalProperties: false
-    description: 'Schema: RepresentativePersonRequest.'
-  RepresentativePersonResponse:
-    type: object
-    properties:
-      representativePerson:
-        type: array
-        items:
-          allOf:
-          - $ref: '#/components/schemas/RepresentativePerson'
-          description: Field `representativePerson[]`.
-        description: Field `representativePerson`.
-        example: []
-    additionalProperties: false
-    description: 'Schema: RepresentativePersonResponse.'
-  RepresentativePerson:
-    type: object
-    properties:
-      name:
-        type: string
-        description: Field `name`.
-        example: string
-      surname:
-        type: string
-        description: Field `surname`.
-        example: string
-      customerNum:
-        type: string
-        description: Field `customerNum`.
-        example: string
-    additionalProperties: false
-    description: 'Schema: RepresentativePerson.'
-  OperationCodeGrpcRequest:
-    type: object
-    properties:
-      operatorCustomer:
-        type: array
-        items:
-          allOf:
-          - $ref: '#/components/schemas/Customer'
-          description: Field `operatorCustomer[]`.
-        description: Field `operatorCustomer`.
-        example: []
-      accountCustomerNum:
-        type: string
-        description: Field `accountCustomerNum`.
-        example: string
-      accountBranch:
-        type: string
-        description: Field `accountBranch`.
-        example: string
-      accountNumber:
+        description: Number of fractional digits.
+        example: 2
+      precision:
         type: integer
         format: int32
-        description: Field `accountNumber`.
-        example: 123
-      isChequeOperation:
-        type: boolean
-        description: Field `isChequeOperation`.
-        example: true
-    additionalProperties: false
-    description: 'Schema: OperationCodeGrpcRequest.'
-  Customer:
-    type: object
-    properties:
-      operatorCustomerNum:
+        description: Total significant digits.
+        example: 10
+      value:
         type: string
-        description: Field `operatorCustomerNum`.
-        example: string
-    additionalProperties: false
-    description: 'Schema: Customer.'
-  OperationCodeGrpcResponse:
-    type: object
-    properties:
-      opCode1:
-        type: string
-        description: Field `opCode1`.
-        example: string
-      opCode2:
-        type: string
-        description: Field `opCode2`.
-        example: string
-    additionalProperties: false
-    description: 'Schema: OperationCodeGrpcResponse.'
-  HeaderInfo:
-    type: object
-    properties:
-      command:
-        type: string
-        description: Field `command`.
-        example: string
-      sourceProgramId:
-        type: string
-        description: Field `sourceProgramId`.
-        example: string
-      unitNum:
-        type: string
-        description: Field `unitNum`.
-        example: string
-      channelCode:
-        type: string
-        description: Field `channelCode`.
-        example: string
-      moduleCode:
-        type: string
-        description: Field `moduleCode`.
-        example: string
-      submoduleCode:
-        type: string
-        description: Field `submoduleCode`.
-        example: string
-    additionalProperties: false
-    description: 'Schema: HeaderInfo.'
-  ServerData:
-    type: object
-    properties:
-      userId:
-        type: string
-        description: Field `userId`.
-        example: string
-      referenceId:
-        type: string
-        description: Field `referenceId`.
-        example: string
-    additionalProperties: false
-    description: 'Schema: ServerData.'
+        format: byte
+        description: Big-endian integer bytes, base64-encoded.
+        example: AAECAw==
+    example: {scale: 2, precision: 10, value: AAECAw==}
   ChequeCommissionInfoRequest:
     type: object
+    description: 'Schema auto-generated from proto: ChequeCommissionInfoRequest.'
     properties:
       customerNo:
         type: string
         description: Field `customerNo`.
         example: string
       opCode:
-        allOf:
-        - $ref: '#/components/schemas/GetOperationCodeResponse'
-        description: Field `opCode`.
+        $ref: '#/components/schemas/GetOperationCodeResponse'
       chequeAmount:
-        allOf:
-        - $ref: '#/components/schemas/Money'
-        description: Field `chequeAmount`.
+        $ref: '#/components/schemas/Money'
       account:
-        allOf:
-        - $ref: '#/components/schemas/Account'
-        description: Field `account`.
+        $ref: '#/components/schemas/Account'
       commissionServerData:
-        allOf:
-        - $ref: '#/components/schemas/CommissionServerData'
-        description: Field `commissionServerData`.
-    additionalProperties: false
-    description: 'Schema: ChequeCommissionInfoRequest.'
+        $ref: '#/components/schemas/CommissionServerData'
+    example: {customerNo: string, opCode: {}, chequeAmount: {}, account: {}, commissionServerData: {}}
   GetOperationCodeResponse:
     type: object
+    description: 'Schema auto-generated from proto: GetOperationCodeResponse.'
     properties:
       opCode1:
         type: string
@@ -287,10 +48,10 @@ schemas:
         type: string
         description: Field `opCode2`.
         example: string
-    additionalProperties: false
-    description: 'Schema: GetOperationCodeResponse.'
+    example: {opCode1: string, opCode2: string}
   Option:
     type: object
+    description: 'Schema auto-generated from proto: Option.'
     properties:
       code:
         type: string
@@ -300,10 +61,10 @@ schemas:
         type: string
         description: Field `descriptionKey`.
         example: string
-    additionalProperties: false
-    description: 'Schema: Option.'
+    example: {code: string, descriptionKey: string}
   Account:
     type: object
+    description: 'Schema auto-generated from proto: Account.'
     properties:
       number:
         type: string
@@ -314,23 +75,21 @@ schemas:
         format: int32
         description: Field `branch`.
         example: 123
-    additionalProperties: false
-    description: 'Schema: Account.'
+    example: {number: string, branch: 123}
   Money:
     type: object
+    description: 'Schema auto-generated from proto: Money.'
     properties:
       amount:
-        allOf:
-        - $ref: '#/components/schemas/BigDecimal'
-        description: Field `amount`.
+        $ref: '#/components/schemas/BigDecimal'
       currency:
         type: string
         description: Field `currency`.
         example: string
-    additionalProperties: false
-    description: 'Schema: Money.'
+    example: {amount: {}, currency: string}
   CommissionServerData:
     type: object
+    description: 'Schema auto-generated from proto: CommissionServerData.'
     properties:
       userId:
         type: string
@@ -340,23 +99,21 @@ schemas:
         type: string
         description: Field `referenceId`.
         example: string
-    additionalProperties: false
-    description: 'Schema: CommissionServerData.'
+    example: {userId: string, referenceId: string}
   ChequeCommissionInfoResponse:
     type: object
+    description: 'Schema auto-generated from proto: ChequeCommissionInfoResponse.'
     properties:
       cost:
-        allOf:
-        - $ref: '#/components/schemas/Money'
-        description: Field `cost`.
+        $ref: '#/components/schemas/Money'
       isCommissionFree:
         type: boolean
         description: Field `isCommissionFree`.
         example: true
-    additionalProperties: false
-    description: 'Schema: ChequeCommissionInfoResponse.'
+    example: {cost: {}, isCommissionFree: true}
   DigitalOrderReadRequest:
     type: object
+    description: 'Schema auto-generated from proto: DigitalOrderReadRequest.'
     properties:
       instructionId:
         type: string
@@ -379,9 +136,7 @@ schemas:
         description: Field `branchCode`.
         example: 123
       amount:
-        allOf:
-        - $ref: '#/components/schemas/BigDecimal'
-        description: Field `amount`.
+        $ref: '#/components/schemas/BigDecimal'
       currencyCode:
         type: string
         description: Field `currencyCode`.
@@ -412,23 +167,23 @@ schemas:
         format: int32
         description: Field `processUnitNum`.
         example: 123
-    additionalProperties: false
-    description: 'Schema: DigitalOrderReadRequest.'
+    example: {instructionId: '123456789', customerNum: 123, accountNumber: 123, branchCode: 123,
+      amount: {}, currencyCode: string, identityNumber: string, documentId: string,
+      transactionDate: string, status: string, transactionType: 123, processUnitNum: 123}
   DigitalOrderReadResponse:
     type: object
+    description: 'Schema auto-generated from proto: DigitalOrderReadResponse.'
     properties:
       readBranchInstructionDepositWithdrawal:
         type: array
+        description: List of `ReadBranchInstructionDepositWithdrawal`.
         items:
-          allOf:
-          - $ref: '#/components/schemas/ReadBranchInstructionDepositWithdrawal'
-          description: Field `readBranchInstructionDepositWithdrawal[]`.
-        description: Field `readBranchInstructionDepositWithdrawal`.
+          $ref: '#/components/schemas/ReadBranchInstructionDepositWithdrawal'
         example: []
-    additionalProperties: false
-    description: 'Schema: DigitalOrderReadResponse.'
+    example: {readBranchInstructionDepositWithdrawal: []}
   ReadBranchInstructionDepositWithdrawal:
     type: object
+    description: 'Schema auto-generated from proto: ReadBranchInstructionDepositWithdrawal.'
     properties:
       instructionId:
         type: string
@@ -451,9 +206,7 @@ schemas:
         description: Field `branchCode`.
         example: 123
       amount:
-        allOf:
-        - $ref: '#/components/schemas/BigDecimal'
-        description: Field `amount`.
+        $ref: '#/components/schemas/BigDecimal'
       currencyCode:
         type: string
         description: Field `currencyCode`.
@@ -484,10 +237,12 @@ schemas:
         format: int32
         description: Field `processUnitNum`.
         example: 123
-    additionalProperties: false
-    description: 'Schema: ReadBranchInstructionDepositWithdrawal.'
+    example: {instructionId: '123456789', customerNum: 123, accountNumber: 123, branchCode: 123,
+      amount: {}, currencyCode: string, identityNumber: string, documentId: string,
+      transactionDate: string, status: string, transactionType: 123, processUnitNum: 123}
   CreateSinglePdfGrpcRequest:
     type: object
+    description: 'Schema auto-generated from proto: CreateSinglePdfGrpcRequest.'
     properties:
       documentType:
         type: string
@@ -523,25 +278,21 @@ schemas:
         description: Field `commissionRate`.
         example: 123.45
       transactionAmount:
-        allOf:
-        - $ref: '#/components/schemas/BigDecimal'
-        description: Field `transactionAmount`.
+        $ref: '#/components/schemas/BigDecimal'
       customerInfo:
         type: array
+        description: List of `CustomerInfo`.
         items:
-          allOf:
-          - $ref: '#/components/schemas/CustomerInfo'
-          description: Field `customerInfo[]`.
-        description: Field `customerInfo`.
+          $ref: '#/components/schemas/CustomerInfo'
         example: []
       branchInfo:
-        allOf:
-        - $ref: '#/components/schemas/BranchInfo'
-        description: Field `branchInfo`.
-    additionalProperties: false
-    description: 'Schema: CreateSinglePdfGrpcRequest.'
+        $ref: '#/components/schemas/BranchInfo'
+    example: {documentType: string, documentStatus: string, async: string, userId: string,
+      authUserId: string, xmlData: string, date: string, commissionRate: 123.45, transactionAmount: {},
+      customerInfo: [], branchInfo: {}}
   CreateSinglePdfGrpcResponse:
     type: object
+    description: 'Schema auto-generated from proto: CreateSinglePdfGrpcResponse.'
     properties:
       returnCode:
         type: string
@@ -555,10 +306,10 @@ schemas:
         type: string
         description: Field `documentId`.
         example: string
-    additionalProperties: false
-    description: 'Schema: CreateSinglePdfGrpcResponse.'
+    example: {returnCode: string, returnMsg: string, documentId: string}
   GetSinglePdfGrpcRequest:
     type: object
+    description: 'Schema auto-generated from proto: GetSinglePdfGrpcRequest.'
     properties:
       documentId:
         type: string
@@ -572,10 +323,10 @@ schemas:
         type: string
         description: Field `authUserId`.
         example: string
-    additionalProperties: false
-    description: 'Schema: GetSinglePdfGrpcRequest.'
+    example: {documentId: string, userId: string, authUserId: string}
   GetPdfGrpcResponse:
     type: object
+    description: 'Schema auto-generated from proto: GetPdfGrpcResponse.'
     properties:
       returnCode:
         type: string
@@ -589,10 +340,10 @@ schemas:
         type: string
         description: Field `pdfData`.
         example: string
-    additionalProperties: false
-    description: 'Schema: GetPdfGrpcResponse.'
+    example: {returnCode: string, returnMsg: string, pdfData: string}
   GetMultiPdfGrpcRequest:
     type: object
+    description: 'Schema auto-generated from proto: GetMultiPdfGrpcRequest.'
     properties:
       documentIdList:
         type: string
@@ -606,10 +357,10 @@ schemas:
         type: string
         description: Field `authUserId`.
         example: string
-    additionalProperties: false
-    description: 'Schema: GetMultiPdfGrpcRequest.'
+    example: {documentIdList: string, userId: string, authUserId: string}
   CustomerInfo:
     type: object
+    description: 'Schema auto-generated from proto: CustomerInfo.'
     properties:
       customerFullName:
         type: string
@@ -636,10 +387,11 @@ schemas:
         type: string
         description: Field `nationality`.
         example: string
-    additionalProperties: false
-    description: 'Schema: CustomerInfo.'
+    example: {customerFullName: string, customerNumber: '123456789', customerAddress: string,
+      accountType: string, tckn: string, nationality: string}
   BranchInfo:
     type: object
+    description: 'Schema auto-generated from proto: BranchInfo.'
     properties:
       branchName:
         type: string
@@ -666,10 +418,62 @@ schemas:
         format: int32
         description: Field `referenceNumber`.
         example: 123
-    additionalProperties: false
-    description: 'Schema: BranchInfo.'
+    example: {branchName: string, branchCity: string, branchDistrict: string, countryCode: string,
+      branchAddress: string, referenceNumber: 123}
+  OperationCodeGrpcRequest:
+    type: object
+    description: 'Schema auto-generated from proto: OperationCodeGrpcRequest.'
+    properties:
+      operatorCustomer:
+        type: array
+        description: List of `Customer`.
+        items:
+          $ref: '#/components/schemas/Customer'
+        example: []
+      accountCustomerNum:
+        type: string
+        description: Field `accountCustomerNum`.
+        example: string
+      accountBranch:
+        type: string
+        description: Field `accountBranch`.
+        example: string
+      accountNumber:
+        type: integer
+        format: int32
+        description: Field `accountNumber`.
+        example: 123
+      isChequeOperation:
+        type: boolean
+        description: Field `isChequeOperation`.
+        example: true
+    example: {operatorCustomer: [], accountCustomerNum: string, accountBranch: string,
+      accountNumber: 123, isChequeOperation: true}
+  Customer:
+    type: object
+    description: 'Schema auto-generated from proto: Customer.'
+    properties:
+      operatorCustomerNum:
+        type: string
+        description: Field `operatorCustomerNum`.
+        example: string
+    example: {operatorCustomerNum: string}
+  OperationCodeGrpcResponse:
+    type: object
+    description: 'Schema auto-generated from proto: OperationCodeGrpcResponse.'
+    properties:
+      opCode1:
+        type: string
+        description: Field `opCode1`.
+        example: string
+      opCode2:
+        type: string
+        description: Field `opCode2`.
+        example: string
+    example: {opCode1: string, opCode2: string}
   OperationCodeItemGrpc:
     type: object
+    description: 'Schema auto-generated from proto: OperationCodeItemGrpc.'
     properties:
       processMainCode:
         type: string
@@ -683,23 +487,21 @@ schemas:
         type: string
         description: Field `processDescription`.
         example: string
-    additionalProperties: false
-    description: 'Schema: OperationCodeItemGrpc.'
+    example: {processMainCode: string, processSubCode: string, processDescription: string}
   GetBulkOperationCodesGrpcResponse:
     type: object
+    description: 'Schema auto-generated from proto: GetBulkOperationCodesGrpcResponse.'
     properties:
       operationCodes:
         type: array
+        description: List of `OperationCodeItemGrpc`.
         items:
-          allOf:
-          - $ref: '#/components/schemas/OperationCodeItemGrpc'
-          description: Field `operationCodes[]`.
-        description: Field `operationCodes`.
+          $ref: '#/components/schemas/OperationCodeItemGrpc'
         example: []
-    additionalProperties: false
-    description: 'Schema: GetBulkOperationCodesGrpcResponse.'
+    example: {operationCodes: []}
   CreateReceiptGrpcRequest:
     type: object
+    description: 'Schema auto-generated from proto: CreateReceiptGrpcRequest.'
     properties:
       txnReferenceId:
         type: string
@@ -715,9 +517,7 @@ schemas:
         description: Field `currencyCode`.
         example: string
       transactionAmount:
-        allOf:
-        - $ref: '#/components/schemas/BigDecimal'
-        description: Field `transactionAmount`.
+        $ref: '#/components/schemas/BigDecimal'
       customerName:
         type: string
         description: Field `customerName`.
@@ -731,9 +531,7 @@ schemas:
         description: Field `customerTckn`.
         example: string
       accountBalanceAmount:
-        allOf:
-        - $ref: '#/components/schemas/BigDecimal'
-        description: Field `accountBalanceAmount`.
+        $ref: '#/components/schemas/BigDecimal'
       addressLine1:
         type: string
         description: Field `addressLine1`.
@@ -802,23 +600,24 @@ schemas:
         format: int32
         description: Field `sbcReferenceNum`.
         example: 123
-    additionalProperties: false
-    description: 'Schema: CreateReceiptGrpcRequest.'
+    example: {txnReferenceId: string, voucherNum: 123, currencyCode: string, transactionAmount: {},
+      customerName: string, customerSurname: string, customerTckn: string, accountBalanceAmount: {},
+      addressLine1: string, addressLine2: string, regionName: string, districtName: string,
+      cityName: string, postalCode: string, customerNumber: '123456789', accountNumber: '123456789',
+      txnDate: string, processMainCode: string, processSubCode: string, cicsTxnId: string,
+      sourceId: string, phoneNumber: string, unitNum: 123, sbcReferenceNum: 123}
   CreateReceiptGrpcResponse:
     type: object
+    description: 'Schema auto-generated from proto: CreateReceiptGrpcResponse.'
     properties:
       createReceiptTransaction:
-        allOf:
-        - $ref: '#/components/schemas/CreateReceiptTransaction'
-        description: Field `createReceiptTransaction`.
+        $ref: '#/components/schemas/CreateReceiptTransaction'
       createReceiptErrorComponent:
-        allOf:
-        - $ref: '#/components/schemas/CreateReceiptErrorComponent'
-        description: Field `createReceiptErrorComponent`.
-    additionalProperties: false
-    description: 'Schema: CreateReceiptGrpcResponse.'
+        $ref: '#/components/schemas/CreateReceiptErrorComponent'
+    example: {createReceiptTransaction: {}, createReceiptErrorComponent: {}}
   CreateReceiptTransaction:
     type: object
+    description: 'Schema auto-generated from proto: CreateReceiptTransaction.'
     properties:
       instanceIdAs:
         type: string
@@ -844,10 +643,11 @@ schemas:
         type: string
         description: Field `txnReferenceId`.
         example: string
-    additionalProperties: false
-    description: 'Schema: CreateReceiptTransaction.'
+    example: {instanceIdAs: string, instanceId: string, referenceIdAs: string, referenceId1: string,
+      txnReferenceIdAs: string, txnReferenceId: string}
   CreateReceiptErrorComponent:
     type: object
+    description: 'Schema auto-generated from proto: CreateReceiptErrorComponent.'
     properties:
       severityCodeAs:
         type: string
@@ -887,10 +687,12 @@ schemas:
         format: int32
         description: Field `reasonCode`.
         example: 123
-    additionalProperties: false
-    description: 'Schema: CreateReceiptErrorComponent.'
+    example: {severityCodeAs: string, severityCode: string, rollbackIndicatorAs: string,
+      rollbackIndicator: string, originServIdAs: string, returnCodeAs: string, returnCode: 123,
+      reasonCodeAs: string, reasonCode: 123}
   SendEmailToCustomerRequest:
     type: object
+    description: 'Schema auto-generated from proto: SendEmailToCustomerRequest.'
     properties:
       templateCode:
         type: string
@@ -938,16 +740,17 @@ schemas:
         example: string
       recipientInfoList:
         type: array
+        description: List of `RecipientInfoList`.
         items:
-          allOf:
-          - $ref: '#/components/schemas/RecipientInfoList'
-          description: Field `recipientInfoList[]`.
-        description: Field `recipientInfoList`.
+          $ref: '#/components/schemas/RecipientInfoList'
         example: []
-    additionalProperties: false
-    description: 'Schema: SendEmailToCustomerRequest.'
+    example: {templateCode: string, subject: string, fromAddressDisplayText: string,
+      fromAddress: string, replyToAddressDisplayText: string, replyToAddress: string,
+      userReference: string, programName: string, sendStartTime: string, sendEndTime: string,
+      emailXMLData: string, recipientInfoList: []}
   RecipientInfoList:
     type: object
+    description: 'Schema auto-generated from proto: RecipientInfoList.'
     properties:
       emailAddress:
         type: string
@@ -961,10 +764,10 @@ schemas:
         type: string
         description: Field `customerNum`.
         example: string
-    additionalProperties: false
-    description: 'Schema: RecipientInfoList.'
+    example: {emailAddress: string, type: string, customerNum: string}
   SendEmailToCustomerResponse:
     type: object
+    description: 'Schema auto-generated from proto: SendEmailToCustomerResponse.'
     properties:
       returnCode:
         type: string
@@ -982,10 +785,11 @@ schemas:
         type: string
         description: Field `emailIdentifierNum`.
         example: string
-    additionalProperties: false
-    description: 'Schema: SendEmailToCustomerResponse.'
+    example: {returnCode: string, returnMessage: string, encryptedReferenceText: string,
+      emailIdentifierNum: string}
   Transaction:
     type: object
+    description: 'Schema auto-generated from proto: Transaction.'
     properties:
       operationType:
         type: string
@@ -1021,21 +825,15 @@ schemas:
         description: Field `approvalUnitNum`.
         example: 123
       transactionAmount:
-        allOf:
-        - $ref: '#/components/schemas/BigDecimal'
-        description: Field `transactionAmount`.
+        $ref: '#/components/schemas/BigDecimal'
       currencyCode:
         type: string
         description: Field `currencyCode`.
         example: string
       transactionTLAmount:
-        allOf:
-        - $ref: '#/components/schemas/BigDecimal'
-        description: Field `transactionTLAmount`.
+        $ref: '#/components/schemas/BigDecimal'
       currencyRate:
-        allOf:
-        - $ref: '#/components/schemas/BigDecimal'
-        description: Field `currencyRate`.
+        $ref: '#/components/schemas/BigDecimal'
       currencyType:
         type: string
         description: Field `currencyType`.
@@ -1097,25 +895,19 @@ schemas:
         description: Field `gmaticId`.
         example: string
       commisionAmount:
-        allOf:
-        - $ref: '#/components/schemas/BigDecimal'
-        description: Field `commisionAmount`.
+        $ref: '#/components/schemas/BigDecimal'
       commisionCurrencyCode:
         type: string
         description: Field `commisionCurrencyCode`.
         example: string
       chargeAmount:
-        allOf:
-        - $ref: '#/components/schemas/BigDecimal'
-        description: Field `chargeAmount`.
+        $ref: '#/components/schemas/BigDecimal'
       chargeCurrencyCode:
         type: string
         description: Field `chargeCurrencyCode`.
         example: string
       taxAmount:
-        allOf:
-        - $ref: '#/components/schemas/BigDecimal'
-        description: Field `taxAmount`.
+        $ref: '#/components/schemas/BigDecimal'
       taxCurrencyCode:
         type: string
         description: Field `taxCurrencyCode`.
@@ -1152,73 +944,77 @@ schemas:
         type: string
         description: Field `requestText`.
         example: string
-    additionalProperties: false
-    description: 'Schema: Transaction.'
+    example: {operationType: string, processDate: string, customerNumber: 123, accountBranchCode: 123,
+      customerAccountNum: 123, ownerUnitNum: 123, approvalUnitNum: 123, transactionAmount: {},
+      currencyCode: string, transactionTLAmount: {}, currencyRate: {}, currencyType: string,
+      rateType: string, channelCode: string, channelType: string, channelDetailText: string,
+      financialDomainCode: string, financialFamilyCode: string, financialSubFamilyCode: string,
+      purposeValueCode: string, receiptInfoId: string, contractInfoId: string, accountingGuid: string,
+      priceInqueryId: string, surveyInfoId: string, gmaticId: string, commisionAmount: {},
+      commisionCurrencyCode: string, chargeAmount: {}, chargeCurrencyCode: string,
+      taxAmount: {}, taxCurrencyCode: string, statusCode: string, cicsTxnId: string,
+      checkNumber: string, goldValuationId: string, prosecutorNotificationInfo: string,
+      transactionRelationType: string, transactionExplanationText: string, requestText: string}
   FindTransactionByCustomerNumberGrpcRequest:
     type: object
+    description: 'Schema auto-generated from proto: FindTransactionByCustomerNumberGrpcRequest.'
     properties:
       customerNumber:
         type: integer
         format: int32
         description: Field `customerNumber`.
         example: 123
-    additionalProperties: false
-    description: 'Schema: FindTransactionByCustomerNumberGrpcRequest.'
+    example: {customerNumber: 123}
   FindTransactionByCustomerNumberGrpcResponse:
     type: object
+    description: 'Schema auto-generated from proto: FindTransactionByCustomerNumberGrpcResponse.'
     properties:
       transactions:
         type: array
+        description: List of `Transaction`.
         items:
-          allOf:
-          - $ref: '#/components/schemas/Transaction'
-          description: Field `transactions[]`.
-        description: Field `transactions`.
+          $ref: '#/components/schemas/Transaction'
         example: []
-    additionalProperties: false
-    description: 'Schema: FindTransactionByCustomerNumberGrpcResponse.'
+    example: {transactions: []}
   FindTransactionByIdGrpcRequest:
     type: object
+    description: 'Schema auto-generated from proto: FindTransactionByIdGrpcRequest.'
     properties:
       instanceId:
         type: string
         description: Field `instanceId`.
         example: string
-    additionalProperties: false
-    description: 'Schema: FindTransactionByIdGrpcRequest.'
+    example: {instanceId: string}
   FindTransactionByIdGrpcResponse:
     type: object
+    description: 'Schema auto-generated from proto: FindTransactionByIdGrpcResponse.'
     properties:
       transaction:
-        allOf:
-        - $ref: '#/components/schemas/Transaction'
-        description: Field `transaction`.
-    additionalProperties: false
-    description: 'Schema: FindTransactionByIdGrpcResponse.'
+        $ref: '#/components/schemas/Transaction'
+    example: {transaction: {}}
   CreateTransactionGrpcRequest:
     type: object
+    description: 'Schema auto-generated from proto: CreateTransactionGrpcRequest.'
     properties:
       transactions:
         type: array
+        description: List of `Transaction`.
         items:
-          allOf:
-          - $ref: '#/components/schemas/Transaction'
-          description: Field `transactions[]`.
-        description: Field `transactions`.
+          $ref: '#/components/schemas/Transaction'
         example: []
-    additionalProperties: false
-    description: 'Schema: CreateTransactionGrpcRequest.'
+    example: {transactions: []}
   CreateTransactionGrpcResponse:
     type: object
+    description: 'Schema auto-generated from proto: CreateTransactionGrpcResponse.'
     properties:
       message:
         type: string
         description: Field `message`.
         example: string
-    additionalProperties: false
-    description: 'Schema: CreateTransactionGrpcResponse.'
+    example: {message: string}
   TrnxCompleteWithdrawalGrpcRequest:
     type: object
+    description: 'Schema auto-generated from proto: TrnxCompleteWithdrawalGrpcRequest.'
     properties:
       operationType:
         type: string
@@ -1240,9 +1036,7 @@ schemas:
         description: Field `customerAccountNum`.
         example: 123
       transactionAmount:
-        allOf:
-        - $ref: '#/components/schemas/BigDecimal'
-        description: Field `transactionAmount`.
+        $ref: '#/components/schemas/BigDecimal'
       createUserId:
         type: string
         description: Field `createUserId`.
@@ -1276,9 +1070,7 @@ schemas:
         description: Field `surveyIfoId`.
         example: string
       commissionAmount:
-        allOf:
-        - $ref: '#/components/schemas/BigDecimal'
-        description: Field `commissionAmount`.
+        $ref: '#/components/schemas/BigDecimal'
       commissionCurrencyCode:
         type: string
         description: Field `commissionCurrencyCode`.
@@ -1288,9 +1080,7 @@ schemas:
         description: Field `priceInqueryId`.
         example: string
       chargeAmount:
-        allOf:
-        - $ref: '#/components/schemas/BigDecimal'
-        description: Field `chargeAmount`.
+        $ref: '#/components/schemas/BigDecimal'
       chargeCurrencyCode:
         type: string
         description: Field `chargeCurrencyCode`.
@@ -1341,20 +1131,14 @@ schemas:
         example: true
       processingPersonInfo:
         type: array
+        description: List of `ProcessingPersonInfoRequest`.
         items:
-          allOf:
-          - $ref: '#/components/schemas/ProcessingPersonInfoRequest'
-          description: Field `processingPersonInfo[]`.
-        description: Field `processingPersonInfo`.
+          $ref: '#/components/schemas/ProcessingPersonInfoRequest'
         example: []
       atmInfo:
-        allOf:
-        - $ref: '#/components/schemas/AtmInfoRequest'
-        description: Field `atmInfo`.
+        $ref: '#/components/schemas/AtmInfoRequest'
       commissionAccountInfo:
-        allOf:
-        - $ref: '#/components/schemas/CommissionAccountInfo'
-        description: Field `commissionAccountInfo`.
+        $ref: '#/components/schemas/CommissionAccountInfo'
       isNotificationToProsecutor:
         type: boolean
         description: Field `isNotificationToProsecutor`.
@@ -1368,9 +1152,7 @@ schemas:
         description: Field `customerSurname`.
         example: string
       accountBalanceAmount:
-        allOf:
-        - $ref: '#/components/schemas/BigDecimal'
-        description: Field `accountBalanceAmount`.
+        $ref: '#/components/schemas/BigDecimal'
       addressLine1:
         type: string
         description: Field `addressLine1`.
@@ -1411,10 +1193,21 @@ schemas:
         type: boolean
         description: Field `kpsValidationBypass`.
         example: true
-    additionalProperties: false
-    description: 'Schema: TrnxCompleteWithdrawalGrpcRequest.'
+    example: {operationType: string, customerNumber: 123, accountBranchCode: 123,
+      customerAccountNum: 123, transactionAmount: {}, createUserId: string, channelCode: string,
+      channelDetailText: string, operation1Code: string, operation2Code: string, relatedProductCode: string,
+      purposeValueCode: string, surveyIfoId: string, commissionAmount: {}, commissionCurrencyCode: string,
+      priceInqueryId: string, chargeAmount: {}, chargeCurrencyCode: string, requestText: string,
+      transactionExplanationText: string, checkNumber: string, goldValuationId: string,
+      prosecutorNotificationInfo: string, transactionRelationType: string, gmaticId: string,
+      currencyCode: string, tcNumber: string, birthDate: string, isCheck: true, processingPersonInfo: [],
+      atmInfo: {}, commissionAccountInfo: {}, isNotificationToProsecutor: true, customerName: string,
+      customerSurname: string, accountBalanceAmount: {}, addressLine1: string, addressLine2: string,
+      regionName: string, districtName: string, cityName: string, postalCode: string,
+      phoneNumber: string, cicsTxnId: string, sourceId: string, kpsValidationBypass: true}
   CommissionAccountInfo:
     type: object
+    description: 'Schema auto-generated from proto: CommissionAccountInfo.'
     properties:
       accountNumber:
         type: integer
@@ -1434,10 +1227,10 @@ schemas:
         type: string
         description: Field `usableBalanceAmount`.
         example: string
-    additionalProperties: false
-    description: 'Schema: CommissionAccountInfo.'
+    example: {accountNumber: 123, branch: 123, currency: string, usableBalanceAmount: string}
   ProcessingPersonInfoRequest:
     type: object
+    description: 'Schema auto-generated from proto: ProcessingPersonInfoRequest.'
     properties:
       statusCode:
         type: string
@@ -1447,10 +1240,10 @@ schemas:
         type: string
         description: Field `processCustomerNum`.
         example: string
-    additionalProperties: false
-    description: 'Schema: ProcessingPersonInfoRequest.'
+    example: {statusCode: string, processCustomerNum: string}
   AtmInfoRequest:
     type: object
+    description: 'Schema auto-generated from proto: AtmInfoRequest.'
     properties:
       cardNo:
         type: string
@@ -1472,10 +1265,10 @@ schemas:
         type: boolean
         description: Field `isCommission`.
         example: true
-    additionalProperties: false
-    description: 'Schema: AtmInfoRequest.'
+    example: {cardNo: string, isQr: true, qrId: string, atmNumber: string, isCommission: true}
   TrnxCompleteWithdrawalGrpcResponse:
     type: object
+    description: 'Schema auto-generated from proto: TrnxCompleteWithdrawalGrpcResponse.'
     properties:
       instanceId:
         type: string
@@ -1497,10 +1290,11 @@ schemas:
         type: boolean
         description: Field `approvalRequired`.
         example: true
-    additionalProperties: false
-    description: 'Schema: TrnxCompleteWithdrawalGrpcResponse.'
+    example: {instanceId: string, receiptInstanceId: string, receiptReferenceId: string,
+      receiptTxnReferenceId: string, approvalRequired: true}
   UpdateTransactionStatusGrpcRequest:
     type: object
+    description: 'Schema auto-generated from proto: UpdateTransactionStatusGrpcRequest.'
     properties:
       instanceId:
         type: string
@@ -1514,19 +1308,19 @@ schemas:
         type: string
         description: Field `approveInstanceId`.
         example: string
-    additionalProperties: false
-    description: 'Schema: UpdateTransactionStatusGrpcRequest.'
+    example: {instanceId: string, newStatus: string, approveInstanceId: string}
   UpdateTransactionStatusGrpcResponse:
     type: object
+    description: 'Schema auto-generated from proto: UpdateTransactionStatusGrpcResponse.'
     properties:
       success:
         type: boolean
         description: Field `success`.
         example: true
-    additionalProperties: false
-    description: 'Schema: UpdateTransactionStatusGrpcResponse.'
+    example: {success: true}
   FindTransactionsByJoinFiltersGrpcRequest:
     type: object
+    description: 'Schema auto-generated from proto: FindTransactionsByJoinFiltersGrpcRequest.'
     properties:
       statusCode:
         type: string
@@ -1557,17 +1351,15 @@ schemas:
         description: Field `financialFamilyCode`.
         example: string
       transactionAmountMin:
-        allOf:
-        - $ref: '#/components/schemas/BigDecimal'
-        description: Field `transactionAmountMin`.
+        $ref: '#/components/schemas/BigDecimal'
       transactionAmountMax:
-        allOf:
-        - $ref: '#/components/schemas/BigDecimal'
-        description: Field `transactionAmountMax`.
-    additionalProperties: false
-    description: 'Schema: FindTransactionsByJoinFiltersGrpcRequest.'
+        $ref: '#/components/schemas/BigDecimal'
+    example: {statusCode: string, ownerUnitNum: string, moneyTransactionIdStart: string,
+      moneyTransactionIdEnd: string, approveType: string, financialSubFamilyCode: string,
+      financialFamilyCode: string, transactionAmountMin: {}, transactionAmountMax: {}}
   FilteredTransaction:
     type: object
+    description: 'Schema auto-generated from proto: FilteredTransaction.'
     properties:
       instanceId:
         type: string
@@ -1586,9 +1378,7 @@ schemas:
         description: Field `approveType`.
         example: string
       transactionAmount:
-        allOf:
-        - $ref: '#/components/schemas/BigDecimal'
-        description: Field `transactionAmount`.
+        $ref: '#/components/schemas/BigDecimal'
       status:
         type: string
         description: Field `status`.
@@ -1601,23 +1391,23 @@ schemas:
         type: string
         description: Field `approveUserId`.
         example: string
-    additionalProperties: false
-    description: 'Schema: FilteredTransaction.'
+    example: {instanceId: string, customerNameAndSurname: string, processDate: string,
+      approveType: string, transactionAmount: {}, status: string, createUserId: string,
+      approveUserId: string}
   FindTransactionsByJoinFiltersGrpcResponse:
     type: object
+    description: 'Schema auto-generated from proto: FindTransactionsByJoinFiltersGrpcResponse.'
     properties:
       transactions:
         type: array
+        description: List of `FilteredTransaction`.
         items:
-          allOf:
-          - $ref: '#/components/schemas/FilteredTransaction'
-          description: Field `transactions[]`.
-        description: Field `transactions`.
+          $ref: '#/components/schemas/FilteredTransaction'
         example: []
-    additionalProperties: false
-    description: 'Schema: FindTransactionsByJoinFiltersGrpcResponse.'
+    example: {transactions: []}
   AccountTransactionRulesGrpcRequest:
     type: object
+    description: 'Schema auto-generated from proto: AccountTransactionRulesGrpcRequest.'
     properties:
       debitUnitNum:
         type: integer
@@ -1643,29 +1433,28 @@ schemas:
         example: string
       oprtnCustList:
         type: array
+        description: List of `string`.
         items:
           type: string
+          description: Field `oprtnCustList`.
           example: string
-          description: Field `oprtnCustList[]`.
-        description: Field `oprtnCustList`.
         example: [string]
-    additionalProperties: false
-    description: 'Schema: AccountTransactionRulesGrpcRequest.'
+    example: {debitUnitNum: 123, debitAccountNum: 123, transactionAmount: string,
+      currencyCode: string, transactionDate: string, oprtnCustList: [string]}
   AccountTransactionRulesGrpcResponse:
     type: object
+    description: 'Schema auto-generated from proto: AccountTransactionRulesGrpcResponse.'
     properties:
       messages:
         type: array
+        description: List of `string`.
         items:
           type: string
+          description: Field `messages`.
           example: string
-          description: Field `messages[]`.
-        description: Field `messages`.
         example: [string]
       accountUsableBalanceAmount:
-        allOf:
-        - $ref: '#/components/schemas/BigDecimal'
-        description: Field `accountUsableBalanceAmount`.
+        $ref: '#/components/schemas/BigDecimal'
       debitUnitNum:
         type: integer
         format: int32
@@ -1701,10 +1490,123 @@ schemas:
         type: string
         description: Field `checkRelatedAccount`.
         example: string
-    additionalProperties: false
-    description: 'Schema: AccountTransactionRulesGrpcResponse.'
+    example: {messages: [string], accountUsableBalanceAmount: {}, debitUnitNum: 123,
+      debitAccountNum: 123, debitCustomerFirstName: string, debitCustomerLastName: string,
+      debitAccountCurrCode: string, debitAccountCustomerNum: 123, debitCustomerType: string,
+      checkRelatedAccount: string}
+  RepresentativePersonRequest:
+    type: object
+    description: 'Schema auto-generated from proto: RepresentativePersonRequest.'
+    properties:
+      customerNum:
+        type: string
+        description: Field `customerNum`.
+        example: string
+      customerNum2:
+        type: string
+        description: Field `customerNum2`.
+        example: string
+      relationTypeText:
+        type: string
+        description: Field `relationTypeText`.
+        example: string
+      acceptableLatency:
+        type: string
+        description: Field `acceptableLatency`.
+        example: string
+      shareRate:
+        type: string
+        description: Field `shareRate`.
+        example: string
+      shareAmount:
+        type: string
+        description: Field `shareAmount`.
+        example: string
+      confirmationDate:
+        type: string
+        description: Field `confirmationDate`.
+        example: string
+      headerInfo:
+        $ref: '#/components/schemas/HeaderInfo'
+      serverData:
+        $ref: '#/components/schemas/ServerData'
+    example: {customerNum: string, customerNum2: string, relationTypeText: string,
+      acceptableLatency: string, shareRate: string, shareAmount: string, confirmationDate: string,
+      headerInfo: {}, serverData: {}}
+  RepresentativePersonResponse:
+    type: object
+    description: 'Schema auto-generated from proto: RepresentativePersonResponse.'
+    properties:
+      representativePerson:
+        type: array
+        description: List of `RepresentativePerson`.
+        items:
+          $ref: '#/components/schemas/RepresentativePerson'
+        example: []
+    example: {representativePerson: []}
+  RepresentativePerson:
+    type: object
+    description: 'Schema auto-generated from proto: RepresentativePerson.'
+    properties:
+      name:
+        type: string
+        description: Field `name`.
+        example: string
+      surname:
+        type: string
+        description: Field `surname`.
+        example: string
+      customerNum:
+        type: string
+        description: Field `customerNum`.
+        example: string
+    example: {name: string, surname: string, customerNum: string}
+  HeaderInfo:
+    type: object
+    description: 'Schema auto-generated from proto: HeaderInfo.'
+    properties:
+      command:
+        type: string
+        description: Field `command`.
+        example: string
+      sourceProgramId:
+        type: string
+        description: Field `sourceProgramId`.
+        example: string
+      unitNum:
+        type: string
+        description: Field `unitNum`.
+        example: string
+      channelCode:
+        type: string
+        description: Field `channelCode`.
+        example: string
+      moduleCode:
+        type: string
+        description: Field `moduleCode`.
+        example: string
+      submoduleCode:
+        type: string
+        description: Field `submoduleCode`.
+        example: string
+    example: {command: string, sourceProgramId: string, unitNum: string, channelCode: string,
+      moduleCode: string, submoduleCode: string}
+  ServerData:
+    type: object
+    description: 'Schema auto-generated from proto: ServerData.'
+    properties:
+      userId:
+        type: string
+        description: Field `userId`.
+        example: string
+      referenceId:
+        type: string
+        description: Field `referenceId`.
+        example: string
+    example: {userId: string, referenceId: string}
   SaveRepresentativePersonRequest:
     type: object
+    description: 'Schema auto-generated from proto: SaveRepresentativePersonRequest.'
     properties:
       customerNum:
         type: string
@@ -1723,13 +1625,12 @@ schemas:
         description: Field `recordStatus`.
         example: string
       serverData:
-        allOf:
-        - $ref: '#/components/schemas/ServerData'
-        description: Field `serverData`.
-    additionalProperties: false
-    description: 'Schema: SaveRepresentativePersonRequest.'
+        $ref: '#/components/schemas/ServerData'
+    example: {customerNum: string, opnDefinedKey: string, partyType: string, recordStatus: string,
+      serverData: {}}
   SaveRepresentativePersonResponse:
     type: object
+    description: 'Schema auto-generated from proto: SaveRepresentativePersonResponse.'
     properties:
       customerNum:
         type: string
@@ -1759,19 +1660,20 @@ schemas:
         type: string
         description: Field `otherNationalityId`.
         example: string
-    additionalProperties: false
-    description: 'Schema: SaveRepresentativePersonResponse.'
+    example: {customerNum: string, name: string, surname: string, citizenText: string,
+      mernisNum: string, birthDate: string, otherNationalityId: string}
   CustomerInfoGrpcRequest:
     type: object
+    description: 'Schema auto-generated from proto: CustomerInfoGrpcRequest.'
     properties:
       customerNum:
         type: string
         description: Field `customerNum`.
         example: string
-    additionalProperties: false
-    description: 'Schema: CustomerInfoGrpcRequest.'
+    example: {customerNum: string}
   CustomerInfoGrpcResponse:
     type: object
+    description: 'Schema auto-generated from proto: CustomerInfoGrpcResponse.'
     properties:
       customerNum:
         type: string
@@ -1811,11 +1713,11 @@ schemas:
         example: true
       operantMessages:
         type: array
+        description: List of `string`.
         items:
           type: string
+          description: Field `operantMessages`.
           example: string
-          description: Field `operantMessages[]`.
-        description: Field `operantMessages`.
         example: [string]
       isActivePerson:
         type: boolean
@@ -1829,10 +1731,13 @@ schemas:
         type: string
         description: Field `customerSubType2`.
         example: string
-    additionalProperties: false
-    description: 'Schema: CustomerInfoGrpcResponse.'
+    example: {customerNum: string, name: string, surname: string, citizen: string,
+      mernisNum: string, birthDate: string, otherNationalityId: string, customerType: string,
+      isOperant: true, operantMessages: [string], isActivePerson: true, customerSubType: string,
+      customerSubType2: string}
   ExtendedCustomerInfoGrpcResponse:
     type: object
+    description: 'Schema auto-generated from proto: ExtendedCustomerInfoGrpcResponse.'
     properties:
       customerNum:
         type: string
@@ -1922,10 +1827,15 @@ schemas:
         type: string
         description: Field `jobTitle`.
         example: string
-    additionalProperties: false
-    description: 'Schema: ExtendedCustomerInfoGrpcResponse.'
+    example: {customerNum: string, name: string, surname: string, citizenText: string,
+      mernisNum: string, birthDate: string, otherNationalityId: string, settledCountryCode: string,
+      birthPlace: string, motherName: string, fatherName: string, phoneNumCountryCode: string,
+      phoneNum: string, pasaportNumText: string, addressType: string, countryCode: string,
+      cityCode: string, addressLine: string, postalCode: string, regionName: string,
+      workingStyle: string, jobTitle: string}
   GetKpsInfoRequest:
     type: object
+    description: 'Schema auto-generated from proto: GetKpsInfoRequest.'
     properties:
       nationalId:
         type: string
@@ -1940,10 +1850,10 @@ schemas:
         format: int32
         description: Field `inquiryDateMargin`.
         example: 123
-    additionalProperties: false
-    description: 'Schema: GetKpsInfoRequest.'
+    example: {nationalId: string, birthDate: string, inquiryDateMargin: 123}
   GetKpsInfoResponse:
     type: object
+    description: 'Schema auto-generated from proto: GetKpsInfoResponse.'
     properties:
       nationalIdNum:
         type: string
@@ -1986,10 +1896,12 @@ schemas:
         type: boolean
         description: Field `newIdentityCard`.
         example: true
-    additionalProperties: false
-    description: 'Schema: GetKpsInfoResponse.'
+    example: {nationalIdNum: string, name: string, surname: string, birthDate: string,
+      birthPlace: string, fatherName: string, motherName: string, serialCode: string,
+      sequenceNumber: 123, newIdentityCard: true}
   SaveTransactionCustomerRequest:
     type: object
+    description: 'Schema auto-generated from proto: SaveTransactionCustomerRequest.'
     properties:
       nationalIdNum:
         type: string
@@ -2079,10 +1991,14 @@ schemas:
         type: string
         description: Field `customerNum`.
         example: string
-    additionalProperties: false
-    description: 'Schema: SaveTransactionCustomerRequest.'
+    example: {nationalIdNum: string, name: string, surname: string, birthDate: string,
+      nationalityCode: string, kktcNationalId: string, passportId: string, countryCode: string,
+      birthPlace: string, fatherName: string, motherName: string, workingType: string,
+      jobTitle: string, cityCode: string, cityName: string, countyName: string, phoneCountryCode: string,
+      phoneNum: string, postcode: string, address: string, addressType: string, customerNum: string}
   TransactionCustomerMessageResponse:
     type: object
+    description: 'Schema auto-generated from proto: TransactionCustomerMessageResponse.'
     properties:
       message:
         type: string
@@ -2093,27 +2009,4 @@ schemas:
         format: int32
         description: Field `customerNum`.
         example: 123
-    additionalProperties: false
-    description: 'Schema: TransactionCustomerMessageResponse.'
-  BigDecimal:
-    type: object
-    description: Decimal type from proto (scale/precision/value).
-    properties:
-      scale:
-        type: integer
-        format: int32
-        minimum: 0
-        description: Number of fractional digits.
-        example: 2
-      precision:
-        type: integer
-        format: int32
-        minimum: 0
-        description: Total number of significant digits.
-        example: 10
-      value:
-        type: string
-        format: byte
-        description: Big-endian binary integer content, base64-encoded.
-        example: AAECAw==
-    additionalProperties: false
+    example: {message: string, customerNum: 123}
