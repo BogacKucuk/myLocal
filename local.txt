@@ -2,7 +2,7 @@ openapi: 3.0.0
 info:
   title: deposit-withdrawal-channel v0
   description: Service API for deposit-withdrawal-channel v0
-  version: 0.1.0
+  version: 0.1.7
   x-generation-options:
     type: object
     api-domain: Intranet
@@ -23,188 +23,1150 @@ info:
 tags:
 - name: deposit-withdrawal-channel
   description: deposit-withdrawal-channel
+- name: ChequeCommissionInfoService
+  description: Endpoints backed by gRPC service `ChequeCommissionInfoService`. Auto-synced
+    from proto.
+- name: DigitalOrderGrpcService
+  description: Endpoints backed by gRPC service `DigitalOrderGrpcService`. Auto-synced
+    from proto.
+- name: GoldDocumentGrpcService
+  description: Endpoints backed by gRPC service `GoldDocumentGrpcService`. Auto-synced
+    from proto.
+- name: OperationCodeGrpcService
+  description: Endpoints backed by gRPC service `OperationCodeGrpcService`. Auto-synced
+    from proto.
+- name: ReceiptService
+  description: Endpoints backed by gRPC service `ReceiptService`. Auto-synced from
+    proto.
+- name: TransactionGrpcService
+  description: Endpoints backed by gRPC service `TransactionGrpcService`. Auto-synced
+    from proto.
+- name: TransactionCustomerGrpcService
+  description: Endpoints backed by gRPC service `TransactionCustomerGrpcService`.
+    Auto-synced from proto.
 security:
 - BearerAuth: []
 servers:
 - url: https://apigw-dev.apps-t.fw.garanti.com.tr:443/deposit-withdrawal-mngt/deposit-withdrawal-ch/v0
 paths:
-  /createTransaction:
+  /cheque-cost-info:
     post:
       tags:
-      - Transaction-Grpc-Service
-      operationId: createTransaction
-      summary: createTransaction
-      description: createTransaction
-      parameters:
-      - $ref: '#/components/parameters/AcceptHeader'
-      - $ref: '#/components/parameters/ContentTypeHeader'
-      - $ref: '#/components/parameters/ChannelHeader'
-      - $ref: '#/components/parameters/IpHeader'
-      - $ref: '#/components/parameters/DialectHeader'
-      - $ref: '#/components/parameters/GuidHeader'
-      - $ref: '#/components/parameters/ClientTraceIdlHeader'
-      - $ref: '#/components/parameters/AuthorizationTokenHeader'
-      - $ref: '#/components/parameters/TenantGeolocationHeader'
-      - $ref: '#/components/parameters/TenantAppIdHeader'
-      - $ref: '#/components/parameters/ApiKeyHeader'
-      - $ref: '#/components/parameters/UserIdHeader'
-      - $ref: '#/components/parameters/ClientIdHeader'
-      - $ref: '#/components/parameters/RequestTraceFlagHeader'
+      - ChequeCommissionInfoService
+      description: commission info
+      summary: Çek Komisyon Bilgisi Sorgula
+      operationId: chequeCommissionInfo
       requestBody:
+        required: true
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TransactionGrpcRequest'
-            example: {operationType: DEPOSIT, customerNumber: 12345678, customerAccount: TR123456789012345678901234,
-              transactionAmount: 1000.5, currency: TRY, channel: BRANCH, request: [
-                PARAM1, PARAM2]}
-        required: true
+              $ref: '#/components/schemas/ChequeCommissionInfoRequest'
       responses:
         '200':
-          $ref: '#/components/responses/HttpOKwithTransactionGrpcResponseResult'
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ChequeCommissionInfoResponse'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
         '403':
-          $ref: '#/components/responses/Forbiden'
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
         '405':
-          $ref: '#/components/responses/MethodNotAllowed'
+          description: Method Not Allowed
+          content:
+            application/json:
+              schema:
+                type: object
         '500':
-          $ref: '#/components/responses/ServerError'
-  /listCustomerRelationshipTypes:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+  /approve/list:
     post:
+      summary: TransactionCustomerGrpcService.ListRepresentativePersons
       tags:
-      - Transaction-Customer-Grpc-Service
-      operationId: listCustomerRelationshipTypes
-      summary: listCustomerRelationshipTypes
-      description: listCustomerRelationshipTypes
-      parameters:
-      - $ref: '#/components/parameters/AcceptHeader'
-      - $ref: '#/components/parameters/ContentTypeHeader'
-      - $ref: '#/components/parameters/ChannelHeader'
-      - $ref: '#/components/parameters/IpHeader'
-      - $ref: '#/components/parameters/DialectHeader'
-      - $ref: '#/components/parameters/GuidHeader'
-      - $ref: '#/components/parameters/ClientTraceIdlHeader'
-      - $ref: '#/components/parameters/AuthorizationTokenHeader'
-      - $ref: '#/components/parameters/TenantGeolocationHeader'
-      - $ref: '#/components/parameters/TenantAppIdHeader'
-      - $ref: '#/components/parameters/ApiKeyHeader'
-      - $ref: '#/components/parameters/UserIdHeader'
-      - $ref: '#/components/parameters/ClientIdHeader'
-      - $ref: '#/components/parameters/RequestTraceFlagHeader'
+      - TransactionCustomerGrpcService
+      description: Calls gRPC `TransactionCustomerGrpcService.ListRepresentativePersons`
+        with `RepresentativePersonRequest` → `RepresentativePersonResponse`.
       requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CustomerRelationshipTypeRequest'
-            example: {headerInfo: {command: LIST, sourceProgramId: WEBAPI, unitNum: '001',
-                channelCode: INTERNET, moduleCode: CUSTOMER, submoduleCode: RELATION},
-              serverData: {userId: USER123, referenceId: REF123456789}}
         required: true
-      responses:
-        '200':
-          $ref: '#/components/responses/HttpOKwithCustomerRelationshipTypeResponseResult'
-        '400':
-          $ref: '#/components/responses/BadRequest'
-        '401':
-          $ref: '#/components/responses/Unauthorized'
-        '403':
-          $ref: '#/components/responses/Forbiden'
-        '405':
-          $ref: '#/components/responses/MethodNotAllowed'
-        '500':
-          $ref: '#/components/responses/ServerError'
-  /listRepresentativePersons:
-    post:
-      tags:
-      - Transaction-Customer-Grpc-Service
-      operationId: listRepresentativePersons
-      summary: listRepresentativePersons
-      description: listRepresentativePersons
-      parameters:
-      - $ref: '#/components/parameters/AcceptHeader'
-      - $ref: '#/components/parameters/ContentTypeHeader'
-      - $ref: '#/components/parameters/ChannelHeader'
-      - $ref: '#/components/parameters/IpHeader'
-      - $ref: '#/components/parameters/DialectHeader'
-      - $ref: '#/components/parameters/GuidHeader'
-      - $ref: '#/components/parameters/ClientTraceIdlHeader'
-      - $ref: '#/components/parameters/AuthorizationTokenHeader'
-      - $ref: '#/components/parameters/TenantGeolocationHeader'
-      - $ref: '#/components/parameters/TenantAppIdHeader'
-      - $ref: '#/components/parameters/ApiKeyHeader'
-      - $ref: '#/components/parameters/UserIdHeader'
-      - $ref: '#/components/parameters/ClientIdHeader'
-      - $ref: '#/components/parameters/RequestTraceFlagHeader'
-      requestBody:
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/RepresentativePersonRequest'
-            example: {customerNum: '123456', customerNum2: '654321', relationTypeText: GUARDIAN,
-              acceptableLatency: '5', shareRate: '100', shareAmount: '1000', confirmationDate: '2023-01-01',
-              headerInfo: {command: LIST, sourceProgramId: WEBAPI, unitNum: '001',
-                channelCode: INTERNET, moduleCode: CUSTOMER, submoduleCode: RELATION},
-              serverData: {userId: USER123, referenceId: REF123456789}}
-        required: true
       responses:
         '200':
-          $ref: '#/components/responses/HttpOKwithRepresentativePersonResponseResult'
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RepresentativePersonResponse'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
         '403':
-          $ref: '#/components/responses/Forbiden'
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
         '405':
-          $ref: '#/components/responses/MethodNotAllowed'
+          description: Method Not Allowed
+          content:
+            application/json:
+              schema:
+                type: object
         '500':
-          $ref: '#/components/responses/ServerError'
-  /getOperationCode:
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+      x-grpc:
+        service: TransactionCustomerGrpcService
+        rpc: ListRepresentativePersons
+  /approve/approve:
     post:
-      tags:
-      - Transaction-Customer-Grpc-Service
-      operationId: getOperationCode
-      summary: getOperationCode
-      description: getOperationCode
-      parameters:
-      - $ref: '#/components/parameters/AcceptHeader'
-      - $ref: '#/components/parameters/ContentTypeHeader'
-      - $ref: '#/components/parameters/ChannelHeader'
-      - $ref: '#/components/parameters/IpHeader'
-      - $ref: '#/components/parameters/DialectHeader'
-      - $ref: '#/components/parameters/GuidHeader'
-      - $ref: '#/components/parameters/ClientTraceIdlHeader'
-      - $ref: '#/components/parameters/AuthorizationTokenHeader'
-      - $ref: '#/components/parameters/TenantGeolocationHeader'
-      - $ref: '#/components/parameters/TenantAppIdHeader'
-      - $ref: '#/components/parameters/ApiKeyHeader'
-      - $ref: '#/components/parameters/UserIdHeader'
-      - $ref: '#/components/parameters/ClientIdHeader'
-      - $ref: '#/components/parameters/RequestTraceFlagHeader'
+      summary: Operation
+      tags: []
+      description: Automatically generated operation based on controller mapping.
       requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+        '405':
+          description: Method Not Allowed
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+  /approve/reject:
+    post:
+      summary: Operation
+      tags: []
+      description: Automatically generated operation based on controller mapping.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+        '405':
+          description: Method Not Allowed
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+  /approve/changeStatusFraudProcess:
+    post:
+      summary: Operation
+      tags: []
+      description: Automatically generated operation based on controller mapping.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+        '405':
+          description: Method Not Allowed
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+  /withdrawal/read-digital-order:
+    post:
+      summary: DigitalOrderGrpcService.ReadDigitalOrder
+      tags:
+      - DigitalOrderGrpcService
+      description: Calls gRPC `DigitalOrderGrpcService.ReadDigitalOrder` with `DigitalOrderReadRequest`
+        → `DigitalOrderReadResponse`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DigitalOrderReadRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DigitalOrderReadResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+        '405':
+          description: Method Not Allowed
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+      x-grpc:
+        service: DigitalOrderGrpcService
+        rpc: ReadDigitalOrder
+  /withdrawal/create-gold-document:
+    post:
+      summary: Operation
+      tags: []
+      description: Automatically generated operation based on controller mapping.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+        '405':
+          description: Method Not Allowed
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+  /withdrawal/get-gold-document:
+    post:
+      summary: Operation
+      tags: []
+      description: Automatically generated operation based on controller mapping.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+        '405':
+          description: Method Not Allowed
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+  /withdrawal/get-operation-code:
+    post:
+      summary: OperationCodeGrpcService.GetOperationCodeGrpcService
+      tags:
+      - OperationCodeGrpcService
+      description: Calls gRPC `OperationCodeGrpcService.GetOperationCodeGrpcService`
+        with `OperationCodeGrpcRequest` → `OperationCodeGrpcResponse`.
+      requestBody:
+        required: true
         content:
           application/json:
             schema:
               $ref: '#/components/schemas/OperationCodeGrpcRequest'
-            example: {operatorCustomer: [{operatorCustomerNum: '12345678'}], accountCustomerNum: '87654321',
-              accountBranch: '002'}
-        required: true
       responses:
         '200':
-          $ref: '#/components/responses/HttpOKwithOperationCodeGrpcResponseResult'
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationCodeGrpcResponse'
         '400':
-          $ref: '#/components/responses/BadRequest'
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
         '401':
-          $ref: '#/components/responses/Unauthorized'
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
         '403':
-          $ref: '#/components/responses/Forbiden'
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
         '405':
-          $ref: '#/components/responses/MethodNotAllowed'
+          description: Method Not Allowed
+          content:
+            application/json:
+              schema:
+                type: object
         '500':
-          $ref: '#/components/responses/ServerError'
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+      x-grpc:
+        service: OperationCodeGrpcService
+        rpc: GetOperationCodeGrpcService
+  /withdrawal/get-bulk-operation-codes:
+    post:
+      summary: Operation
+      tags: []
+      description: Automatically generated operation based on controller mapping.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+        '405':
+          description: Method Not Allowed
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+  /withdrawal/find-transaction-by-customer-number:
+    post:
+      summary: TransactionGrpcService.FindTransactionByCustomerNumber
+      tags:
+      - TransactionGrpcService
+      description: Calls gRPC `TransactionGrpcService.FindTransactionByCustomerNumber`
+        with `FindTransactionByCustomerNumberGrpcRequest` → `FindTransactionByCustomerNumberGrpcResponse`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FindTransactionByCustomerNumberGrpcRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FindTransactionByCustomerNumberGrpcResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+        '405':
+          description: Method Not Allowed
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+      x-grpc:
+        service: TransactionGrpcService
+        rpc: FindTransactionByCustomerNumber
+  /withdrawal/trnx-complete-withdrawal:
+    post:
+      summary: TransactionGrpcService.TrnxCompleteWithdrawal
+      tags:
+      - TransactionGrpcService
+      description: Calls gRPC `TransactionGrpcService.TrnxCompleteWithdrawal` with
+        `TrnxCompleteWithdrawalGrpcRequest` → `TrnxCompleteWithdrawalGrpcResponse`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrnxCompleteWithdrawalGrpcRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrnxCompleteWithdrawalGrpcResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+        '405':
+          description: Method Not Allowed
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+      x-grpc:
+        service: TransactionGrpcService
+        rpc: TrnxCompleteWithdrawal
+  /withdrawal/transaction-status-update:
+    post:
+      summary: Operation
+      tags: []
+      description: Automatically generated operation based on controller mapping.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+        '405':
+          description: Method Not Allowed
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+  /withdrawal/find-transactions-by-filters:
+    post:
+      summary: Operation
+      tags: []
+      description: Automatically generated operation based on controller mapping.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+        '405':
+          description: Method Not Allowed
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+  /withdrawal/account-transaction-rules:
+    post:
+      summary: TransactionGrpcService.AccountTransactionRules
+      tags:
+      - TransactionGrpcService
+      description: Calls gRPC `TransactionGrpcService.AccountTransactionRules` with
+        `AccountTransactionRulesGrpcRequest` → `AccountTransactionRulesGrpcResponse`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountTransactionRulesGrpcRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountTransactionRulesGrpcResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+        '405':
+          description: Method Not Allowed
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+      x-grpc:
+        service: TransactionGrpcService
+        rpc: AccountTransactionRules
+  /withdrawal/list-representative-persons:
+    post:
+      summary: TransactionCustomerGrpcService.ListRepresentativePersons
+      tags:
+      - TransactionCustomerGrpcService
+      description: Calls gRPC `TransactionCustomerGrpcService.ListRepresentativePersons`
+        with `RepresentativePersonRequest` → `RepresentativePersonResponse`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RepresentativePersonRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RepresentativePersonResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+        '405':
+          description: Method Not Allowed
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+      x-grpc:
+        service: TransactionCustomerGrpcService
+        rpc: ListRepresentativePersons
+  /withdrawal/save-representative-person:
+    post:
+      summary: TransactionCustomerGrpcService.SaveRepresentativePerson
+      tags:
+      - TransactionCustomerGrpcService
+      description: Calls gRPC `TransactionCustomerGrpcService.SaveRepresentativePerson`
+        with `SaveRepresentativePersonRequest` → `SaveRepresentativePersonResponse`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveRepresentativePersonRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaveRepresentativePersonResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+        '405':
+          description: Method Not Allowed
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+      x-grpc:
+        service: TransactionCustomerGrpcService
+        rpc: SaveRepresentativePerson
+  /withdrawal/get-customer-info:
+    post:
+      summary: TransactionCustomerGrpcService.GetCustomerInfoGrpcService
+      tags:
+      - TransactionCustomerGrpcService
+      description: Calls gRPC `TransactionCustomerGrpcService.GetCustomerInfoGrpcService`
+        with `CustomerInfoGrpcRequest` → `CustomerInfoGrpcResponse`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerInfoGrpcRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerInfoGrpcResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+        '405':
+          description: Method Not Allowed
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+      x-grpc:
+        service: TransactionCustomerGrpcService
+        rpc: GetCustomerInfoGrpcService
+  /withdrawal/get-extended-customer-info:
+    post:
+      summary: TransactionCustomerGrpcService.GetExtendedCustomerInfo
+      tags:
+      - TransactionCustomerGrpcService
+      description: Calls gRPC `TransactionCustomerGrpcService.GetExtendedCustomerInfo`
+        with `CustomerInfoGrpcRequest` → `ExtendedCustomerInfoGrpcResponse`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerInfoGrpcRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExtendedCustomerInfoGrpcResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+        '405':
+          description: Method Not Allowed
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+      x-grpc:
+        service: TransactionCustomerGrpcService
+        rpc: GetExtendedCustomerInfo
+  /withdrawal/get-kps-info:
+    post:
+      summary: TransactionCustomerGrpcService.GetKpsInfo
+      tags:
+      - TransactionCustomerGrpcService
+      description: Calls gRPC `TransactionCustomerGrpcService.GetKpsInfo` with `GetKpsInfoRequest`
+        → `GetKpsInfoResponse`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetKpsInfoRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetKpsInfoResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+        '405':
+          description: Method Not Allowed
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+      x-grpc:
+        service: TransactionCustomerGrpcService
+        rpc: GetKpsInfo
+  /withdrawal/save-transaction-customer:
+    post:
+      summary: TransactionCustomerGrpcService.SaveTransactionCustomer
+      tags:
+      - TransactionCustomerGrpcService
+      description: Calls gRPC `TransactionCustomerGrpcService.SaveTransactionCustomer`
+        with `SaveTransactionCustomerRequest` → `TransactionCustomerMessageResponse`.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveTransactionCustomerRequest'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionCustomerMessageResponse'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+        '405':
+          description: Method Not Allowed
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
+      x-grpc:
+        service: TransactionCustomerGrpcService
+        rpc: SaveTransactionCustomer
+  /withdrawal/get-user-branch-code:
+    post:
+      summary: Operation
+      tags: []
+      description: Automatically generated operation based on controller mapping.
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                type: object
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+        '403':
+          description: Forbidden
+          content:
+            application/json:
+              schema:
+                type: object
+        '405':
+          description: Method Not Allowed
+          content:
+            application/json:
+              schema:
+                type: object
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                type: object
 components:
   securitySchemes:
     BearerAuth:
@@ -222,7 +1184,7 @@ components:
   schemas:
     GetChequeCostResponse:
       type: object
-      description: 'Schema from code DTO: GetChequeCostResponse.'
+      description: 'Schema from controller DTO: GetChequeCostResponse.'
       properties:
         cost:
           allOf:
@@ -236,7 +1198,7 @@ components:
       example: {cost: {}, isCommissionFree: true}
     ChequeMoney:
       type: object
-      description: 'Schema from code DTO: ChequeMoney.'
+      description: 'Schema from controller DTO: ChequeMoney.'
       properties:
         amount:
           type: number
@@ -250,7 +1212,7 @@ components:
       example: {amount: 100.5, currency: string}
     GetChequeCostRequest:
       type: object
-      description: 'Schema from code DTO: GetChequeCostRequest.'
+      description: 'Schema from controller DTO: GetChequeCostRequest.'
       properties:
         customerNo:
           type: string
@@ -279,7 +1241,7 @@ components:
       example: {customerNo: string, opCode: {}, chequeAmount: {}, account: {}, commissionServerData: {}}
     OperationCode:
       type: object
-      description: 'Schema from code DTO: OperationCode.'
+      description: 'Schema from controller DTO: OperationCode.'
       properties:
         opCode1:
           type: string
@@ -292,7 +1254,7 @@ components:
       example: {opCode1: string, opCode2: string}
     Account:
       type: object
-      description: 'Schema from code DTO: Account.'
+      description: 'Schema from controller DTO: Account.'
       properties:
         branch:
           type: integer
@@ -306,7 +1268,7 @@ components:
       example: {branch: 123, number: string}
     CommissionServerData:
       type: object
-      description: 'Schema from code DTO: CommissionServerData.'
+      description: 'Schema from controller DTO: CommissionServerData.'
       properties:
         userId:
           type: string
@@ -319,7 +1281,7 @@ components:
       example: {userId: string, referenceId: string}
     PaginationResultDto:
       type: object
-      description: 'Schema from code DTO: PaginationResultDto.'
+      description: 'Schema from controller DTO: PaginationResultDto.'
       properties:
         totalCount:
           type: integer
@@ -335,7 +1297,7 @@ components:
       example: {totalCount: 123, records: [string]}
     ProcessResponseDto:
       type: object
-      description: 'Schema from code DTO: ProcessResponseDto.'
+      description: 'Schema from controller DTO: ProcessResponseDto.'
       properties:
         moneyTransactionId:
           type: string
@@ -399,7 +1361,7 @@ components:
         instanceId: string}
     ProcessRequestDto:
       type: object
-      description: 'Schema from code DTO: ProcessRequestDto.'
+      description: 'Schema from controller DTO: ProcessRequestDto.'
       properties:
         pagination:
           allOf:
@@ -414,7 +1376,7 @@ components:
       example: {pagination: {}, filter: {}}
     PageableInboundDto:
       type: object
-      description: 'Schema from code DTO: PageableInboundDto.'
+      description: 'Schema from controller DTO: PageableInboundDto.'
       properties:
         page:
           type: integer
@@ -434,7 +1396,7 @@ components:
       example: {page: 123, size: 123, sort: {}}
     SortInboundDto:
       type: object
-      description: 'Schema from code DTO: SortInboundDto.'
+      description: 'Schema from controller DTO: SortInboundDto.'
       properties:
         field:
           type: string
@@ -450,7 +1412,7 @@ components:
       example: {field: string, direction: SORT_DIRECTION_ASC}
     ProcessFilterRequestDto:
       type: object
-      description: 'Schema from code DTO: ProcessFilterRequestDto.'
+      description: 'Schema from controller DTO: ProcessFilterRequestDto.'
       properties:
         status:
           type: string
@@ -499,7 +1461,7 @@ components:
         approveOrder: 123, financialSubFamilyCode: string, financialFamilyCode: string}
     ProcessStateChangeResponseDto:
       type: object
-      description: 'Schema from code DTO: ProcessStateChangeResponseDto.'
+      description: 'Schema from controller DTO: ProcessStateChangeResponseDto.'
       properties:
         message:
           type: string
@@ -508,7 +1470,7 @@ components:
       example: {message: string}
     ProcessStateChangeRequestDto:
       type: object
-      description: 'Schema from code DTO: ProcessStateChangeRequestDto.'
+      description: 'Schema from controller DTO: ProcessStateChangeRequestDto.'
       properties:
         operationType:
           type: string
@@ -521,7 +1483,7 @@ components:
       example: {operationType: string, instanceId: string}
     ApproveBulkFraudProcessResponseDto:
       type: object
-      description: 'Schema from code DTO: ApproveBulkFraudProcessResponseDto.'
+      description: 'Schema from controller DTO: ApproveBulkFraudProcessResponseDto.'
       properties:
         message:
           type: string
@@ -530,7 +1492,7 @@ components:
       example: {message: string}
     ApproveBulkFraudProcessRequestDto:
       type: object
-      description: 'Schema from code DTO: ApproveBulkFraudProcessRequestDto.'
+      description: 'Schema from controller DTO: ApproveBulkFraudProcessRequestDto.'
       properties:
         instanceId:
           type: string
@@ -543,7 +1505,7 @@ components:
       example: {instanceId: string, status: string}
     DigitalOrderReadResponseDto:
       type: object
-      description: 'Schema from code DTO: DigitalOrderReadResponseDto.'
+      description: 'Schema from controller DTO: DigitalOrderReadResponseDto.'
       properties:
         readBranchInstructionDepositWithdrawal:
           type: array
@@ -554,7 +1516,7 @@ components:
       example: {readBranchInstructionDepositWithdrawal: [string]}
     ReadBranchInstructionDepositWithdrawalDto:
       type: object
-      description: 'Schema from code DTO: ReadBranchInstructionDepositWithdrawalDto.'
+      description: 'Schema from controller DTO: ReadBranchInstructionDepositWithdrawalDto.'
       properties:
         instructionId:
           type: string
@@ -617,7 +1579,7 @@ components:
         processUnitNum: 123}
     DigitalOrderReadRequestDto:
       type: object
-      description: 'Schema from code DTO: DigitalOrderReadRequestDto.'
+      description: 'Schema from controller DTO: DigitalOrderReadRequestDto.'
       properties:
         instructionId:
           type: string
@@ -680,7 +1642,7 @@ components:
         processUnitNum: 123}
     CreateSinglePdfResponseDto:
       type: object
-      description: 'Schema from code DTO: CreateSinglePdfResponseDto.'
+      description: 'Schema from controller DTO: CreateSinglePdfResponseDto.'
       properties:
         returnCode:
           type: string
@@ -697,7 +1659,7 @@ components:
       example: {returnCode: string, returnMsg: string, documentId: string}
     CreateSinglePdfRequestDto:
       type: object
-      description: 'Schema from code DTO: CreateSinglePdfRequestDto.'
+      description: 'Schema from controller DTO: CreateSinglePdfRequestDto.'
       properties:
         documentType:
           type: string
@@ -753,7 +1715,7 @@ components:
         transactionAmount: 100.5, customerInfo: [string], branchInfo: {}}
     CustomerInfo:
       type: object
-      description: 'Schema from code DTO: CustomerInfo.'
+      description: 'Schema from controller DTO: CustomerInfo.'
       properties:
         customerFullName:
           type: string
@@ -784,7 +1746,7 @@ components:
         accountType: string, tckn: string, nationality: string}
     BranchInfo:
       type: object
-      description: 'Schema from code DTO: BranchInfo.'
+      description: 'Schema from controller DTO: BranchInfo.'
       properties:
         branchName:
           type: string
@@ -815,7 +1777,7 @@ components:
         branchAddress: string, referenceNumber: 123}
     GetPdfResponseDto:
       type: object
-      description: 'Schema from code DTO: GetPdfResponseDto.'
+      description: 'Schema from controller DTO: GetPdfResponseDto.'
       properties:
         returnCode:
           type: string
@@ -845,7 +1807,7 @@ components:
         secPaperTrayText: string, pdfData: string}
     GetSinglePdfRequestDto:
       type: object
-      description: 'Schema from code DTO: GetSinglePdfRequestDto.'
+      description: 'Schema from controller DTO: GetSinglePdfRequestDto.'
       properties:
         documentId:
           type: string
@@ -862,7 +1824,7 @@ components:
       example: {documentId: string, userId: string, authUserId: string}
     OperationCodeResponseDto:
       type: object
-      description: 'Schema from code DTO: OperationCodeResponseDto.'
+      description: 'Schema from controller DTO: OperationCodeResponseDto.'
       properties:
         opCode1:
           type: string
@@ -875,7 +1837,7 @@ components:
       example: {opCode1: string, opCode2: string}
     OperationCodeRequestDto:
       type: object
-      description: 'Schema from code DTO: OperationCodeRequestDto.'
+      description: 'Schema from controller DTO: OperationCodeRequestDto.'
       properties:
         operatorCustomer:
           type: array
@@ -900,7 +1862,7 @@ components:
         accountNumber: 123}
     OpCodeCustomerDto:
       type: object
-      description: 'Schema from code DTO: OpCodeCustomerDto.'
+      description: 'Schema from controller DTO: OpCodeCustomerDto.'
       properties:
         operatorCustomerNum:
           type: string
@@ -909,7 +1871,7 @@ components:
       example: {operatorCustomerNum: string}
     GetBulkOperationCodeResponseDto:
       type: object
-      description: 'Schema from code DTO: GetBulkOperationCodeResponseDto.'
+      description: 'Schema from controller DTO: GetBulkOperationCodeResponseDto.'
       properties:
         operationCodeItems:
           type: array
@@ -933,7 +1895,7 @@ components:
         processDescription: string}
     TransactionListDto:
       type: object
-      description: 'Schema from code DTO: TransactionListDto.'
+      description: 'Schema from controller DTO: TransactionListDto.'
       properties:
         transactions:
           type: array
@@ -944,7 +1906,7 @@ components:
       example: {transactions: [string]}
     TransactionDto:
       type: object
-      description: 'Schema from code DTO: TransactionDto.'
+      description: 'Schema from controller DTO: TransactionDto.'
       properties:
         operationType:
           type: string
@@ -1130,7 +2092,7 @@ components:
         transactionRelationType: string, transactionExplanationText: string, requestText: string}
     FindTransactionRequestDto:
       type: object
-      description: 'Schema from code DTO: FindTransactionRequestDto.'
+      description: 'Schema from controller DTO: FindTransactionRequestDto.'
       properties:
         customerNumber:
           type: integer
@@ -1140,7 +2102,7 @@ components:
       example: {customerNumber: 123}
     TrnxCompleteWithdrawalRequestDto:
       type: object
-      description: 'Schema from code DTO: TrnxCompleteWithdrawalRequestDto.'
+      description: 'Schema from controller DTO: TrnxCompleteWithdrawalRequestDto.'
       properties:
         operationType:
           type: string
@@ -1343,7 +2305,7 @@ components:
         sourceId: string, kpsValidationBypass: true}
     AtmInfoRequest:
       type: object
-      description: 'Schema from code DTO: AtmInfoRequest.'
+      description: 'Schema from controller DTO: AtmInfoRequest.'
       properties:
         cardNo:
           type: string
@@ -1368,7 +2330,7 @@ components:
       example: {cardNo: string, isQr: true, qrId: string, atmNumber: string, isCommission: true}
     ProcessingPersonInfoRequest:
       type: object
-      description: 'Schema from code DTO: ProcessingPersonInfoRequest.'
+      description: 'Schema from controller DTO: ProcessingPersonInfoRequest.'
       properties:
         statusCode:
           type: string
@@ -1381,7 +2343,7 @@ components:
       example: {statusCode: string, processCustomerNum: string}
     TransactionStatusUpdateResponseDto:
       type: object
-      description: 'Schema from code DTO: TransactionStatusUpdateResponseDto.'
+      description: 'Schema from controller DTO: TransactionStatusUpdateResponseDto.'
       properties:
         success:
           type: boolean
@@ -1390,7 +2352,7 @@ components:
       example: {success: true}
     TransactionStatusUpdateRequestDto:
       type: object
-      description: 'Schema from code DTO: TransactionStatusUpdateRequestDto.'
+      description: 'Schema from controller DTO: TransactionStatusUpdateRequestDto.'
       properties:
         instanceId:
           type: string
@@ -1407,7 +2369,7 @@ components:
       example: {instanceId: string, status: string, approveInstanceId: string}
     TransactionFilterResponseDto:
       type: object
-      description: 'Schema from code DTO: TransactionFilterResponseDto.'
+      description: 'Schema from controller DTO: TransactionFilterResponseDto.'
       properties:
         instanceId:
           type: string
@@ -1447,7 +2409,7 @@ components:
         approveUserId: string}
     TransactionFilterRequestDto:
       type: object
-      description: 'Schema from code DTO: TransactionFilterRequestDto.'
+      description: 'Schema from controller DTO: TransactionFilterRequestDto.'
       properties:
         statusCode:
           type: string
@@ -1492,7 +2454,7 @@ components:
         financialFamilyCode: string, transactionAmountMin: 100.5, transactionAmountMax: 100.5}
     AccountTransactionRulesRequestDto:
       type: object
-      description: 'Schema from code DTO: AccountTransactionRulesRequestDto.'
+      description: 'Schema from controller DTO: AccountTransactionRulesRequestDto.'
       properties:
         debitUnitNum:
           type: integer
@@ -1527,7 +2489,7 @@ components:
         currencyCode: string, transactionDate: string, oprtnCustList: [string]}
     RepresentativePersonRequestDto:
       type: object
-      description: 'Schema from code DTO: RepresentativePersonRequestDto.'
+      description: 'Schema from controller DTO: RepresentativePersonRequestDto.'
       properties:
         customerNum:
           type: string
@@ -1561,7 +2523,7 @@ components:
         acceptableLatency: string, shareRate: string, shareAmount: string, confirmationDate: string}
     HeaderInfo:
       type: object
-      description: 'Schema from code DTO: HeaderInfo.'
+      description: 'Schema from controller DTO: HeaderInfo.'
       properties:
         command:
           type: string
@@ -1591,7 +2553,7 @@ components:
         moduleCode: string, submoduleCode: string}
     ServerData:
       type: object
-      description: 'Schema from code DTO: ServerData.'
+      description: 'Schema from controller DTO: ServerData.'
       properties:
         userId:
           type: string
@@ -1604,7 +2566,7 @@ components:
       example: {userId: string, referenceId: string}
     SaveRepresentativePersonRequestDto:
       type: object
-      description: 'Schema from code DTO: SaveRepresentativePersonRequestDto.'
+      description: 'Schema from controller DTO: SaveRepresentativePersonRequestDto.'
       properties:
         customerNum:
           type: string
@@ -1625,7 +2587,7 @@ components:
       example: {customerNum: string, opnDefinedKey: string, partyType: string, recordStatus: string}
     CustomerInfoResponseDto:
       type: object
-      description: 'Schema from code DTO: CustomerInfoResponseDto.'
+      description: 'Schema from controller DTO: CustomerInfoResponseDto.'
       properties:
         customerNum:
           type: string
@@ -1688,7 +2650,7 @@ components:
         customerSubType2: string}
     CustomerInfoRequestDto:
       type: object
-      description: 'Schema from code DTO: CustomerInfoRequestDto.'
+      description: 'Schema from controller DTO: CustomerInfoRequestDto.'
       properties:
         customerNum:
           type: string
@@ -1697,7 +2659,7 @@ components:
       example: {customerNum: string}
     GetKpsInfoRequestDto:
       type: object
-      description: 'Schema from code DTO: GetKpsInfoRequestDto.'
+      description: 'Schema from controller DTO: GetKpsInfoRequestDto.'
       properties:
         nationalId:
           type: string
@@ -1715,7 +2677,7 @@ components:
       example: {nationalId: string, birthDate: string, inquiryDateMargin: 123}
     SaveTransactionCustomerRequestDto:
       type: object
-      description: 'Schema from code DTO: SaveTransactionCustomerRequestDto.'
+      description: 'Schema from controller DTO: SaveTransactionCustomerRequestDto.'
       properties:
         nationalIdNum:
           type: string
@@ -1822,18 +2784,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/TransactionGrpcResponse'
-    HttpOKwithCustomerRelationshipTypeResponseResult:
-      description: OK.
-      headers:
-        Access-Control-Allow-Origin:
-          $ref: '#/components/headers/Access-Control-Allow-Origin'
-        GUID:
-          $ref: '#/components/headers/GUID'
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/CustomerRelationshipTypeResponse'
+            $ref: '#/components/schemas/CreateTransactionGrpcResponse'
     HttpOKwithRepresentativePersonResponseResult:
       description: OK.
       headers:
