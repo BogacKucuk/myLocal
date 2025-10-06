@@ -69,6 +69,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RepresentativePersonResponse'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
       x-grpc:
         service: TransactionCustomerGrpcService
         rpc: ListRepresentativePersons
@@ -90,6 +100,16 @@ paths:
             application/json:
               schema:
                 type: object
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
   /deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/approve/reject:
     post:
       summary: Operation
@@ -108,6 +128,16 @@ paths:
             application/json:
               schema:
                 type: object
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
   /deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/approve/changeStatusFraudProcess:
     post:
       summary: Operation
@@ -126,6 +156,16 @@ paths:
             application/json:
               schema:
                 type: object
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
   /deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/withdrawal/read-digital-order:
     post:
       summary: DigitalOrderGrpcService.ReadDigitalOrder
@@ -146,6 +186,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/DigitalOrderReadResponse'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
       x-grpc:
         service: DigitalOrderGrpcService
         rpc: ReadDigitalOrder
@@ -167,6 +217,16 @@ paths:
             application/json:
               schema:
                 type: object
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
   /deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/withdrawal/get-gold-document:
     post:
       summary: Operation
@@ -185,6 +245,16 @@ paths:
             application/json:
               schema:
                 type: object
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
   /deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/withdrawal/get-operation-code:
     post:
       summary: OperationCodeGrpcService.GetOperationCodeGrpcService
@@ -205,6 +275,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OperationCodeGrpcResponse'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
       x-grpc:
         service: OperationCodeGrpcService
         rpc: GetOperationCodeGrpcService
@@ -226,6 +306,16 @@ paths:
             application/json:
               schema:
                 type: object
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
   /deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/withdrawal/find-transaction-by-customer-number:
     post:
       summary: TransactionGrpcService.FindTransactionByCustomerNumber
@@ -246,6 +336,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/FindTransactionByCustomerNumberGrpcResponse'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
       x-grpc:
         service: TransactionGrpcService
         rpc: FindTransactionByCustomerNumber
@@ -269,6 +369,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TrnxCompleteWithdrawalGrpcResponse'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
       x-grpc:
         service: TransactionGrpcService
         rpc: TrnxCompleteWithdrawal
@@ -290,6 +400,16 @@ paths:
             application/json:
               schema:
                 type: object
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
   /deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/withdrawal/find-transactions-by-filters:
     post:
       summary: Operation
@@ -308,6 +428,16 @@ paths:
             application/json:
               schema:
                 type: object
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
   /deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/withdrawal/account-transaction-rules:
     post:
       summary: TransactionGrpcService.AccountTransactionRules
@@ -328,6 +458,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/AccountTransactionRulesGrpcResponse'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
       x-grpc:
         service: TransactionGrpcService
         rpc: AccountTransactionRules
@@ -351,6 +491,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/RepresentativePersonResponse'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
       x-grpc:
         service: TransactionCustomerGrpcService
         rpc: ListRepresentativePersons
@@ -374,6 +524,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SaveRepresentativePersonResponse'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
       x-grpc:
         service: TransactionCustomerGrpcService
         rpc: SaveRepresentativePerson
@@ -397,6 +557,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/CustomerInfoGrpcResponse'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
       x-grpc:
         service: TransactionCustomerGrpcService
         rpc: GetCustomerInfoGrpcService
@@ -420,6 +590,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ExtendedCustomerInfoGrpcResponse'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
       x-grpc:
         service: TransactionCustomerGrpcService
         rpc: GetExtendedCustomerInfo
@@ -443,6 +623,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetKpsInfoResponse'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
       x-grpc:
         service: TransactionCustomerGrpcService
         rpc: GetKpsInfo
@@ -466,6 +656,16 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/TransactionCustomerMessageResponse'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
       x-grpc:
         service: TransactionCustomerGrpcService
         rpc: SaveTransactionCustomer
@@ -487,6 +687,16 @@ paths:
             application/json:
               schema:
                 type: object
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
 components:
   securitySchemes:
     BearerAuth:
@@ -548,9 +758,6 @@ components:
           items:
             type: string
             example: PARAM1
-            description: Field `request[]`.
-          example:
-          - string
     TransactionGrpcResponse:
       type: object
       description: Response model for transaction operations
@@ -577,13 +784,9 @@ components:
           referenceId: REF123456789
       properties:
         headerInfo:
-          allOf:
-          - $ref: '#/components/schemas/HeaderInfo'
-          description: Field `headerInfo`.
+          $ref: '#/components/schemas/HeaderInfo'
         serverData:
-          allOf:
-          - $ref: '#/components/schemas/ServerData'
-          description: Field `serverData`.
+          $ref: '#/components/schemas/ServerData'
     CustomerRelationshipTypeResponse:
       type: object
       description: Response model for customer relationship type operations
@@ -596,10 +799,7 @@ components:
           type: array
           description: List of available customer relationship types
           items:
-            allOf:
-            - $ref: '#/components/schemas/CustomerRelationshipType'
-            description: Field `customerRelationshipTypes[]`.
-          example: []
+            $ref: '#/components/schemas/CustomerRelationshipType'
     CustomerRelationshipType:
       type: object
       description: Model representing a customer relationship type
@@ -615,1567 +815,880 @@ components:
       properties:
         customerNum:
           type: string
-          description: Field `customerNum`.
-          example: string
         customerNum2:
           type: string
-          description: Field `customerNum2`.
-          example: string
         relationTypeText:
           type: string
-          description: Field `relationTypeText`.
-          example: string
         acceptableLatency:
           type: string
-          description: Field `acceptableLatency`.
-          example: string
         shareRate:
           type: string
-          description: Field `shareRate`.
-          example: string
         shareAmount:
           type: string
-          description: Field `shareAmount`.
-          example: string
         confirmationDate:
           type: string
-          description: Field `confirmationDate`.
-          example: string
         headerInfo:
-          allOf:
-          - $ref: '#/components/schemas/HeaderInfo'
-          description: Field `headerInfo`.
+          $ref: '#/components/schemas/HeaderInfo'
         serverData:
-          allOf:
-          - $ref: '#/components/schemas/ServerData'
-          description: Field `serverData`.
+          $ref: '#/components/schemas/ServerData'
       additionalProperties: false
-      description: 'Schema: RepresentativePersonRequest.'
     RepresentativePersonResponse:
       type: object
       properties:
         representativePerson:
           type: array
           items:
-            allOf:
-            - $ref: '#/components/schemas/RepresentativePerson'
-            description: Field `representativePerson[]`.
-          description: Field `representativePerson`.
-          example: []
+            $ref: '#/components/schemas/RepresentativePerson'
       additionalProperties: false
-      description: 'Schema: RepresentativePersonResponse.'
     RepresentativePerson:
       type: object
       properties:
         name:
           type: string
-          description: Field `name`.
-          example: string
         surname:
           type: string
-          description: Field `surname`.
-          example: string
         customerNum:
           type: string
-          description: Field `customerNum`.
-          example: string
       additionalProperties: false
-      description: 'Schema: RepresentativePerson.'
     OperationCodeGrpcRequest:
       type: object
       properties:
         operatorCustomer:
           type: array
           items:
-            allOf:
-            - $ref: '#/components/schemas/Customer'
-            description: Field `operatorCustomer[]`.
-          description: Field `operatorCustomer`.
-          example: []
+            $ref: '#/components/schemas/Customer'
         accountCustomerNum:
           type: string
-          description: Field `accountCustomerNum`.
-          example: string
         accountBranch:
           type: string
-          description: Field `accountBranch`.
-          example: string
         accountNumber:
           type: integer
           format: int32
-          description: Field `accountNumber`.
-          example: 123
         isChequeOperation:
           type: boolean
-          description: Field `isChequeOperation`.
-          example: true
       additionalProperties: false
-      description: 'Schema: OperationCodeGrpcRequest.'
     Customer:
       type: object
       properties:
         operatorCustomerNum:
           type: string
-          description: Field `operatorCustomerNum`.
-          example: string
       additionalProperties: false
-      description: 'Schema: Customer.'
     OperationCodeGrpcResponse:
       type: object
       properties:
         opCode1:
           type: string
-          description: Field `opCode1`.
-          example: string
         opCode2:
           type: string
-          description: Field `opCode2`.
-          example: string
       additionalProperties: false
-      description: 'Schema: OperationCodeGrpcResponse.'
     HeaderInfo:
       type: object
       properties:
         command:
           type: string
-          description: Field `command`.
-          example: string
         sourceProgramId:
           type: string
-          description: Field `sourceProgramId`.
-          example: string
         unitNum:
           type: string
-          description: Field `unitNum`.
-          example: string
         channelCode:
           type: string
-          description: Field `channelCode`.
-          example: string
         moduleCode:
           type: string
-          description: Field `moduleCode`.
-          example: string
         submoduleCode:
           type: string
-          description: Field `submoduleCode`.
-          example: string
       additionalProperties: false
-      description: 'Schema: HeaderInfo.'
     ServerData:
       type: object
       properties:
         userId:
           type: string
-          description: Field `userId`.
-          example: string
         referenceId:
           type: string
-          description: Field `referenceId`.
-          example: string
       additionalProperties: false
-      description: 'Schema: ServerData.'
     ChequeCommissionInfoRequest:
       type: object
       properties:
         customerNo:
           type: string
-          description: Field `customerNo`.
-          example: string
         opCode:
-          allOf:
-          - $ref: '#/components/schemas/GetOperationCodeResponse'
-          description: Field `opCode`.
+          $ref: '#/components/schemas/GetOperationCodeResponse'
         chequeAmount:
-          allOf:
-          - $ref: '#/components/schemas/Money'
-          description: Field `chequeAmount`.
+          $ref: '#/components/schemas/Money'
         account:
-          allOf:
-          - $ref: '#/components/schemas/Account'
-          description: Field `account`.
+          $ref: '#/components/schemas/Account'
         commissionServerData:
-          allOf:
-          - $ref: '#/components/schemas/CommissionServerData'
-          description: Field `commissionServerData`.
+          $ref: '#/components/schemas/CommissionServerData'
       additionalProperties: false
-      description: 'Schema: ChequeCommissionInfoRequest.'
     GetOperationCodeResponse:
       type: object
       properties:
         opCode1:
           type: string
-          description: Field `opCode1`.
-          example: string
         opCode2:
           type: string
-          description: Field `opCode2`.
-          example: string
       additionalProperties: false
-      description: 'Schema: GetOperationCodeResponse.'
     Option:
       type: object
       properties:
         code:
           type: string
-          description: Field `code`.
-          example: string
         descriptionKey:
           type: string
-          description: Field `descriptionKey`.
-          example: string
       additionalProperties: false
-      description: 'Schema: Option.'
     Account:
       type: object
       properties:
         number:
           type: string
-          description: Field `number`.
-          example: string
         branch:
           type: integer
           format: int32
-          description: Field `branch`.
-          example: 123
       additionalProperties: false
-      description: 'Schema: Account.'
     Money:
       type: object
       properties:
         amount:
-          allOf:
-          - $ref: '#/components/schemas/BigDecimal'
-          description: Field `amount`.
+          $ref: '#/components/schemas/BigDecimal'
         currency:
           type: string
-          description: Field `currency`.
-          example: string
       additionalProperties: false
-      description: 'Schema: Money.'
     CommissionServerData:
       type: object
       properties:
         userId:
           type: string
-          description: Field `userId`.
-          example: string
         referenceId:
           type: string
-          description: Field `referenceId`.
-          example: string
       additionalProperties: false
-      description: 'Schema: CommissionServerData.'
     ChequeCommissionInfoResponse:
       type: object
       properties:
         cost:
-          allOf:
-          - $ref: '#/components/schemas/Money'
-          description: Field `cost`.
+          $ref: '#/components/schemas/Money'
         isCommissionFree:
           type: boolean
-          description: Field `isCommissionFree`.
-          example: true
       additionalProperties: false
-      description: 'Schema: ChequeCommissionInfoResponse.'
     DigitalOrderReadRequest:
       type: object
       properties:
         instructionId:
           type: string
           format: int64
-          description: Field `instructionId`.
-          example: '123456789'
         customerNum:
           type: integer
           format: int32
-          description: Field `customerNum`.
-          example: 123
         accountNumber:
           type: integer
           format: int32
-          description: Field `accountNumber`.
-          example: 123
         branchCode:
           type: integer
           format: int32
-          description: Field `branchCode`.
-          example: 123
         amount:
-          allOf:
-          - $ref: '#/components/schemas/BigDecimal'
-          description: Field `amount`.
+          $ref: '#/components/schemas/BigDecimal'
         currencyCode:
           type: string
-          description: Field `currencyCode`.
-          example: string
         identityNumber:
           type: string
-          description: Field `identityNumber`.
-          example: string
         documentId:
           type: string
-          description: Field `documentId`.
-          example: string
         transactionDate:
           type: string
-          description: Field `transactionDate`.
-          example: string
         status:
           type: string
-          description: Field `status`.
-          example: string
         transactionType:
           type: integer
           format: int32
-          description: Field `transactionType`.
-          example: 123
         processUnitNum:
           type: integer
           format: int32
-          description: Field `processUnitNum`.
-          example: 123
       additionalProperties: false
-      description: 'Schema: DigitalOrderReadRequest.'
     DigitalOrderReadResponse:
       type: object
       properties:
         readBranchInstructionDepositWithdrawal:
           type: array
           items:
-            allOf:
-            - $ref: '#/components/schemas/ReadBranchInstructionDepositWithdrawal'
-            description: Field `readBranchInstructionDepositWithdrawal[]`.
-          description: Field `readBranchInstructionDepositWithdrawal`.
-          example: []
+            $ref: '#/components/schemas/ReadBranchInstructionDepositWithdrawal'
       additionalProperties: false
-      description: 'Schema: DigitalOrderReadResponse.'
     ReadBranchInstructionDepositWithdrawal:
       type: object
       properties:
         instructionId:
           type: string
           format: int64
-          description: Field `instructionId`.
-          example: '123456789'
         customerNum:
           type: integer
           format: int32
-          description: Field `customerNum`.
-          example: 123
         accountNumber:
           type: integer
           format: int32
-          description: Field `accountNumber`.
-          example: 123
         branchCode:
           type: integer
           format: int32
-          description: Field `branchCode`.
-          example: 123
         amount:
-          allOf:
-          - $ref: '#/components/schemas/BigDecimal'
-          description: Field `amount`.
+          $ref: '#/components/schemas/BigDecimal'
         currencyCode:
           type: string
-          description: Field `currencyCode`.
-          example: string
         identityNumber:
           type: string
-          description: Field `identityNumber`.
-          example: string
         documentId:
           type: string
-          description: Field `documentId`.
-          example: string
         transactionDate:
           type: string
-          description: Field `transactionDate`.
-          example: string
         status:
           type: string
-          description: Field `status`.
-          example: string
         transactionType:
           type: integer
           format: int32
-          description: Field `transactionType`.
-          example: 123
         processUnitNum:
           type: integer
           format: int32
-          description: Field `processUnitNum`.
-          example: 123
       additionalProperties: false
-      description: 'Schema: ReadBranchInstructionDepositWithdrawal.'
     CreateSinglePdfGrpcRequest:
       type: object
       properties:
         documentType:
           type: string
-          description: Field `documentType`.
-          example: string
         documentStatus:
           type: string
-          description: Field `documentStatus`.
-          example: string
         async:
           type: string
-          description: Field `async`.
-          example: string
         userId:
           type: string
-          description: Field `userId`.
-          example: string
         authUserId:
           type: string
-          description: Field `authUserId`.
-          example: string
         xmlData:
           type: string
-          description: Field `xmlData`.
-          example: string
         date:
           type: string
-          description: Field `date`.
-          example: string
         commissionRate:
           type: number
           format: double
-          description: Field `commissionRate`.
-          example: 123.45
         transactionAmount:
-          allOf:
-          - $ref: '#/components/schemas/BigDecimal'
-          description: Field `transactionAmount`.
+          $ref: '#/components/schemas/BigDecimal'
         customerInfo:
           type: array
           items:
-            allOf:
-            - $ref: '#/components/schemas/CustomerInfo'
-            description: Field `customerInfo[]`.
-          description: Field `customerInfo`.
-          example: []
+            $ref: '#/components/schemas/CustomerInfo'
         branchInfo:
-          allOf:
-          - $ref: '#/components/schemas/BranchInfo'
-          description: Field `branchInfo`.
+          $ref: '#/components/schemas/BranchInfo'
       additionalProperties: false
-      description: 'Schema: CreateSinglePdfGrpcRequest.'
     CreateSinglePdfGrpcResponse:
       type: object
       properties:
         returnCode:
           type: string
-          description: Field `returnCode`.
-          example: string
         returnMsg:
           type: string
-          description: Field `returnMsg`.
-          example: string
         documentId:
           type: string
-          description: Field `documentId`.
-          example: string
       additionalProperties: false
-      description: 'Schema: CreateSinglePdfGrpcResponse.'
     GetSinglePdfGrpcRequest:
       type: object
       properties:
         documentId:
           type: string
-          description: Field `documentId`.
-          example: string
         userId:
           type: string
-          description: Field `userId`.
-          example: string
         authUserId:
           type: string
-          description: Field `authUserId`.
-          example: string
       additionalProperties: false
-      description: 'Schema: GetSinglePdfGrpcRequest.'
     GetPdfGrpcResponse:
       type: object
       properties:
         returnCode:
           type: string
-          description: Field `returnCode`.
-          example: string
         returnMsg:
           type: string
-          description: Field `returnMsg`.
-          example: string
         pdfData:
           type: string
-          description: Field `pdfData`.
-          example: string
       additionalProperties: false
-      description: 'Schema: GetPdfGrpcResponse.'
     GetMultiPdfGrpcRequest:
       type: object
       properties:
         documentIdList:
           type: string
-          description: Field `documentIdList`.
-          example: string
         userId:
           type: string
-          description: Field `userId`.
-          example: string
         authUserId:
           type: string
-          description: Field `authUserId`.
-          example: string
       additionalProperties: false
-      description: 'Schema: GetMultiPdfGrpcRequest.'
     CustomerInfo:
       type: object
       properties:
         customerFullName:
           type: string
-          description: Field `customerFullName`.
-          example: string
         customerNumber:
           type: string
           format: int64
-          description: Field `customerNumber`.
-          example: '123456789'
         customerAddress:
           type: string
-          description: Field `customerAddress`.
-          example: string
         accountType:
           type: string
-          description: Field `accountType`.
-          example: string
         tckn:
           type: string
-          description: Field `tckn`.
-          example: string
         nationality:
           type: string
-          description: Field `nationality`.
-          example: string
       additionalProperties: false
-      description: 'Schema: CustomerInfo.'
     BranchInfo:
       type: object
       properties:
         branchName:
           type: string
-          description: Field `branchName`.
-          example: string
         branchCity:
           type: string
-          description: Field `branchCity`.
-          example: string
         branchDistrict:
           type: string
-          description: Field `branchDistrict`.
-          example: string
         countryCode:
           type: string
-          description: Field `countryCode`.
-          example: string
         branchAddress:
           type: string
-          description: Field `branchAddress`.
-          example: string
         referenceNumber:
           type: integer
           format: int32
-          description: Field `referenceNumber`.
-          example: 123
       additionalProperties: false
-      description: 'Schema: BranchInfo.'
     OperationCodeItemGrpc:
       type: object
       properties:
         processMainCode:
           type: string
-          description: Field `processMainCode`.
-          example: string
         processSubCode:
           type: string
-          description: Field `processSubCode`.
-          example: string
         processDescription:
           type: string
-          description: Field `processDescription`.
-          example: string
       additionalProperties: false
-      description: 'Schema: OperationCodeItemGrpc.'
     GetBulkOperationCodesGrpcResponse:
       type: object
       properties:
         operationCodes:
           type: array
           items:
-            allOf:
-            - $ref: '#/components/schemas/OperationCodeItemGrpc'
-            description: Field `operationCodes[]`.
-          description: Field `operationCodes`.
-          example: []
+            $ref: '#/components/schemas/OperationCodeItemGrpc'
       additionalProperties: false
-      description: 'Schema: GetBulkOperationCodesGrpcResponse.'
     CreateReceiptGrpcRequest:
       type: object
       properties:
         txnReferenceId:
           type: string
-          description: Field `txnReferenceId`.
-          example: string
         voucherNum:
           type: integer
           format: int32
-          description: Field `voucherNum`.
-          example: 123
         currencyCode:
           type: string
-          description: Field `currencyCode`.
-          example: string
         transactionAmount:
-          allOf:
-          - $ref: '#/components/schemas/BigDecimal'
-          description: Field `transactionAmount`.
+          $ref: '#/components/schemas/BigDecimal'
         customerName:
           type: string
-          description: Field `customerName`.
-          example: string
         customerSurname:
           type: string
-          description: Field `customerSurname`.
-          example: string
         customerTckn:
           type: string
-          description: Field `customerTckn`.
-          example: string
         accountBalanceAmount:
-          allOf:
-          - $ref: '#/components/schemas/BigDecimal'
-          description: Field `accountBalanceAmount`.
+          $ref: '#/components/schemas/BigDecimal'
         addressLine1:
           type: string
-          description: Field `addressLine1`.
-          example: string
         addressLine2:
           type: string
-          description: Field `addressLine2`.
-          example: string
         regionName:
           type: string
-          description: Field `regionName`.
-          example: string
         districtName:
           type: string
-          description: Field `districtName`.
-          example: string
         cityName:
           type: string
-          description: Field `cityName`.
-          example: string
         postalCode:
           type: string
-          description: Field `postalCode`.
-          example: string
         customerNumber:
           type: string
           format: int64
-          description: Field `customerNumber`.
-          example: '123456789'
         accountNumber:
           type: string
           format: int64
-          description: Field `accountNumber`.
-          example: '123456789'
         txnDate:
           type: string
-          description: Field `txnDate`.
-          example: string
         processMainCode:
           type: string
-          description: Field `processMainCode`.
-          example: string
         processSubCode:
           type: string
-          description: Field `processSubCode`.
-          example: string
         cicsTxnId:
           type: string
-          description: Field `cicsTxnId`.
-          example: string
         sourceId:
           type: string
-          description: Field `sourceId`.
-          example: string
         phoneNumber:
           type: string
-          description: Field `phoneNumber`.
-          example: string
         unitNum:
           type: integer
           format: int32
-          description: Field `unitNum`.
-          example: 123
         sbcReferenceNum:
           type: integer
           format: int32
-          description: Field `sbcReferenceNum`.
-          example: 123
       additionalProperties: false
-      description: 'Schema: CreateReceiptGrpcRequest.'
     CreateReceiptGrpcResponse:
       type: object
       properties:
         createReceiptTransaction:
-          allOf:
-          - $ref: '#/components/schemas/CreateReceiptTransaction'
-          description: Field `createReceiptTransaction`.
+          $ref: '#/components/schemas/CreateReceiptTransaction'
         createReceiptErrorComponent:
-          allOf:
-          - $ref: '#/components/schemas/CreateReceiptErrorComponent'
-          description: Field `createReceiptErrorComponent`.
+          $ref: '#/components/schemas/CreateReceiptErrorComponent'
       additionalProperties: false
-      description: 'Schema: CreateReceiptGrpcResponse.'
     CreateReceiptTransaction:
       type: object
       properties:
         instanceIdAs:
           type: string
-          description: Field `instanceIdAs`.
-          example: string
         instanceId:
           type: string
-          description: Field `instanceId`.
-          example: string
         referenceIdAs:
           type: string
-          description: Field `referenceIdAs`.
-          example: string
         referenceId1:
           type: string
-          description: Field `referenceId1`.
-          example: string
         txnReferenceIdAs:
           type: string
-          description: Field `txnReferenceIdAs`.
-          example: string
         txnReferenceId:
           type: string
-          description: Field `txnReferenceId`.
-          example: string
       additionalProperties: false
-      description: 'Schema: CreateReceiptTransaction.'
     CreateReceiptErrorComponent:
       type: object
       properties:
         severityCodeAs:
           type: string
-          description: Field `severityCodeAs`.
-          example: string
         severityCode:
           type: string
-          description: Field `severityCode`.
-          example: string
         rollbackIndicatorAs:
           type: string
-          description: Field `rollbackIndicatorAs`.
-          example: string
         rollbackIndicator:
           type: string
-          description: Field `rollbackIndicator`.
-          example: string
         originServIdAs:
           type: string
-          description: Field `originServIdAs`.
-          example: string
         returnCodeAs:
           type: string
-          description: Field `returnCodeAs`.
-          example: string
         returnCode:
           type: integer
           format: int32
-          description: Field `returnCode`.
-          example: 123
         reasonCodeAs:
           type: string
-          description: Field `reasonCodeAs`.
-          example: string
         reasonCode:
           type: integer
           format: int32
-          description: Field `reasonCode`.
-          example: 123
       additionalProperties: false
-      description: 'Schema: CreateReceiptErrorComponent.'
     SendEmailToCustomerRequest:
       type: object
       properties:
         templateCode:
           type: string
-          description: Field `templateCode`.
-          example: string
         subject:
           type: string
-          description: Field `subject`.
-          example: string
         fromAddressDisplayText:
           type: string
-          description: Field `fromAddressDisplayText`.
-          example: string
         fromAddress:
           type: string
-          description: Field `fromAddress`.
-          example: string
         replyToAddressDisplayText:
           type: string
-          description: Field `replyToAddressDisplayText`.
-          example: string
         replyToAddress:
           type: string
-          description: Field `replyToAddress`.
-          example: string
         userReference:
           type: string
-          description: Field `userReference`.
-          example: string
         programName:
           type: string
-          description: Field `programName`.
-          example: string
         sendStartTime:
           type: string
-          description: Field `sendStartTime`.
-          example: string
         sendEndTime:
           type: string
-          description: Field `sendEndTime`.
-          example: string
         emailXMLData:
           type: string
-          description: Field `emailXMLData`.
-          example: string
         recipientInfoList:
           type: array
           items:
-            allOf:
-            - $ref: '#/components/schemas/RecipientInfoList'
-            description: Field `recipientInfoList[]`.
-          description: Field `recipientInfoList`.
-          example: []
+            $ref: '#/components/schemas/RecipientInfoList'
       additionalProperties: false
-      description: 'Schema: SendEmailToCustomerRequest.'
     RecipientInfoList:
       type: object
       properties:
         emailAddress:
           type: string
-          description: Field `emailAddress`.
-          example: string
         type:
           type: string
-          description: Field `type`.
-          example: string
         customerNum:
           type: string
-          description: Field `customerNum`.
-          example: string
       additionalProperties: false
-      description: 'Schema: RecipientInfoList.'
     SendEmailToCustomerResponse:
       type: object
       properties:
         returnCode:
           type: string
-          description: Field `returnCode`.
-          example: string
         returnMessage:
           type: string
-          description: Field `returnMessage`.
-          example: string
         encryptedReferenceText:
           type: string
-          description: Field `encryptedReferenceText`.
-          example: string
         emailIdentifierNum:
           type: string
-          description: Field `emailIdentifierNum`.
-          example: string
       additionalProperties: false
-      description: 'Schema: SendEmailToCustomerResponse.'
     Transaction:
       type: object
       properties:
         operationType:
           type: string
-          description: Field `operationType`.
-          example: string
         processDate:
           type: string
-          description: Field `processDate`.
-          example: string
         customerNumber:
           type: integer
           format: int32
-          description: Field `customerNumber`.
-          example: 123
         accountBranchCode:
           type: integer
           format: int32
-          description: Field `accountBranchCode`.
-          example: 123
         customerAccountNum:
           type: integer
           format: int32
-          description: Field `customerAccountNum`.
-          example: 123
         ownerUnitNum:
           type: integer
           format: int32
-          description: Field `ownerUnitNum`.
-          example: 123
         approvalUnitNum:
           type: integer
           format: int32
-          description: Field `approvalUnitNum`.
-          example: 123
         transactionAmount:
-          allOf:
-          - $ref: '#/components/schemas/BigDecimal'
-          description: Field `transactionAmount`.
+          $ref: '#/components/schemas/BigDecimal'
         currencyCode:
           type: string
-          description: Field `currencyCode`.
-          example: string
         transactionTLAmount:
-          allOf:
-          - $ref: '#/components/schemas/BigDecimal'
-          description: Field `transactionTLAmount`.
+          $ref: '#/components/schemas/BigDecimal'
         currencyRate:
-          allOf:
-          - $ref: '#/components/schemas/BigDecimal'
-          description: Field `currencyRate`.
+          $ref: '#/components/schemas/BigDecimal'
         currencyType:
           type: string
-          description: Field `currencyType`.
-          example: string
         rateType:
           type: string
-          description: Field `rateType`.
-          example: string
         channelCode:
           type: string
-          description: Field `channelCode`.
-          example: string
         channelType:
           type: string
-          description: Field `channelType`.
-          example: string
         channelDetailText:
           type: string
-          description: Field `channelDetailText`.
-          example: string
         financialDomainCode:
           type: string
-          description: Field `financialDomainCode`.
-          example: string
         financialFamilyCode:
           type: string
-          description: Field `financialFamilyCode`.
-          example: string
         financialSubFamilyCode:
           type: string
-          description: Field `financialSubFamilyCode`.
-          example: string
         purposeValueCode:
           type: string
-          description: Field `purposeValueCode`.
-          example: string
         receiptInfoId:
           type: string
-          description: Field `receiptInfoId`.
-          example: string
         contractInfoId:
           type: string
-          description: Field `contractInfoId`.
-          example: string
         accountingGuid:
           type: string
-          description: Field `accountingGuid`.
-          example: string
         priceInqueryId:
           type: string
-          description: Field `priceInqueryId`.
-          example: string
         surveyInfoId:
           type: string
-          description: Field `surveyInfoId`.
-          example: string
         gmaticId:
           type: string
-          description: Field `gmaticId`.
-          example: string
         commisionAmount:
-          allOf:
-          - $ref: '#/components/schemas/BigDecimal'
-          description: Field `commisionAmount`.
+          $ref: '#/components/schemas/BigDecimal'
         commisionCurrencyCode:
           type: string
-          description: Field `commisionCurrencyCode`.
-          example: string
         chargeAmount:
-          allOf:
-          - $ref: '#/components/schemas/BigDecimal'
-          description: Field `chargeAmount`.
+          $ref: '#/components/schemas/BigDecimal'
         chargeCurrencyCode:
           type: string
-          description: Field `chargeCurrencyCode`.
-          example: string
         taxAmount:
-          allOf:
-          - $ref: '#/components/schemas/BigDecimal'
-          description: Field `taxAmount`.
+          $ref: '#/components/schemas/BigDecimal'
         taxCurrencyCode:
           type: string
-          description: Field `taxCurrencyCode`.
-          example: string
         statusCode:
           type: string
-          description: Field `statusCode`.
-          example: string
         cicsTxnId:
           type: string
-          description: Field `cicsTxnId`.
-          example: string
         checkNumber:
           type: string
-          description: Field `checkNumber`.
-          example: string
         goldValuationId:
           type: string
-          description: Field `goldValuationId`.
-          example: string
         prosecutorNotificationInfo:
           type: string
-          description: Field `prosecutorNotificationInfo`.
-          example: string
         transactionRelationType:
           type: string
-          description: Field `transactionRelationType`.
-          example: string
         transactionExplanationText:
           type: string
-          description: Field `transactionExplanationText`.
-          example: string
         requestText:
           type: string
-          description: Field `requestText`.
-          example: string
       additionalProperties: false
-      description: 'Schema: Transaction.'
     FindTransactionByCustomerNumberGrpcRequest:
       type: object
       properties:
         customerNumber:
           type: integer
           format: int32
-          description: Field `customerNumber`.
-          example: 123
       additionalProperties: false
-      description: 'Schema: FindTransactionByCustomerNumberGrpcRequest.'
     FindTransactionByCustomerNumberGrpcResponse:
       type: object
       properties:
         transactions:
           type: array
           items:
-            allOf:
-            - $ref: '#/components/schemas/Transaction'
-            description: Field `transactions[]`.
-          description: Field `transactions`.
-          example: []
+            $ref: '#/components/schemas/Transaction'
       additionalProperties: false
-      description: 'Schema: FindTransactionByCustomerNumberGrpcResponse.'
     FindTransactionByIdGrpcRequest:
       type: object
       properties:
         instanceId:
           type: string
-          description: Field `instanceId`.
-          example: string
       additionalProperties: false
-      description: 'Schema: FindTransactionByIdGrpcRequest.'
     FindTransactionByIdGrpcResponse:
       type: object
       properties:
         transaction:
-          allOf:
-          - $ref: '#/components/schemas/Transaction'
-          description: Field `transaction`.
+          $ref: '#/components/schemas/Transaction'
       additionalProperties: false
-      description: 'Schema: FindTransactionByIdGrpcResponse.'
     CreateTransactionGrpcRequest:
       type: object
       properties:
         transactions:
           type: array
           items:
-            allOf:
-            - $ref: '#/components/schemas/Transaction'
-            description: Field `transactions[]`.
-          description: Field `transactions`.
-          example: []
+            $ref: '#/components/schemas/Transaction'
       additionalProperties: false
-      description: 'Schema: CreateTransactionGrpcRequest.'
     CreateTransactionGrpcResponse:
       type: object
       properties:
         message:
           type: string
-          description: Field `message`.
-          example: string
       additionalProperties: false
-      description: 'Schema: CreateTransactionGrpcResponse.'
     TrnxCompleteWithdrawalGrpcRequest:
       type: object
       properties:
         operationType:
           type: string
-          description: Field `operationType`.
-          example: string
         customerNumber:
           type: integer
           format: int32
-          description: Field `customerNumber`.
-          example: 123
         accountBranchCode:
           type: integer
           format: int32
-          description: Field `accountBranchCode`.
-          example: 123
         customerAccountNum:
           type: integer
           format: int32
-          description: Field `customerAccountNum`.
-          example: 123
         transactionAmount:
-          allOf:
-          - $ref: '#/components/schemas/BigDecimal'
-          description: Field `transactionAmount`.
+          $ref: '#/components/schemas/BigDecimal'
         createUserId:
           type: string
-          description: Field `createUserId`.
-          example: string
         channelCode:
           type: string
-          description: Field `channelCode`.
-          example: string
         channelDetailText:
           type: string
-          description: Field `channelDetailText`.
-          example: string
         operation1Code:
           type: string
-          description: Field `operation1Code`.
-          example: string
         operation2Code:
           type: string
-          description: Field `operation2Code`.
-          example: string
         relatedProductCode:
           type: string
-          description: Field `relatedProductCode`.
-          example: string
         purposeValueCode:
           type: string
-          description: Field `purposeValueCode`.
-          example: string
         surveyIfoId:
           type: string
-          description: Field `surveyIfoId`.
-          example: string
         commissionAmount:
-          allOf:
-          - $ref: '#/components/schemas/BigDecimal'
-          description: Field `commissionAmount`.
+          $ref: '#/components/schemas/BigDecimal'
         commissionCurrencyCode:
           type: string
-          description: Field `commissionCurrencyCode`.
-          example: string
         priceInqueryId:
           type: string
-          description: Field `priceInqueryId`.
-          example: string
         chargeAmount:
-          allOf:
-          - $ref: '#/components/schemas/BigDecimal'
-          description: Field `chargeAmount`.
+          $ref: '#/components/schemas/BigDecimal'
         chargeCurrencyCode:
           type: string
-          description: Field `chargeCurrencyCode`.
-          example: string
         requestText:
           type: string
-          description: Field `requestText`.
-          example: string
         transactionExplanationText:
           type: string
-          description: Field `transactionExplanationText`.
-          example: string
         checkNumber:
           type: string
-          description: Field `checkNumber`.
-          example: string
         goldValuationId:
           type: string
-          description: Field `goldValuationId`.
-          example: string
         prosecutorNotificationInfo:
           type: string
-          description: Field `prosecutorNotificationInfo`.
-          example: string
         transactionRelationType:
           type: string
-          description: Field `transactionRelationType`.
-          example: string
         gmaticId:
           type: string
-          description: Field `gmaticId`.
-          example: string
         currencyCode:
           type: string
-          description: Field `currencyCode`.
-          example: string
         tcNumber:
           type: string
-          description: Field `tcNumber`.
-          example: string
         birthDate:
           type: string
-          description: Field `birthDate`.
-          example: string
         isCheck:
           type: boolean
-          description: Field `isCheck`.
-          example: true
         processingPersonInfo:
           type: array
           items:
-            allOf:
-            - $ref: '#/components/schemas/ProcessingPersonInfoRequest'
-            description: Field `processingPersonInfo[]`.
-          description: Field `processingPersonInfo`.
-          example: []
+            $ref: '#/components/schemas/ProcessingPersonInfoRequest'
         atmInfo:
-          allOf:
-          - $ref: '#/components/schemas/AtmInfoRequest'
-          description: Field `atmInfo`.
+          $ref: '#/components/schemas/AtmInfoRequest'
         commissionAccountInfo:
-          allOf:
-          - $ref: '#/components/schemas/CommissionAccountInfo'
-          description: Field `commissionAccountInfo`.
+          $ref: '#/components/schemas/CommissionAccountInfo'
         isNotificationToProsecutor:
           type: boolean
-          description: Field `isNotificationToProsecutor`.
-          example: true
         customerName:
           type: string
-          description: Field `customerName`.
-          example: string
         customerSurname:
           type: string
-          description: Field `customerSurname`.
-          example: string
         accountBalanceAmount:
-          allOf:
-          - $ref: '#/components/schemas/BigDecimal'
-          description: Field `accountBalanceAmount`.
+          $ref: '#/components/schemas/BigDecimal'
         addressLine1:
           type: string
-          description: Field `addressLine1`.
-          example: string
         addressLine2:
           type: string
-          description: Field `addressLine2`.
-          example: string
         regionName:
           type: string
-          description: Field `regionName`.
-          example: string
         districtName:
           type: string
-          description: Field `districtName`.
-          example: string
         cityName:
           type: string
-          description: Field `cityName`.
-          example: string
         postalCode:
           type: string
-          description: Field `postalCode`.
-          example: string
         phoneNumber:
           type: string
-          description: Field `phoneNumber`.
-          example: string
         cicsTxnId:
           type: string
-          description: Field `cicsTxnId`.
-          example: string
         sourceId:
           type: string
-          description: Field `sourceId`.
-          example: string
         kpsValidationBypass:
           type: boolean
-          description: Field `kpsValidationBypass`.
-          example: true
       additionalProperties: false
-      description: 'Schema: TrnxCompleteWithdrawalGrpcRequest.'
     CommissionAccountInfo:
       type: object
       properties:
         accountNumber:
           type: integer
           format: int32
-          description: Field `accountNumber`.
-          example: 123
         branch:
           type: integer
           format: int32
-          description: Field `branch`.
-          example: 123
         currency:
           type: string
-          description: Field `currency`.
-          example: string
         usableBalanceAmount:
           type: string
-          description: Field `usableBalanceAmount`.
-          example: string
       additionalProperties: false
-      description: 'Schema: CommissionAccountInfo.'
     ProcessingPersonInfoRequest:
       type: object
       properties:
         statusCode:
           type: string
-          description: Field `statusCode`.
-          example: string
         processCustomerNum:
           type: string
-          description: Field `processCustomerNum`.
-          example: string
       additionalProperties: false
-      description: 'Schema: ProcessingPersonInfoRequest.'
     AtmInfoRequest:
       type: object
       properties:
         cardNo:
           type: string
-          description: Field `cardNo`.
-          example: string
         isQr:
           type: boolean
-          description: Field `isQr`.
-          example: true
         qrId:
           type: string
-          description: Field `qrId`.
-          example: string
         atmNumber:
           type: string
-          description: Field `atmNumber`.
-          example: string
         isCommission:
           type: boolean
-          description: Field `isCommission`.
-          example: true
       additionalProperties: false
-      description: 'Schema: AtmInfoRequest.'
     TrnxCompleteWithdrawalGrpcResponse:
       type: object
       properties:
         instanceId:
           type: string
-          description: Field `instanceId`.
-          example: string
         receiptInstanceId:
           type: string
-          description: Field `receiptInstanceId`.
-          example: string
         receiptReferenceId:
           type: string
-          description: Field `receiptReferenceId`.
-          example: string
         receiptTxnReferenceId:
           type: string
-          description: Field `receiptTxnReferenceId`.
-          example: string
         approvalRequired:
           type: boolean
-          description: Field `approvalRequired`.
-          example: true
       additionalProperties: false
-      description: 'Schema: TrnxCompleteWithdrawalGrpcResponse.'
     UpdateTransactionStatusGrpcRequest:
       type: object
       properties:
         instanceId:
           type: string
-          description: Field `instanceId`.
-          example: string
         newStatus:
           type: string
-          description: Field `newStatus`.
-          example: string
         approveInstanceId:
           type: string
-          description: Field `approveInstanceId`.
-          example: string
       additionalProperties: false
-      description: 'Schema: UpdateTransactionStatusGrpcRequest.'
     UpdateTransactionStatusGrpcResponse:
       type: object
       properties:
         success:
           type: boolean
-          description: Field `success`.
-          example: true
       additionalProperties: false
-      description: 'Schema: UpdateTransactionStatusGrpcResponse.'
     FindTransactionsByJoinFiltersGrpcRequest:
       type: object
       properties:
         statusCode:
           type: string
-          description: Field `statusCode`.
-          example: string
         ownerUnitNum:
           type: string
-          description: Field `ownerUnitNum`.
-          example: string
         moneyTransactionIdStart:
           type: string
-          description: Field `moneyTransactionIdStart`.
-          example: string
         moneyTransactionIdEnd:
           type: string
-          description: Field `moneyTransactionIdEnd`.
-          example: string
         approveType:
           type: string
-          description: Field `approveType`.
-          example: string
         financialSubFamilyCode:
           type: string
-          description: Field `financialSubFamilyCode`.
-          example: string
         financialFamilyCode:
           type: string
-          description: Field `financialFamilyCode`.
-          example: string
         transactionAmountMin:
-          allOf:
-          - $ref: '#/components/schemas/BigDecimal'
-          description: Field `transactionAmountMin`.
+          $ref: '#/components/schemas/BigDecimal'
         transactionAmountMax:
-          allOf:
-          - $ref: '#/components/schemas/BigDecimal'
-          description: Field `transactionAmountMax`.
+          $ref: '#/components/schemas/BigDecimal'
       additionalProperties: false
-      description: 'Schema: FindTransactionsByJoinFiltersGrpcRequest.'
     FilteredTransaction:
       type: object
       properties:
         instanceId:
           type: string
-          description: Field `instanceId`.
-          example: string
         customerNameAndSurname:
           type: string
-          description: Field `customerNameAndSurname`.
-          example: string
         processDate:
           type: string
-          description: Field `processDate`.
-          example: string
         approveType:
           type: string
-          description: Field `approveType`.
-          example: string
         transactionAmount:
-          allOf:
-          - $ref: '#/components/schemas/BigDecimal'
-          description: Field `transactionAmount`.
+          $ref: '#/components/schemas/BigDecimal'
         status:
           type: string
-          description: Field `status`.
-          example: string
         createUserId:
           type: string
-          description: Field `createUserId`.
-          example: string
         approveUserId:
           type: string
-          description: Field `approveUserId`.
-          example: string
       additionalProperties: false
-      description: 'Schema: FilteredTransaction.'
     FindTransactionsByJoinFiltersGrpcResponse:
       type: object
       properties:
         transactions:
           type: array
           items:
-            allOf:
-            - $ref: '#/components/schemas/FilteredTransaction'
-            description: Field `transactions[]`.
-          description: Field `transactions`.
-          example: []
+            $ref: '#/components/schemas/FilteredTransaction'
       additionalProperties: false
-      description: 'Schema: FindTransactionsByJoinFiltersGrpcResponse.'
     AccountTransactionRulesGrpcRequest:
       type: object
       properties:
         debitUnitNum:
           type: integer
           format: int32
-          description: Field `debitUnitNum`.
-          example: 123
         debitAccountNum:
           type: integer
           format: int32
-          description: Field `debitAccountNum`.
-          example: 123
         transactionAmount:
           type: string
-          description: Field `transactionAmount`.
-          example: string
         currencyCode:
           type: string
-          description: Field `currencyCode`.
-          example: string
         transactionDate:
           type: string
-          description: Field `transactionDate`.
-          example: string
         oprtnCustList:
           type: array
           items:
             type: string
-            example: string
-            description: Field `oprtnCustList[]`.
-          description: Field `oprtnCustList`.
-          example:
-          - string
       additionalProperties: false
-      description: 'Schema: AccountTransactionRulesGrpcRequest.'
     AccountTransactionRulesGrpcResponse:
       type: object
       properties:
@@ -2183,445 +1696,239 @@ components:
           type: array
           items:
             type: string
-            example: string
-            description: Field `messages[]`.
-          description: Field `messages`.
-          example:
-          - string
         accountUsableBalanceAmount:
-          allOf:
-          - $ref: '#/components/schemas/BigDecimal'
-          description: Field `accountUsableBalanceAmount`.
+          $ref: '#/components/schemas/BigDecimal'
         debitUnitNum:
           type: integer
           format: int32
-          description: Field `debitUnitNum`.
-          example: 123
         debitAccountNum:
           type: integer
           format: int32
-          description: Field `debitAccountNum`.
-          example: 123
         debitCustomerFirstName:
           type: string
-          description: Field `debitCustomerFirstName`.
-          example: string
         debitCustomerLastName:
           type: string
-          description: Field `debitCustomerLastName`.
-          example: string
         debitAccountCurrCode:
           type: string
-          description: Field `debitAccountCurrCode`.
-          example: string
         debitAccountCustomerNum:
           type: integer
           format: int32
-          description: Field `debitAccountCustomerNum`.
-          example: 123
         debitCustomerType:
           type: string
-          description: Field `debitCustomerType`.
-          example: string
         checkRelatedAccount:
           type: string
-          description: Field `checkRelatedAccount`.
-          example: string
       additionalProperties: false
-      description: 'Schema: AccountTransactionRulesGrpcResponse.'
     SaveRepresentativePersonRequest:
       type: object
       properties:
         customerNum:
           type: string
-          description: Field `customerNum`.
-          example: string
         opnDefinedKey:
           type: string
-          description: Field `opnDefinedKey`.
-          example: string
         partyType:
           type: string
-          description: Field `partyType`.
-          example: string
         recordStatus:
           type: string
-          description: Field `recordStatus`.
-          example: string
         serverData:
-          allOf:
-          - $ref: '#/components/schemas/ServerData'
-          description: Field `serverData`.
+          $ref: '#/components/schemas/ServerData'
       additionalProperties: false
-      description: 'Schema: SaveRepresentativePersonRequest.'
     SaveRepresentativePersonResponse:
       type: object
       properties:
         customerNum:
           type: string
-          description: Field `customerNum`.
-          example: string
         name:
           type: string
-          description: Field `name`.
-          example: string
         surname:
           type: string
-          description: Field `surname`.
-          example: string
         citizenText:
           type: string
-          description: Field `citizenText`.
-          example: string
         mernisNum:
           type: string
-          description: Field `mernisNum`.
-          example: string
         birthDate:
           type: string
-          description: Field `birthDate`.
-          example: string
         otherNationalityId:
           type: string
-          description: Field `otherNationalityId`.
-          example: string
       additionalProperties: false
-      description: 'Schema: SaveRepresentativePersonResponse.'
     CustomerInfoGrpcRequest:
       type: object
       properties:
         customerNum:
           type: string
-          description: Field `customerNum`.
-          example: string
       additionalProperties: false
-      description: 'Schema: CustomerInfoGrpcRequest.'
     CustomerInfoGrpcResponse:
       type: object
       properties:
         customerNum:
           type: string
-          description: Field `customerNum`.
-          example: string
         name:
           type: string
-          description: Field `name`.
-          example: string
         surname:
           type: string
-          description: Field `surname`.
-          example: string
         citizen:
           type: string
-          description: Field `citizen`.
-          example: string
         mernisNum:
           type: string
-          description: Field `mernisNum`.
-          example: string
         birthDate:
           type: string
-          description: Field `birthDate`.
-          example: string
         otherNationalityId:
           type: string
-          description: Field `otherNationalityId`.
-          example: string
         customerType:
           type: string
-          description: Field `customerType`.
-          example: string
         isOperant:
           type: boolean
-          description: Field `isOperant`.
-          example: true
         operantMessages:
           type: array
           items:
             type: string
-            example: string
-            description: Field `operantMessages[]`.
-          description: Field `operantMessages`.
-          example:
-          - string
         isActivePerson:
           type: boolean
-          description: Field `isActivePerson`.
-          example: true
         customerSubType:
           type: string
-          description: Field `customerSubType`.
-          example: string
         customerSubType2:
           type: string
-          description: Field `customerSubType2`.
-          example: string
       additionalProperties: false
-      description: 'Schema: CustomerInfoGrpcResponse.'
     ExtendedCustomerInfoGrpcResponse:
       type: object
       properties:
         customerNum:
           type: string
-          description: Field `customerNum`.
-          example: string
         name:
           type: string
-          description: Field `name`.
-          example: string
         surname:
           type: string
-          description: Field `surname`.
-          example: string
         citizenText:
           type: string
-          description: Field `citizenText`.
-          example: string
         mernisNum:
           type: string
-          description: Field `mernisNum`.
-          example: string
         birthDate:
           type: string
-          description: Field `birthDate`.
-          example: string
         otherNationalityId:
           type: string
-          description: Field `otherNationalityId`.
-          example: string
         settledCountryCode:
           type: string
-          description: Field `settledCountryCode`.
-          example: string
         birthPlace:
           type: string
-          description: Field `birthPlace`.
-          example: string
         motherName:
           type: string
-          description: Field `motherName`.
-          example: string
         fatherName:
           type: string
-          description: Field `fatherName`.
-          example: string
         phoneNumCountryCode:
           type: string
-          description: Field `phoneNumCountryCode`.
-          example: string
         phoneNum:
           type: string
-          description: Field `phoneNum`.
-          example: string
         pasaportNumText:
           type: string
-          description: Field `pasaportNumText`.
-          example: string
         addressType:
           type: string
-          description: Field `addressType`.
-          example: string
         countryCode:
           type: string
-          description: Field `countryCode`.
-          example: string
         cityCode:
           type: string
-          description: Field `cityCode`.
-          example: string
         addressLine:
           type: string
-          description: Field `addressLine`.
-          example: string
         postalCode:
           type: string
-          description: Field `postalCode`.
-          example: string
         regionName:
           type: string
-          description: Field `regionName`.
-          example: string
         workingStyle:
           type: string
-          description: Field `workingStyle`.
-          example: string
         jobTitle:
           type: string
-          description: Field `jobTitle`.
-          example: string
       additionalProperties: false
-      description: 'Schema: ExtendedCustomerInfoGrpcResponse.'
     GetKpsInfoRequest:
       type: object
       properties:
         nationalId:
           type: string
-          description: Field `nationalId`.
-          example: string
         birthDate:
           type: string
-          description: Field `birthDate`.
-          example: string
         inquiryDateMargin:
           type: integer
           format: int32
-          description: Field `inquiryDateMargin`.
-          example: 123
       additionalProperties: false
-      description: 'Schema: GetKpsInfoRequest.'
     GetKpsInfoResponse:
       type: object
       properties:
         nationalIdNum:
           type: string
-          description: Field `nationalIdNum`.
-          example: string
         name:
           type: string
-          description: Field `name`.
-          example: string
         surname:
           type: string
-          description: Field `surname`.
-          example: string
         birthDate:
           type: string
-          description: Field `birthDate`.
-          example: string
         birthPlace:
           type: string
-          description: Field `birthPlace`.
-          example: string
         fatherName:
           type: string
-          description: Field `fatherName`.
-          example: string
         motherName:
           type: string
-          description: Field `motherName`.
-          example: string
         serialCode:
           type: string
-          description: Field `serialCode`.
-          example: string
         sequenceNumber:
           type: integer
           format: int32
-          description: Field `sequenceNumber`.
-          example: 123
         newIdentityCard:
           type: boolean
-          description: Field `newIdentityCard`.
-          example: true
       additionalProperties: false
-      description: 'Schema: GetKpsInfoResponse.'
     SaveTransactionCustomerRequest:
       type: object
       properties:
         nationalIdNum:
           type: string
-          description: Field `nationalIdNum`.
-          example: string
         name:
           type: string
-          description: Field `name`.
-          example: string
         surname:
           type: string
-          description: Field `surname`.
-          example: string
         birthDate:
           type: string
-          description: Field `birthDate`.
-          example: string
         nationalityCode:
           type: string
-          description: Field `nationalityCode`.
-          example: string
         kktcNationalId:
           type: string
-          description: Field `kktcNationalId`.
-          example: string
         passportId:
           type: string
-          description: Field `passportId`.
-          example: string
         countryCode:
           type: string
-          description: Field `countryCode`.
-          example: string
         birthPlace:
           type: string
-          description: Field `birthPlace`.
-          example: string
         fatherName:
           type: string
-          description: Field `fatherName`.
-          example: string
         motherName:
           type: string
-          description: Field `motherName`.
-          example: string
         workingType:
           type: string
-          description: Field `workingType`.
-          example: string
         jobTitle:
           type: string
-          description: Field `jobTitle`.
-          example: string
         cityCode:
           type: string
-          description: Field `cityCode`.
-          example: string
         cityName:
           type: string
-          description: Field `cityName`.
-          example: string
         countyName:
           type: string
-          description: Field `countyName`.
-          example: string
         phoneCountryCode:
           type: string
-          description: Field `phoneCountryCode`.
-          example: string
         phoneNum:
           type: string
-          description: Field `phoneNum`.
-          example: string
         postcode:
           type: string
-          description: Field `postcode`.
-          example: string
         address:
           type: string
-          description: Field `address`.
-          example: string
         addressType:
           type: string
-          description: Field `addressType`.
-          example: string
         customerNum:
           type: string
-          description: Field `customerNum`.
-          example: string
       additionalProperties: false
-      description: 'Schema: SaveTransactionCustomerRequest.'
     TransactionCustomerMessageResponse:
       type: object
       properties:
         message:
           type: string
-          description: Field `message`.
-          example: string
         customerNum:
           type: integer
           format: int32
-          description: Field `customerNum`.
-          example: 123
       additionalProperties: false
-      description: 'Schema: TransactionCustomerMessageResponse.'
     BigDecimal:
       type: object
       description: Decimal type from proto (scale/precision/value).
