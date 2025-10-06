@@ -61,14 +61,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/ChequeCommissionInfoRequest'
+              type: object
+              description: Generic object (auto-fixed from invalid $ref 'ChequeCommissionInfoRequest').
+              example: {}
       responses:
         '200':
           description: Success
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ChequeCommissionInfoResponse'
+                type: object
+                description: Generic object (auto-fixed from invalid $ref 'ChequeCommissionInfoResponse').
+                example: {}
         '400':
           description: Bad Request
           content:
@@ -111,14 +115,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RepresentativePersonRequest'
+              type: object
+              description: Generic object (auto-fixed from invalid $ref 'RepresentativePersonRequest').
+              example: {}
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RepresentativePersonResponse'
+                type: object
+                description: Generic object (auto-fixed from invalid $ref 'RepresentativePersonResponse').
+                example: {}
         '400':
           description: Bad Request
           content:
@@ -308,14 +316,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/DigitalOrderReadRequest'
+              type: object
+              description: Generic object (auto-fixed from invalid $ref 'DigitalOrderReadRequest').
+              example: {}
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/DigitalOrderReadResponse'
+                type: object
+                description: Generic object (auto-fixed from invalid $ref 'DigitalOrderReadResponse').
+                example: {}
         '400':
           description: Bad Request
           content:
@@ -457,14 +469,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/OperationCodeGrpcRequest'
+              type: object
+              description: Generic object (auto-fixed from invalid $ref 'OperationCodeGrpcRequest').
+              example: {}
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/OperationCodeGrpcResponse'
+                type: object
+                description: Generic object (auto-fixed from invalid $ref 'OperationCodeGrpcResponse').
+                example: {}
         '400':
           description: Bad Request
           content:
@@ -558,14 +574,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/FindTransactionByCustomerNumberGrpcRequest'
+              type: object
+              description: Generic object (auto-fixed from invalid $ref 'FindTransactionByCustomerNumberGrpcRequest').
+              example: {}
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/FindTransactionByCustomerNumberGrpcResponse'
+                type: object
+                description: Generic object (auto-fixed from invalid $ref 'FindTransactionByCustomerNumberGrpcResponse').
+                example: {}
         '400':
           description: Bad Request
           content:
@@ -611,14 +631,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TrnxCompleteWithdrawalGrpcRequest'
+              type: object
+              description: Generic object (auto-fixed from invalid $ref 'TrnxCompleteWithdrawalGrpcRequest').
+              example: {}
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TrnxCompleteWithdrawalGrpcResponse'
+                type: object
+                description: Generic object (auto-fixed from invalid $ref 'TrnxCompleteWithdrawalGrpcResponse').
+                example: {}
         '400':
           description: Bad Request
           content:
@@ -760,14 +784,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AccountTransactionRulesGrpcRequest'
+              type: object
+              description: Generic object (auto-fixed from invalid $ref 'AccountTransactionRulesGrpcRequest').
+              example: {}
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/AccountTransactionRulesGrpcResponse'
+                type: object
+                description: Generic object (auto-fixed from invalid $ref 'AccountTransactionRulesGrpcResponse').
+                example: {}
         '400':
           description: Bad Request
           content:
@@ -813,14 +841,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/RepresentativePersonRequest'
+              type: object
+              description: Generic object (auto-fixed from invalid $ref 'RepresentativePersonRequest').
+              example: {}
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/RepresentativePersonResponse'
+                type: object
+                description: Generic object (auto-fixed from invalid $ref 'RepresentativePersonResponse').
+                example: {}
         '400':
           description: Bad Request
           content:
@@ -866,14 +898,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SaveRepresentativePersonRequest'
+              type: object
+              description: Generic object (auto-fixed from invalid $ref 'SaveRepresentativePersonRequest').
+              example: {}
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SaveRepresentativePersonResponse'
+                type: object
+                description: Generic object (auto-fixed from invalid $ref 'SaveRepresentativePersonResponse').
+                example: {}
         '400':
           description: Bad Request
           content:
@@ -919,14 +955,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CustomerInfoGrpcRequest'
+              type: object
+              description: Generic object (auto-fixed from invalid $ref 'CustomerInfoGrpcRequest').
+              example: {}
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/CustomerInfoGrpcResponse'
+                type: object
+                description: Generic object (auto-fixed from invalid $ref 'CustomerInfoGrpcResponse').
+                example: {}
         '400':
           description: Bad Request
           content:
@@ -972,14 +1012,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/CustomerInfoGrpcRequest'
+              type: object
+              description: Generic object (auto-fixed from invalid $ref 'CustomerInfoGrpcRequest').
+              example: {}
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ExtendedCustomerInfoGrpcResponse'
+                type: object
+                description: Generic object (auto-fixed from invalid $ref 'ExtendedCustomerInfoGrpcResponse').
+                example: {}
         '400':
           description: Bad Request
           content:
@@ -1025,14 +1069,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/GetKpsInfoRequest'
+              type: object
+              description: Generic object (auto-fixed from invalid $ref 'GetKpsInfoRequest').
+              example: {}
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GetKpsInfoResponse'
+                type: object
+                description: Generic object (auto-fixed from invalid $ref 'GetKpsInfoResponse').
+                example: {}
         '400':
           description: Bad Request
           content:
@@ -1078,14 +1126,18 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/SaveTransactionCustomerRequest'
+              type: object
+              description: Generic object (auto-fixed from invalid $ref 'SaveTransactionCustomerRequest').
+              example: {}
       responses:
         '200':
           description: OK
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TransactionCustomerMessageResponse'
+                type: object
+                description: Generic object (auto-fixed from invalid $ref 'TransactionCustomerMessageResponse').
+                example: {}
         '400':
           description: Bad Request
           content:
@@ -1180,7 +1232,9 @@ components:
     GUID:
       description: Header GUID
       schema:
-        $ref: '#/components/parameters/GuidHeader'
+        type: object
+        description: Generic object (auto-fixed from invalid $ref).
+        example: {}
   schemas:
     GetChequeCostResponse:
       type: object
@@ -1276,7 +1330,9 @@ components:
         records:
           type: array
           items:
-            $ref: '#/components/schemas/T'
+            type: object
+            description: Generic object (auto-fixed from invalid $ref 'T').
+            example: {}
           description: Field `records`.
           example: [string]
       example: {totalCount: 123, records: [string]}
@@ -1849,12 +1905,15 @@ components:
         operationCodeItems:
           type: array
           items:
-            $ref: '#/components/schemas/OperationCodeItem'
+            type: object
+            description: Generic object (auto-fixed from invalid $ref 'OperationCodeItem').
+            example: {}
           description: Field `operationCodeItems`.
           example: [string]
         processMainCode:
-          $ref: "#/components/schemas/static class OperationCodeItem {\n        private\
-            \ String"
+          type: object
+          description: Generic object (auto-fixed from invalid $ref).
+          example: {}
         processSubCode:
           type: string
           example: string
@@ -2747,70 +2806,108 @@ components:
       description: OK.
       headers:
         Access-Control-Allow-Origin:
-          $ref: '#/components/headers/Access-Control-Allow-Origin'
+          type: object
+          description: Generic object (auto-fixed from invalid $ref).
+          example: {}
         GUID:
-          $ref: '#/components/headers/GUID'
+          type: object
+          description: Generic object (auto-fixed from invalid $ref).
+          example: {}
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/CreateTransactionGrpcResponse'
+            type: object
+            description: Generic object (auto-fixed from invalid $ref 'CreateTransactionGrpcResponse').
+            example: {}
     HttpOKwithRepresentativePersonResponseResult:
       description: OK.
       headers:
         Access-Control-Allow-Origin:
-          $ref: '#/components/headers/Access-Control-Allow-Origin'
+          type: object
+          description: Generic object (auto-fixed from invalid $ref).
+          example: {}
         GUID:
-          $ref: '#/components/headers/GUID'
+          type: object
+          description: Generic object (auto-fixed from invalid $ref).
+          example: {}
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/RepresentativePersonResponse'
+            type: object
+            description: Generic object (auto-fixed from invalid $ref 'RepresentativePersonResponse').
+            example: {}
     HttpOKwithOperationCodeGrpcResponseResult:
       description: OK.
       headers:
         Access-Control-Allow-Origin:
-          $ref: '#/components/headers/Access-Control-Allow-Origin'
+          type: object
+          description: Generic object (auto-fixed from invalid $ref).
+          example: {}
         GUID:
-          $ref: '#/components/headers/GUID'
+          type: object
+          description: Generic object (auto-fixed from invalid $ref).
+          example: {}
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/OperationCodeGrpcResponse'
+            type: object
+            description: Generic object (auto-fixed from invalid $ref 'OperationCodeGrpcResponse').
+            example: {}
     BadRequest:
       description: Bad request.
       headers:
         Access-Control-Allow-Origin:
-          $ref: '#/components/headers/Access-Control-Allow-Origin'
+          type: object
+          description: Generic object (auto-fixed from invalid $ref).
+          example: {}
         GUID:
-          $ref: '#/components/headers/GUID'
+          type: object
+          description: Generic object (auto-fixed from invalid $ref).
+          example: {}
     Forbiden:
       description: Forbidden
       headers:
         Access-Control-Allow-Origin:
-          $ref: '#/components/headers/Access-Control-Allow-Origin'
+          type: object
+          description: Generic object (auto-fixed from invalid $ref).
+          example: {}
         GUID:
-          $ref: '#/components/headers/GUID'
+          type: object
+          description: Generic object (auto-fixed from invalid $ref).
+          example: {}
     MethodNotAllowed:
       description: Method not allowed.
       headers:
         Access-Control-Allow-Origin:
-          $ref: '#/components/headers/Access-Control-Allow-Origin'
+          type: object
+          description: Generic object (auto-fixed from invalid $ref).
+          example: {}
         GUID:
-          $ref: '#/components/headers/GUID'
+          type: object
+          description: Generic object (auto-fixed from invalid $ref).
+          example: {}
     ServerError:
       description: Internal Server error.
       headers:
         Access-Control-Allow-Origin:
-          $ref: '#/components/headers/Access-Control-Allow-Origin'
+          type: object
+          description: Generic object (auto-fixed from invalid $ref).
+          example: {}
         GUID:
-          $ref: '#/components/headers/GUID'
+          type: object
+          description: Generic object (auto-fixed from invalid $ref).
+          example: {}
     Unauthorized:
       description: Unauthorized.
       headers:
         Access-Control-Allow-Origin:
-          $ref: '#/components/headers/Access-Control-Allow-Origin'
+          type: object
+          description: Generic object (auto-fixed from invalid $ref).
+          example: {}
         GUID:
-          $ref: '#/components/headers/GUID'
+          type: object
+          description: Generic object (auto-fixed from invalid $ref).
+          example: {}
   parameters:
     AuthorizationTokenHeader:
       name: Authorization
