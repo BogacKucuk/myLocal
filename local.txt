@@ -1182,17 +1182,6 @@ components:
       schema:
         $ref: '#/components/parameters/GuidHeader'
   schemas:
-    GetChequeCostResponse:
-      type: object
-      description: 'Schema from code DTO: GetChequeCostResponse.'
-      properties:
-        cost:
-          $ref: '#/components/schemas/ChequeMoney'
-        isCommissionFree:
-          type: boolean
-          example: true
-          description: Field `isCommissionFree`.
-      example: {cost: {}, isCommissionFree: true}
     ChequeMoney:
       type: object
       description: 'Schema from code DTO: ChequeMoney.'
@@ -1206,24 +1195,9 @@ components:
           type: string
           example: string
           description: Field `currency`.
-      example: {amount: 100.5, currency: string}
-    GetChequeCostRequest:
-      type: object
-      description: 'Schema from code DTO: GetChequeCostRequest.'
-      properties:
-        customerNo:
-          type: string
-          example: string
-          description: Field `customerNo`.
-        opCode:
-          $ref: '#/components/schemas/OperationCode'
-        chequeAmount:
-          $ref: '#/components/schemas/ChequeMoney'
-        account:
-          $ref: '#/components/schemas/Account'
-        commissionServerData:
-          $ref: '#/components/schemas/CommissionServerData'
-      example: {customerNo: string, opCode: {}, chequeAmount: {}, account: {}, commissionServerData: {}}
+      example:
+        amount: 100.5
+        currency: string
     OperationCode:
       type: object
       description: 'Schema from code DTO: OperationCode.'
@@ -1236,7 +1210,9 @@ components:
           type: string
           example: string
           description: Field `opCode2`.
-      example: {opCode1: string, opCode2: string}
+      example:
+        opCode1: string
+        opCode2: string
     Account:
       type: object
       description: 'Schema from code DTO: Account.'
@@ -1250,7 +1226,9 @@ components:
           type: string
           example: string
           description: Field `number`.
-      example: {branch: 123, number: string}
+      example:
+        branch: 123
+        number: string
     CommissionServerData:
       type: object
       description: 'Schema from code DTO: CommissionServerData.'
@@ -1263,98 +1241,9 @@ components:
           type: string
           example: string
           description: Field `referenceId`.
-      example: {userId: string, referenceId: string}
-    PaginationResultDto:
-      type: object
-      description: 'Schema from code DTO: PaginationResultDto.'
-      properties:
-        totalCount:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `totalCount`.
-        records:
-          type: array
-          items:
-            type: object
-            description: Generic object (replacing unresolved generic type).
-            example: {}
-          description: Field `records`.
-          example: [string]
-      example: {totalCount: 123, records: [string]}
-    ProcessResponseDto:
-      type: object
-      description: 'Schema from code DTO: ProcessResponseDto.'
-      properties:
-        moneyTransactionId:
-          type: string
-          example: string
-          description: Field `moneyTransactionId`.
-        status:
-          type: string
-          example: string
-          description: Field `status`.
-        approveOrder:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `approveOrder`.
-        approveType:
-          type: string
-          example: string
-          description: Field `approveType`.
-        approveUserRole:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `approveUserRole`.
-        approveUserId:
-          type: string
-          example: string
-          description: Field `approveUserId`.
-        approveDate:
-          type: string
-          example: string
-          description: Field `approveDate`.
-        approvalUnitNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `approvalUnitNum`.
-        transactionAmount:
-          type: string
-          example: string
-          description: Field `transactionAmount`.
-        customerNumber:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `customerNumber`.
-        createUserId:
-          type: string
-          example: string
-          description: Field `createUserId`.
-        requestText:
-          type: string
-          example: string
-          description: Field `requestText`.
-        instanceId:
-          type: string
-          example: string
-          description: Field `instanceId`.
-      example: {moneyTransactionId: string, status: string, approveOrder: 123, approveType: string,
-        approveUserRole: 123, approveUserId: string, approveDate: string, approvalUnitNum: 123,
-        transactionAmount: string, customerNumber: 123, createUserId: string, requestText: string,
-        instanceId: string}
-    ProcessRequestDto:
-      type: object
-      description: 'Schema from code DTO: ProcessRequestDto.'
-      properties:
-        pagination:
-          $ref: '#/components/schemas/PageableInboundDto'
-        filter:
-          $ref: '#/components/schemas/ProcessFilterRequestDto'
-      example: {pagination: {}, filter: {}}
+      example:
+        userId: string
+        referenceId: string
     PageableInboundDto:
       type: object
       description: 'Schema from code DTO: PageableInboundDto.'
@@ -1371,7 +1260,10 @@ components:
           description: Field `size`.
         sort:
           $ref: '#/components/schemas/SortInboundDto'
-      example: {page: 123, size: 123, sort: {}}
+      example:
+        page: 123
+        size: 123
+        sort: {}
     SortInboundDto:
       type: object
       description: 'Schema from code DTO: SortInboundDto.'
@@ -1387,7 +1279,9 @@ components:
           - SORT_DIRECTION_DESC
           example: SORT_DIRECTION_ASC
           description: Field `direction`.
-      example: {field: string, direction: SORT_DIRECTION_ASC}
+      example:
+        field: string
+        direction: SORT_DIRECTION_ASC
     ProcessFilterRequestDto:
       type: object
       description: 'Schema from code DTO: ProcessFilterRequestDto.'
@@ -1434,64 +1328,17 @@ components:
           type: string
           example: string
           description: Field `financialFamilyCode`.
-      example: {status: string, approveType: string, approvalUnitNum: 123, transactionAmountMin: string,
-        transactionAmountMax: string, approveDateFirst: string, approveDateLast: string,
-        approveOrder: 123, financialSubFamilyCode: string, financialFamilyCode: string}
-    ProcessStateChangeResponseDto:
-      type: object
-      description: 'Schema from code DTO: ProcessStateChangeResponseDto.'
-      properties:
-        message:
-          type: string
-          example: string
-          description: Field `message`.
-      example: {message: string}
-    ProcessStateChangeRequestDto:
-      type: object
-      description: 'Schema from code DTO: ProcessStateChangeRequestDto.'
-      properties:
-        operationType:
-          type: string
-          example: string
-          description: Field `operationType`.
-        instanceId:
-          type: string
-          example: string
-          description: Field `instanceId`.
-      example: {operationType: string, instanceId: string}
-    ApproveBulkFraudProcessResponseDto:
-      type: object
-      description: 'Schema from code DTO: ApproveBulkFraudProcessResponseDto.'
-      properties:
-        message:
-          type: string
-          example: string
-          description: Field `message`.
-      example: {message: string}
-    ApproveBulkFraudProcessRequestDto:
-      type: object
-      description: 'Schema from code DTO: ApproveBulkFraudProcessRequestDto.'
-      properties:
-        instanceId:
-          type: string
-          example: string
-          description: Field `instanceId`.
-        status:
-          type: string
-          example: string
-          description: Field `status`.
-      example: {instanceId: string, status: string}
-    DigitalOrderReadResponseDto:
-      type: object
-      description: 'Schema from code DTO: DigitalOrderReadResponseDto.'
-      properties:
-        readBranchInstructionDepositWithdrawal:
-          type: array
-          items:
-            $ref: '#/components/schemas/ReadBranchInstructionDepositWithdrawalDto'
-          description: Field `readBranchInstructionDepositWithdrawal`.
-          example: [string]
-      example: {readBranchInstructionDepositWithdrawal: [string]}
+      example:
+        status: string
+        approveType: string
+        approvalUnitNum: 123
+        transactionAmountMin: string
+        transactionAmountMax: string
+        approveDateFirst: string
+        approveDateLast: string
+        approveOrder: 123
+        financialSubFamilyCode: string
+        financialFamilyCode: string
     ReadBranchInstructionDepositWithdrawalDto:
       type: object
       description: 'Schema from code DTO: ReadBranchInstructionDepositWithdrawalDto.'
@@ -1551,143 +1398,19 @@ components:
           format: int32
           example: 123
           description: Field `processUnitNum`.
-      example: {instructionId: '123456789', customerNum: 123, accountNumber: 123,
-        branchCode: 123, amount: 100.5, currencyCode: string, identityNumber: string,
-        documentId: string, transactionDate: string, status: string, transactionType: 123,
-        processUnitNum: 123}
-    DigitalOrderReadRequestDto:
-      type: object
-      description: 'Schema from code DTO: DigitalOrderReadRequestDto.'
-      properties:
-        instructionId:
-          type: string
-          format: int64
-          example: '123456789'
-          description: Field `instructionId`.
-        customerNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `customerNum`.
-        accountNumber:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `accountNumber`.
-        branchCode:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `branchCode`.
-        amount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field `amount`.
-        currencyCode:
-          type: string
-          example: string
-          description: Field `currencyCode`.
-        identityNumber:
-          type: string
-          example: string
-          description: Field `identityNumber`.
-        documentId:
-          type: string
-          example: string
-          description: Field `documentId`.
-        transactionDate:
-          type: string
-          example: string
-          description: Field `transactionDate`.
-        status:
-          type: string
-          example: string
-          description: Field `status`.
-        transactionType:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `transactionType`.
-        processUnitNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `processUnitNum`.
-      example: {instructionId: '123456789', customerNum: 123, accountNumber: 123,
-        branchCode: 123, amount: 100.5, currencyCode: string, identityNumber: string,
-        documentId: string, transactionDate: string, status: string, transactionType: 123,
-        processUnitNum: 123}
-    CreateSinglePdfResponseDto:
-      type: object
-      description: 'Schema from code DTO: CreateSinglePdfResponseDto.'
-      properties:
-        returnCode:
-          type: string
-          example: string
-          description: Field `returnCode`.
-        returnMsg:
-          type: string
-          example: string
-          description: Field `returnMsg`.
-        documentId:
-          type: string
-          example: string
-          description: Field `documentId`.
-      example: {returnCode: string, returnMsg: string, documentId: string}
-    CreateSinglePdfRequestDto:
-      type: object
-      description: 'Schema from code DTO: CreateSinglePdfRequestDto.'
-      properties:
-        documentType:
-          type: string
-          example: string
-          description: Field `documentType`.
-        documentStatus:
-          type: string
-          example: string
-          description: Field `documentStatus`.
-        async:
-          type: string
-          example: string
-          description: Field `async`.
-        userId:
-          type: string
-          example: string
-          description: Field `userId`.
-        authUserId:
-          type: string
-          example: string
-          description: Field `authUserId`.
-        xmlData:
-          type: string
-          example: string
-          description: Field `xmlData`.
-        date:
-          type: string
-          example: string
-          description: Field `date`.
-        commissionRate:
-          type: number
-          format: double
-          example: 123.45
-          description: Field `commissionRate`.
-        transactionAmount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field `transactionAmount`.
-        customerInfo:
-          type: array
-          items:
-            $ref: '#/components/schemas/CustomerInfo'
-          description: Field `customerInfo`.
-          example: [string]
-        branchInfo:
-          $ref: '#/components/schemas/BranchInfo'
-      example: {documentType: string, documentStatus: string, async: string, userId: string,
-        authUserId: string, xmlData: string, date: string, commissionRate: 123.45,
-        transactionAmount: 100.5, customerInfo: [string], branchInfo: {}}
+      example:
+        instructionId: '123456789'
+        customerNum: 123
+        accountNumber: 123
+        branchCode: 123
+        amount: 100.5
+        currencyCode: string
+        identityNumber: string
+        documentId: string
+        transactionDate: string
+        status: string
+        transactionType: 123
+        processUnitNum: 123
     CustomerInfo:
       type: object
       description: 'Schema from code DTO: CustomerInfo.'
@@ -1717,8 +1440,13 @@ components:
           type: string
           example: string
           description: Field `nationality`.
-      example: {customerFullName: string, customerNumber: '123456789', customerAddress: string,
-        accountType: string, tckn: string, nationality: string}
+      example:
+        customerFullName: string
+        customerNumber: '123456789'
+        customerAddress: string
+        accountType: string
+        tckn: string
+        nationality: string
     BranchInfo:
       type: object
       description: 'Schema from code DTO: BranchInfo.'
@@ -1748,93 +1476,13 @@ components:
           format: int32
           example: 123
           description: Field `referenceNumber`.
-      example: {branchName: string, branchCity: string, branchDistrict: string, countryCode: string,
-        branchAddress: string, referenceNumber: 123}
-    GetPdfResponseDto:
-      type: object
-      description: 'Schema from code DTO: GetPdfResponseDto.'
-      properties:
-        returnCode:
-          type: string
-          example: string
-          description: Field `returnCode`.
-        returnMsg:
-          type: string
-          example: string
-          description: Field `returnMsg`.
-        printType:
-          type: string
-          example: string
-          description: Field `printType`.
-        paperTrayText:
-          type: string
-          example: string
-          description: Field `paperTrayText`.
-        secPaperTrayText:
-          type: string
-          example: string
-          description: Field `secPaperTrayText`.
-        pdfData:
-          type: string
-          example: string
-          description: Field `pdfData`.
-      example: {returnCode: string, returnMsg: string, printType: string, paperTrayText: string,
-        secPaperTrayText: string, pdfData: string}
-    GetSinglePdfRequestDto:
-      type: object
-      description: 'Schema from code DTO: GetSinglePdfRequestDto.'
-      properties:
-        documentId:
-          type: string
-          example: string
-          description: Field `documentId`.
-        userId:
-          type: string
-          example: string
-          description: Field `userId`.
-        authUserId:
-          type: string
-          example: string
-          description: Field `authUserId`.
-      example: {documentId: string, userId: string, authUserId: string}
-    OperationCodeResponseDto:
-      type: object
-      description: 'Schema from code DTO: OperationCodeResponseDto.'
-      properties:
-        opCode1:
-          type: string
-          example: string
-          description: Field `opCode1`.
-        opCode2:
-          type: string
-          example: string
-          description: Field `opCode2`.
-      example: {opCode1: string, opCode2: string}
-    OperationCodeRequestDto:
-      type: object
-      description: 'Schema from code DTO: OperationCodeRequestDto.'
-      properties:
-        operatorCustomer:
-          type: array
-          items:
-            $ref: '#/components/schemas/OpCodeCustomerDto'
-          description: Field `operatorCustomer`.
-          example: [string]
-        accountCustomerNum:
-          type: string
-          example: string
-          description: Field `accountCustomerNum`.
-        accountBranch:
-          type: string
-          example: string
-          description: Field `accountBranch`.
-        accountNumber:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `accountNumber`.
-      example: {operatorCustomer: [string], accountCustomerNum: string, accountBranch: string,
-        accountNumber: 123}
+      example:
+        branchName: string
+        branchCity: string
+        branchDistrict: string
+        countryCode: string
+        branchAddress: string
+        referenceNumber: 123
     OpCodeCustomerDto:
       type: object
       description: 'Schema from code DTO: OpCodeCustomerDto.'
@@ -1843,40 +1491,8 @@ components:
           type: string
           example: string
           description: Field `operatorCustomerNum`.
-      example: {operatorCustomerNum: string}
-    GetBulkOperationCodeResponseDto:
-      type: object
-      description: 'Schema from code DTO: GetBulkOperationCodeResponseDto.'
-      properties:
-        operationCodeItems:
-          type: array
-          items:
-            $ref: '#/components/schemas/OperationCodeItem'
-          description: Field `operationCodeItems`.
-          example: [string]
-        processMainCode:
-          $ref: '#/components/schemas/OperationCodeItem'
-        processSubCode:
-          type: string
-          example: string
-          description: Field `processSubCode`.
-        processDescription:
-          type: string
-          example: string
-          description: Field `processDescription`.
-      example: {operationCodeItems: [string], processMainCode: {}, processSubCode: string,
-        processDescription: string}
-    TransactionListDto:
-      type: object
-      description: 'Schema from code DTO: TransactionListDto.'
-      properties:
-        transactions:
-          type: array
-          items:
-            $ref: '#/components/schemas/TransactionDto'
-          description: Field `transactions`.
-          example: [string]
-      example: {transactions: [string]}
+      example:
+        operatorCustomerNum: string
     TransactionDto:
       type: object
       description: 'Schema from code DTO: TransactionDto.'
@@ -2052,227 +1668,47 @@ components:
           type: string
           example: string
           description: Field `requestText`.
-      example: {operationType: string, processDate: string, customerNumber: 123, accountBranchCode: 123,
-        customerAccountNum: 123, ownerUnitNum: 123, approvalUnitNum: 123, transactionAmount: 100.5,
-        currencyCode: string, transactionTLAmount: 100.5, currencyRate: 100.5, currencyType: string,
-        rateType: string, channelCode: string, channelType: string, channelDetailText: string,
-        financialDomainCode: string, financialFamilyCode: string, financialSubFamilyCode: string,
-        purposeValueCode: string, receiptInfoId: string, contractInfoId: string, accountingGuid: string,
-        priceInqueryId: string, surveyInfoId: string, gmaticId: string, commisionAmount: 100.5,
-        commisionCurrencyCode: string, chargeAmount: 100.5, chargeCurrencyCode: string,
-        taxAmount: 100.5, taxCurrencyCode: string, statusCode: string, cicsTxnId: string,
-        checkNumber: string, goldValuationId: string, prosecutorNotificationInfo: string,
-        transactionRelationType: string, transactionExplanationText: string, requestText: string}
-    FindTransactionRequestDto:
-      type: object
-      description: 'Schema from code DTO: FindTransactionRequestDto.'
-      properties:
-        customerNumber:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `customerNumber`.
-      example: {customerNumber: 123}
-    TrnxCompleteWithdrawalRequestDto:
-      type: object
-      description: 'Schema from code DTO: TrnxCompleteWithdrawalRequestDto.'
-      properties:
-        operationType:
-          type: string
-          example: string
-          description: Field `operationType`.
-        customerNumber:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `customerNumber`.
-        accountBranchCode:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `accountBranchCode`.
-        customerAccountNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `customerAccountNum`.
-        transactionAmount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field `transactionAmount`.
-        createUserId:
-          type: string
-          example: string
-          description: Field `createUserId`.
-        channelCode:
-          type: string
-          example: string
-          description: Field `channelCode`.
-        channelDetailText:
-          type: string
-          example: string
-          description: Field `channelDetailText`.
-        operation1Code:
-          type: string
-          example: string
-          description: Field `operation1Code`.
-        operation2Code:
-          type: string
-          example: string
-          description: Field `operation2Code`.
-        relatedProductCode:
-          type: string
-          example: string
-          description: Field `relatedProductCode`.
-        purposeValueCode:
-          type: string
-          example: string
-          description: Field `purposeValueCode`.
-        surveyIfoId:
-          type: string
-          example: string
-          description: Field `surveyIfoId`.
-        commissionAmount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field `commissionAmount`.
-        commissionCurrencyCode:
-          type: string
-          example: string
-          description: Field `commissionCurrencyCode`.
-        priceInqueryId:
-          type: string
-          example: string
-          description: Field `priceInqueryId`.
-        chargeAmount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field `chargeAmount`.
-        chargeCurrencyCode:
-          type: string
-          example: string
-          description: Field `chargeCurrencyCode`.
-        requestText:
-          type: string
-          example: string
-          description: Field `requestText`.
-        transactionExplanationText:
-          type: string
-          example: string
-          description: Field `transactionExplanationText`.
-        checkNumber:
-          type: string
-          example: string
-          description: Field `checkNumber`.
-        goldValuationId:
-          type: string
-          example: string
-          description: Field `goldValuationId`.
-        prosecutorNotificationInfo:
-          type: string
-          example: string
-          description: Field `prosecutorNotificationInfo`.
-        transactionRelationType:
-          type: string
-          example: string
-          description: Field `transactionRelationType`.
-        gmaticId:
-          type: string
-          example: string
-          description: Field `gmaticId`.
-        currencyCode:
-          type: string
-          example: string
-          description: Field `currencyCode`.
-        tcNumber:
-          type: string
-          example: string
-          description: Field `tcNumber`.
-        birthDate:
-          type: string
-          example: string
-          description: Field `birthDate`.
-        isCheck:
-          type: boolean
-          example: true
-          description: Field `isCheck`.
-        atmInfo:
-          $ref: '#/components/schemas/AtmInfoRequest'
-        processingPersonInfo:
-          type: array
-          items:
-            $ref: '#/components/schemas/ProcessingPersonInfoRequest'
-          description: Field `processingPersonInfo`.
-          example: [string]
-        customerName:
-          type: string
-          example: string
-          description: Field `customerName`.
-        customerSurname:
-          type: string
-          example: string
-          description: Field `customerSurname`.
-        accountBalanceAmount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field `accountBalanceAmount`.
-        addressLine1:
-          type: string
-          example: string
-          description: Field `addressLine1`.
-        addressLine2:
-          type: string
-          example: string
-          description: Field `addressLine2`.
-        regionName:
-          type: string
-          example: string
-          description: Field `regionName`.
-        districtName:
-          type: string
-          example: string
-          description: Field `districtName`.
-        cityName:
-          type: string
-          example: string
-          description: Field `cityName`.
-        postalCode:
-          type: string
-          example: string
-          description: Field `postalCode`.
-        phoneNumber:
-          type: string
-          example: string
-          description: Field `phoneNumber`.
-        cicsTxnId:
-          type: string
-          example: string
-          description: Field `cicsTxnId`.
-        sourceId:
-          type: string
-          example: string
-          description: Field `sourceId`.
-        kpsValidationBypass:
-          type: boolean
-          example: true
-          description: Field `kpsValidationBypass`.
-      example: {operationType: string, customerNumber: 123, accountBranchCode: 123,
-        customerAccountNum: 123, transactionAmount: 100.5, createUserId: string, channelCode: string,
-        channelDetailText: string, operation1Code: string, operation2Code: string,
-        relatedProductCode: string, purposeValueCode: string, surveyIfoId: string,
-        commissionAmount: 100.5, commissionCurrencyCode: string, priceInqueryId: string,
-        chargeAmount: 100.5, chargeCurrencyCode: string, requestText: string, transactionExplanationText: string,
-        checkNumber: string, goldValuationId: string, prosecutorNotificationInfo: string,
-        transactionRelationType: string, gmaticId: string, currencyCode: string, tcNumber: string,
-        birthDate: string, isCheck: true, atmInfo: {}, processingPersonInfo: [string],
-        customerName: string, customerSurname: string, accountBalanceAmount: 100.5,
-        addressLine1: string, addressLine2: string, regionName: string, districtName: string,
-        cityName: string, postalCode: string, phoneNumber: string, cicsTxnId: string,
-        sourceId: string, kpsValidationBypass: true}
+      example:
+        operationType: string
+        processDate: string
+        customerNumber: 123
+        accountBranchCode: 123
+        customerAccountNum: 123
+        ownerUnitNum: 123
+        approvalUnitNum: 123
+        transactionAmount: 100.5
+        currencyCode: string
+        transactionTLAmount: 100.5
+        currencyRate: 100.5
+        currencyType: string
+        rateType: string
+        channelCode: string
+        channelType: string
+        channelDetailText: string
+        financialDomainCode: string
+        financialFamilyCode: string
+        financialSubFamilyCode: string
+        purposeValueCode: string
+        receiptInfoId: string
+        contractInfoId: string
+        accountingGuid: string
+        priceInqueryId: string
+        surveyInfoId: string
+        gmaticId: string
+        commisionAmount: 100.5
+        commisionCurrencyCode: string
+        chargeAmount: 100.5
+        chargeCurrencyCode: string
+        taxAmount: 100.5
+        taxCurrencyCode: string
+        statusCode: string
+        cicsTxnId: string
+        checkNumber: string
+        goldValuationId: string
+        prosecutorNotificationInfo: string
+        transactionRelationType: string
+        transactionExplanationText: string
+        requestText: string
     AtmInfoRequest:
       type: object
       description: 'Schema from code DTO: AtmInfoRequest.'
@@ -2297,7 +1733,12 @@ components:
           type: boolean
           example: true
           description: Field `isCommission`.
-      example: {cardNo: string, isQr: true, qrId: string, atmNumber: string, isCommission: true}
+      example:
+        cardNo: string
+        isQr: true
+        qrId: string
+        atmNumber: string
+        isCommission: true
     ProcessingPersonInfoRequest:
       type: object
       description: 'Schema from code DTO: ProcessingPersonInfoRequest.'
@@ -2310,569 +1751,9 @@ components:
           type: string
           example: string
           description: Field `processCustomerNum`.
-      example: {statusCode: string, processCustomerNum: string}
-    TransactionStatusUpdateResponseDto:
-      type: object
-      description: 'Schema from code DTO: TransactionStatusUpdateResponseDto.'
-      properties:
-        success:
-          type: boolean
-          example: true
-          description: Field `success`.
-      example: {success: true}
-    TransactionStatusUpdateRequestDto:
-      type: object
-      description: 'Schema from code DTO: TransactionStatusUpdateRequestDto.'
-      properties:
-        instanceId:
-          type: string
-          example: string
-          description: Field `instanceId`.
-        status:
-          type: string
-          example: string
-          description: Field `status`.
-        approveInstanceId:
-          type: string
-          example: string
-          description: Field `approveInstanceId`.
-      example: {instanceId: string, status: string, approveInstanceId: string}
-    TransactionFilterResponseDto:
-      type: object
-      description: 'Schema from code DTO: TransactionFilterResponseDto.'
-      properties:
-        instanceId:
-          type: string
-          example: string
-          description: Field `instanceId`.
-        customerNameAndSurname:
-          type: string
-          example: string
-          description: Field `customerNameAndSurname`.
-        processDate:
-          type: string
-          example: string
-          description: Field `processDate`.
-        approveType:
-          type: string
-          example: string
-          description: Field `approveType`.
-        transactionAmount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field `transactionAmount`.
-        status:
-          type: string
-          example: string
-          description: Field `status`.
-        createUserId:
-          type: string
-          example: string
-          description: Field `createUserId`.
-        approveUserId:
-          type: string
-          example: string
-          description: Field `approveUserId`.
-      example: {instanceId: string, customerNameAndSurname: string, processDate: string,
-        approveType: string, transactionAmount: 100.5, status: string, createUserId: string,
-        approveUserId: string}
-    TransactionFilterRequestDto:
-      type: object
-      description: 'Schema from code DTO: TransactionFilterRequestDto.'
-      properties:
-        statusCode:
-          type: string
-          example: string
-          description: Field `statusCode`.
-        ownerUnitNum:
-          type: string
-          example: string
-          description: Field `ownerUnitNum`.
-        moneyTransactionIdStart:
-          type: string
-          example: string
-          description: Field `moneyTransactionIdStart`.
-        moneyTransactionIdEnd:
-          type: string
-          example: string
-          description: Field `moneyTransactionIdEnd`.
-        approveType:
-          type: string
-          example: string
-          description: Field `approveType`.
-        financialSubFamilyCode:
-          type: string
-          example: string
-          description: Field `financialSubFamilyCode`.
-        financialFamilyCode:
-          type: string
-          example: string
-          description: Field `financialFamilyCode`.
-        transactionAmountMin:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field `transactionAmountMin`.
-        transactionAmountMax:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field `transactionAmountMax`.
-      example: {statusCode: string, ownerUnitNum: string, moneyTransactionIdStart: string,
-        moneyTransactionIdEnd: string, approveType: string, financialSubFamilyCode: string,
-        financialFamilyCode: string, transactionAmountMin: 100.5, transactionAmountMax: 100.5}
-    AccountTransactionRulesRequestDto:
-      type: object
-      description: 'Schema from code DTO: AccountTransactionRulesRequestDto.'
-      properties:
-        debitUnitNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `debitUnitNum`.
-        debitAccountNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `debitAccountNum`.
-        transactionAmount:
-          type: string
-          example: string
-          description: Field `transactionAmount`.
-        currencyCode:
-          type: string
-          example: string
-          description: Field `currencyCode`.
-        transactionDate:
-          type: string
-          example: string
-          description: Field `transactionDate`.
-        oprtnCustList:
-          type: array
-          items:
-            type: string
-            example: string
-          description: Field `oprtnCustList`.
-          example: [string]
-      example: {debitUnitNum: 123, debitAccountNum: 123, transactionAmount: string,
-        currencyCode: string, transactionDate: string, oprtnCustList: [string]}
-    RepresentativePersonRequestDto:
-      type: object
-      description: 'Schema from code DTO: RepresentativePersonRequestDto.'
-      properties:
-        customerNum:
-          type: string
-          example: string
-          description: Field `customerNum`.
-        customerNum2:
-          type: string
-          example: string
-          description: Field `customerNum2`.
-        relationTypeText:
-          type: string
-          example: string
-          description: Field `relationTypeText`.
-        acceptableLatency:
-          type: string
-          example: string
-          description: Field `acceptableLatency`.
-        shareRate:
-          type: string
-          example: string
-          description: Field `shareRate`.
-        shareAmount:
-          type: string
-          example: string
-          description: Field `shareAmount`.
-        confirmationDate:
-          type: string
-          example: string
-          description: Field `confirmationDate`.
-      example: {customerNum: string, customerNum2: string, relationTypeText: string,
-        acceptableLatency: string, shareRate: string, shareAmount: string, confirmationDate: string}
-    HeaderInfo:
-      type: object
-      description: 'Schema from code DTO: HeaderInfo.'
-      properties:
-        command:
-          type: string
-          example: string
-          description: Field `command`.
-        sourceProgramId:
-          type: string
-          example: string
-          description: Field `sourceProgramId`.
-        unitNum:
-          type: string
-          example: string
-          description: Field `unitNum`.
-        channelCode:
-          type: string
-          example: string
-          description: Field `channelCode`.
-        moduleCode:
-          type: string
-          example: string
-          description: Field `moduleCode`.
-        submoduleCode:
-          type: string
-          example: string
-          description: Field `submoduleCode`.
-      example: {command: string, sourceProgramId: string, unitNum: string, channelCode: string,
-        moduleCode: string, submoduleCode: string}
-    ServerData:
-      type: object
-      description: 'Schema from code DTO: ServerData.'
-      properties:
-        userId:
-          type: string
-          example: string
-          description: Field `userId`.
-        referenceId:
-          type: string
-          example: string
-          description: Field `referenceId`.
-      example: {userId: string, referenceId: string}
-    SaveRepresentativePersonRequestDto:
-      type: object
-      description: 'Schema from code DTO: SaveRepresentativePersonRequestDto.'
-      properties:
-        customerNum:
-          type: string
-          example: string
-          description: Field `customerNum`.
-        opnDefinedKey:
-          type: string
-          example: string
-          description: Field `opnDefinedKey`.
-        partyType:
-          type: string
-          example: string
-          description: Field `partyType`.
-        recordStatus:
-          type: string
-          example: string
-          description: Field `recordStatus`.
-      example: {customerNum: string, opnDefinedKey: string, partyType: string, recordStatus: string}
-    CustomerInfoResponseDto:
-      type: object
-      description: 'Schema from code DTO: CustomerInfoResponseDto.'
-      properties:
-        customerNum:
-          type: string
-          example: string
-          description: Field `customerNum`.
-        name:
-          type: string
-          example: string
-          description: Field `name`.
-        surname:
-          type: string
-          example: string
-          description: Field `surname`.
-        citizen:
-          type: string
-          example: string
-          description: Field `citizen`.
-        mernisNum:
-          type: string
-          example: string
-          description: Field `mernisNum`.
-        birthDate:
-          type: string
-          example: string
-          description: Field `birthDate`.
-        otherNationalityId:
-          type: string
-          example: string
-          description: Field `otherNationalityId`.
-        customerType:
-          type: string
-          example: string
-          description: Field `customerType`.
-        isOperant:
-          type: boolean
-          example: true
-          description: Field `isOperant`.
-        operantMessages:
-          type: array
-          items:
-            type: string
-            example: string
-          description: Field `operantMessages`.
-          example: [string]
-        isActivePerson:
-          type: boolean
-          example: true
-          description: Field `isActivePerson`.
-        customerSubType:
-          type: string
-          example: string
-          description: Field `customerSubType`.
-        customerSubType2:
-          type: string
-          example: string
-          description: Field `customerSubType2`.
-      example: {customerNum: string, name: string, surname: string, citizen: string,
-        mernisNum: string, birthDate: string, otherNationalityId: string, customerType: string,
-        isOperant: true, operantMessages: [string], isActivePerson: true, customerSubType: string,
-        customerSubType2: string}
-    CustomerInfoRequestDto:
-      type: object
-      description: 'Schema from code DTO: CustomerInfoRequestDto.'
-      properties:
-        customerNum:
-          type: string
-          example: string
-          description: Field `customerNum`.
-      example: {customerNum: string}
-    GetKpsInfoRequestDto:
-      type: object
-      description: 'Schema from code DTO: GetKpsInfoRequestDto.'
-      properties:
-        nationalId:
-          type: string
-          example: string
-          description: Field `nationalId`.
-        birthDate:
-          type: string
-          example: string
-          description: Field `birthDate`.
-        inquiryDateMargin:
-          type: integer
-          format: int32
-          example: 123
-          description: Field `inquiryDateMargin`.
-      example: {nationalId: string, birthDate: string, inquiryDateMargin: 123}
-    SaveTransactionCustomerRequestDto:
-      type: object
-      description: 'Schema from code DTO: SaveTransactionCustomerRequestDto.'
-      properties:
-        nationalIdNum:
-          type: string
-          example: string
-          description: Field `nationalIdNum`.
-        name:
-          type: string
-          example: string
-          description: Field `name`.
-        surname:
-          type: string
-          example: string
-          description: Field `surname`.
-        birthDate:
-          type: string
-          example: string
-          description: Field `birthDate`.
-        nationalityCode:
-          type: string
-          example: string
-          description: Field `nationalityCode`.
-        kktcNationalId:
-          type: string
-          example: string
-          description: Field `kktcNationalId`.
-        passportId:
-          type: string
-          example: string
-          description: Field `passportId`.
-        countryCode:
-          type: string
-          example: string
-          description: Field `countryCode`.
-        birthPlace:
-          type: string
-          example: string
-          description: Field `birthPlace`.
-        fatherName:
-          type: string
-          example: string
-          description: Field `fatherName`.
-        motherName:
-          type: string
-          example: string
-          description: Field `motherName`.
-        workingType:
-          type: string
-          example: string
-          description: Field `workingType`.
-        jobTitle:
-          type: string
-          example: string
-          description: Field `jobTitle`.
-        cityCode:
-          type: string
-          example: string
-          description: Field `cityCode`.
-        cityName:
-          type: string
-          example: string
-          description: Field `cityName`.
-        countyName:
-          type: string
-          example: string
-          description: Field `countyName`.
-        phoneCountryCode:
-          type: string
-          example: string
-          description: Field `phoneCountryCode`.
-        phoneNum:
-          type: string
-          example: string
-          description: Field `phoneNum`.
-        postcode:
-          type: string
-          example: string
-          description: Field `postcode`.
-        address:
-          type: string
-          example: string
-          description: Field `address`.
-        addressType:
-          type: string
-          example: string
-          description: Field `addressType`.
-        customerNum:
-          type: string
-          example: string
-          description: Field `customerNum`.
-      example: {nationalIdNum: string, name: string, surname: string, birthDate: string,
-        nationalityCode: string, kktcNationalId: string, passportId: string, countryCode: string,
-        birthPlace: string, fatherName: string, motherName: string, workingType: string,
-        jobTitle: string, cityCode: string, cityName: string, countyName: string,
-        phoneCountryCode: string, phoneNum: string, postcode: string, address: string,
-        addressType: string, customerNum: string}
-    AccountTransactionRulesGrpcRequest:
-      type: object
-      description: Placeholder schema for unresolved reference 'AccountTransactionRulesGrpcRequest'.
-        Replace with real DTO if available.
-      example: {}
-    AccountTransactionRulesGrpcResponse:
-      type: object
-      description: Placeholder schema for unresolved reference 'AccountTransactionRulesGrpcResponse'.
-        Replace with real DTO if available.
-      example: {}
-    ChequeCommissionInfoRequest:
-      type: object
-      description: Placeholder schema for unresolved reference 'ChequeCommissionInfoRequest'.
-        Replace with real DTO if available.
-      example: {}
-    ChequeCommissionInfoResponse:
-      type: object
-      description: Placeholder schema for unresolved reference 'ChequeCommissionInfoResponse'.
-        Replace with real DTO if available.
-      example: {}
-    CreateTransactionGrpcResponse:
-      type: object
-      description: Placeholder schema for unresolved reference 'CreateTransactionGrpcResponse'.
-        Replace with real DTO if available.
-      example: {}
-    CustomerInfoGrpcRequest:
-      type: object
-      description: Placeholder schema for unresolved reference 'CustomerInfoGrpcRequest'.
-        Replace with real DTO if available.
-      example: {}
-    CustomerInfoGrpcResponse:
-      type: object
-      description: Placeholder schema for unresolved reference 'CustomerInfoGrpcResponse'.
-        Replace with real DTO if available.
-      example: {}
-    DigitalOrderReadRequest:
-      type: object
-      description: Placeholder schema for unresolved reference 'DigitalOrderReadRequest'.
-        Replace with real DTO if available.
-      example: {}
-    DigitalOrderReadResponse:
-      type: object
-      description: Placeholder schema for unresolved reference 'DigitalOrderReadResponse'.
-        Replace with real DTO if available.
-      example: {}
-    ExtendedCustomerInfoGrpcResponse:
-      type: object
-      description: Placeholder schema for unresolved reference 'ExtendedCustomerInfoGrpcResponse'.
-        Replace with real DTO if available.
-      example: {}
-    FindTransactionByCustomerNumberGrpcRequest:
-      type: object
-      description: Placeholder schema for unresolved reference 'FindTransactionByCustomerNumberGrpcRequest'.
-        Replace with real DTO if available.
-      example: {}
-    FindTransactionByCustomerNumberGrpcResponse:
-      type: object
-      description: Placeholder schema for unresolved reference 'FindTransactionByCustomerNumberGrpcResponse'.
-        Replace with real DTO if available.
-      example: {}
-    GetKpsInfoRequest:
-      type: object
-      description: Placeholder schema for unresolved reference 'GetKpsInfoRequest'.
-        Replace with real DTO if available.
-      example: {}
-    GetKpsInfoResponse:
-      type: object
-      description: Placeholder schema for unresolved reference 'GetKpsInfoResponse'.
-        Replace with real DTO if available.
-      example: {}
-    OperationCodeGrpcRequest:
-      type: object
-      description: Placeholder schema for unresolved reference 'OperationCodeGrpcRequest'.
-        Replace with real DTO if available.
-      example: {}
-    OperationCodeGrpcResponse:
-      type: object
-      description: Placeholder schema for unresolved reference 'OperationCodeGrpcResponse'.
-        Replace with real DTO if available.
-      example: {}
-    OperationCodeItem:
-      type: object
-      description: Placeholder schema for unresolved reference 'OperationCodeItem'.
-        Replace with real DTO if available.
-      example: {}
-    RepresentativePersonRequest:
-      type: object
-      description: Placeholder schema for unresolved reference 'RepresentativePersonRequest'.
-        Replace with real DTO if available.
-      example: {}
-    RepresentativePersonResponse:
-      type: object
-      description: Placeholder schema for unresolved reference 'RepresentativePersonResponse'.
-        Replace with real DTO if available.
-      example: {}
-    SaveRepresentativePersonRequest:
-      type: object
-      description: Placeholder schema for unresolved reference 'SaveRepresentativePersonRequest'.
-        Replace with real DTO if available.
-      example: {}
-    SaveRepresentativePersonResponse:
-      type: object
-      description: Placeholder schema for unresolved reference 'SaveRepresentativePersonResponse'.
-        Replace with real DTO if available.
-      example: {}
-    SaveTransactionCustomerRequest:
-      type: object
-      description: Placeholder schema for unresolved reference 'SaveTransactionCustomerRequest'.
-        Replace with real DTO if available.
-      example: {}
-    TransactionCustomerMessageResponse:
-      type: object
-      description: Placeholder schema for unresolved reference 'TransactionCustomerMessageResponse'.
-        Replace with real DTO if available.
-      example: {}
-    TrnxCompleteWithdrawalGrpcRequest:
-      type: object
-      description: Placeholder schema for unresolved reference 'TrnxCompleteWithdrawalGrpcRequest'.
-        Replace with real DTO if available.
-      example: {}
-    TrnxCompleteWithdrawalGrpcResponse:
-      type: object
-      description: Placeholder schema for unresolved reference 'TrnxCompleteWithdrawalGrpcResponse'.
-        Replace with real DTO if available.
-      example: {}
-    ? "static class OperationCodeItem {\n        private String"
-    : type: object
-      description: "Placeholder schema for unresolved reference 'static class OperationCodeItem\
-        \ {\n        private String'. Replace with real DTO if available."
-      example: {}
+      example:
+        statusCode: string
+        processCustomerNum: string
   responses:
     HttpOKwithTransactionGrpcResponseResult:
       description: OK.
