@@ -1,1609 +1,2027 @@
-openapi: 3.0.0
-info:
-  title: deposit-withdrawal-channel v0
-  description: Service API for deposit-withdrawal-channel v0
-  version: 0.1.0
-  x-generation-options:
+schemas:
+  BigDecimal:
     type: object
-    api-domain: Intranet
-    api-company: Garanti
-    api-use-ssl: true
-    api-auth: token
-    api-auth-version: '3'
-    smart-config-description: deposit-withdrawal-channel Channel Service API YAML
-    generator-backend-servers:
-      type: object
-      dev-server: http://deposit-withdrawal-ch-v0.deposit-withdrawal-mngt-dev:8080
-      test-server: http://deposit-withdrawal-ch-v0.deposit-withdrawal-mngt-test:8080
-      qa-server: http://deposit-withdrawal-ch-v0.deposit-withdrawal-mngt-qa:8080
-      prod-server: http://deposit-withdrawal-ch-v0.deposit-withdrawal-mngt-prod:8080
-  contact:
-    email: api.support@garanti.com.tr
-    name: Garanti API Support Team
-tags:
-- name: deposit-withdrawal-channel
-  description: deposit-withdrawal-channel
-- name: ChequeCommissionInfoService
-  description: Endpoints backed by gRPC service `ChequeCommissionInfoService`. Auto-synced
-    from proto.
-- name: DigitalOrderGrpcService
-  description: Endpoints backed by gRPC service `DigitalOrderGrpcService`. Auto-synced
-    from proto.
-- name: GoldDocumentGrpcService
-  description: Endpoints backed by gRPC service `GoldDocumentGrpcService`. Auto-synced
-    from proto.
-- name: OperationCodeGrpcService
-  description: Endpoints backed by gRPC service `OperationCodeGrpcService`. Auto-synced
-    from proto.
-- name: ReceiptService
-  description: Endpoints backed by gRPC service `ReceiptService`. Auto-synced from
-    proto.
-- name: TransactionGrpcService
-  description: Endpoints backed by gRPC service `TransactionGrpcService`. Auto-synced
-    from proto.
-- name: TransactionCustomerGrpcService
-  description: Endpoints backed by gRPC service `TransactionCustomerGrpcService`.
-    Auto-synced from proto.
-security:
-- BearerAuth: []
-servers:
-- url: https://apigw-dev.apps-t.fw.garanti.com.tr:443/deposit-withdrawal-mngt/deposit-withdrawal-ch/v0
-paths:
-  /deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/approve/list:
-    post:
-      summary: TransactionCustomerGrpcService.ListRepresentativePersons
-      tags:
-      - TransactionCustomerGrpcService
-      description: Calls gRPC `TransactionCustomerGrpcService.ListRepresentativePersons`
-        with `RepresentativePersonRequest` → `RepresentativePersonResponse`.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RepresentativePersonRequest'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RepresentativePersonResponse'
-      x-grpc:
-        service: TransactionCustomerGrpcService
-        rpc: ListRepresentativePersons
-  /deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/approve/approve:
-    post:
-      summary: Operation
-      tags: []
-      description: Automatically generated operation based on controller mapping.
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-  /deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/approve/reject:
-    post:
-      summary: Operation
-      tags: []
-      description: Automatically generated operation based on controller mapping.
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-  /deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/approve/changeStatusFraudProcess:
-    post:
-      summary: Operation
-      tags: []
-      description: Automatically generated operation based on controller mapping.
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-  /deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/withdrawal/read-digital-order:
-    post:
-      summary: DigitalOrderGrpcService.ReadDigitalOrder
-      tags:
-      - DigitalOrderGrpcService
-      description: Calls gRPC `DigitalOrderGrpcService.ReadDigitalOrder` with `DigitalOrderReadRequest`
-        → `DigitalOrderReadResponse`.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/DigitalOrderReadRequest'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/DigitalOrderReadResponse'
-      x-grpc:
-        service: DigitalOrderGrpcService
-        rpc: ReadDigitalOrder
-  /deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/withdrawal/create-gold-document:
-    post:
-      summary: Operation
-      tags: []
-      description: Automatically generated operation based on controller mapping.
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-  /deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/withdrawal/get-gold-document:
-    post:
-      summary: Operation
-      tags: []
-      description: Automatically generated operation based on controller mapping.
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-  /deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/withdrawal/get-operation-code:
-    post:
-      summary: OperationCodeGrpcService.GetOperationCodeGrpcService
-      tags:
-      - OperationCodeGrpcService
-      description: Calls gRPC `OperationCodeGrpcService.GetOperationCodeGrpcService`
-        with `OperationCodeGrpcRequest` → `OperationCodeGrpcResponse`.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/OperationCodeGrpcRequest'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/OperationCodeGrpcResponse'
-      x-grpc:
-        service: OperationCodeGrpcService
-        rpc: GetOperationCodeGrpcService
-  /deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/withdrawal/get-bulk-operation-codes:
-    post:
-      summary: Operation
-      tags: []
-      description: Automatically generated operation based on controller mapping.
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-  /deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/withdrawal/find-transaction-by-customer-number:
-    post:
-      summary: TransactionGrpcService.FindTransactionByCustomerNumber
-      tags:
-      - TransactionGrpcService
-      description: Calls gRPC `TransactionGrpcService.FindTransactionByCustomerNumber`
-        with `FindTransactionByCustomerNumberGrpcRequest` → `FindTransactionByCustomerNumberGrpcResponse`.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/FindTransactionByCustomerNumberGrpcRequest'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FindTransactionByCustomerNumberGrpcResponse'
-      x-grpc:
-        service: TransactionGrpcService
-        rpc: FindTransactionByCustomerNumber
-  /deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/withdrawal/trnx-complete-withdrawal:
-    post:
-      summary: TransactionGrpcService.TrnxCompleteWithdrawal
-      tags:
-      - TransactionGrpcService
-      description: Calls gRPC `TransactionGrpcService.TrnxCompleteWithdrawal` with
-        `TrnxCompleteWithdrawalGrpcRequest` → `TrnxCompleteWithdrawalGrpcResponse`.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/TrnxCompleteWithdrawalGrpcRequest'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TrnxCompleteWithdrawalGrpcResponse'
-      x-grpc:
-        service: TransactionGrpcService
-        rpc: TrnxCompleteWithdrawal
-  /deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/withdrawal/transaction-status-update:
-    post:
-      summary: Operation
-      tags: []
-      description: Automatically generated operation based on controller mapping.
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-  /deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/withdrawal/find-transactions-by-filters:
-    post:
-      summary: Operation
-      tags: []
-      description: Automatically generated operation based on controller mapping.
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-  /deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/withdrawal/account-transaction-rules:
-    post:
-      summary: TransactionGrpcService.AccountTransactionRules
-      tags:
-      - TransactionGrpcService
-      description: Calls gRPC `TransactionGrpcService.AccountTransactionRules` with
-        `AccountTransactionRulesGrpcRequest` → `AccountTransactionRulesGrpcResponse`.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AccountTransactionRulesGrpcRequest'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AccountTransactionRulesGrpcResponse'
-      x-grpc:
-        service: TransactionGrpcService
-        rpc: AccountTransactionRules
-  /deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/withdrawal/list-representative-persons:
-    post:
-      summary: TransactionCustomerGrpcService.ListRepresentativePersons
-      tags:
-      - TransactionCustomerGrpcService
-      description: Calls gRPC `TransactionCustomerGrpcService.ListRepresentativePersons`
-        with `RepresentativePersonRequest` → `RepresentativePersonResponse`.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/RepresentativePersonRequest'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/RepresentativePersonResponse'
-      x-grpc:
-        service: TransactionCustomerGrpcService
-        rpc: ListRepresentativePersons
-  /deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/withdrawal/save-representative-person:
-    post:
-      summary: TransactionCustomerGrpcService.SaveRepresentativePerson
-      tags:
-      - TransactionCustomerGrpcService
-      description: Calls gRPC `TransactionCustomerGrpcService.SaveRepresentativePerson`
-        with `SaveRepresentativePersonRequest` → `SaveRepresentativePersonResponse`.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SaveRepresentativePersonRequest'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/SaveRepresentativePersonResponse'
-      x-grpc:
-        service: TransactionCustomerGrpcService
-        rpc: SaveRepresentativePerson
-  /deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/withdrawal/get-customer-info:
-    post:
-      summary: TransactionCustomerGrpcService.GetCustomerInfoGrpcService
-      tags:
-      - TransactionCustomerGrpcService
-      description: Calls gRPC `TransactionCustomerGrpcService.GetCustomerInfoGrpcService`
-        with `CustomerInfoGrpcRequest` → `CustomerInfoGrpcResponse`.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CustomerInfoGrpcRequest'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CustomerInfoGrpcResponse'
-      x-grpc:
-        service: TransactionCustomerGrpcService
-        rpc: GetCustomerInfoGrpcService
-  /deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/withdrawal/get-extended-customer-info:
-    post:
-      summary: TransactionCustomerGrpcService.GetExtendedCustomerInfo
-      tags:
-      - TransactionCustomerGrpcService
-      description: Calls gRPC `TransactionCustomerGrpcService.GetExtendedCustomerInfo`
-        with `CustomerInfoGrpcRequest` → `ExtendedCustomerInfoGrpcResponse`.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CustomerInfoGrpcRequest'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ExtendedCustomerInfoGrpcResponse'
-      x-grpc:
-        service: TransactionCustomerGrpcService
-        rpc: GetExtendedCustomerInfo
-  /deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/withdrawal/get-kps-info:
-    post:
-      summary: TransactionCustomerGrpcService.GetKpsInfo
-      tags:
-      - TransactionCustomerGrpcService
-      description: Calls gRPC `TransactionCustomerGrpcService.GetKpsInfo` with `GetKpsInfoRequest`
-        → `GetKpsInfoResponse`.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/GetKpsInfoRequest'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/GetKpsInfoResponse'
-      x-grpc:
-        service: TransactionCustomerGrpcService
-        rpc: GetKpsInfo
-  /deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/withdrawal/save-transaction-customer:
-    post:
-      summary: TransactionCustomerGrpcService.SaveTransactionCustomer
-      tags:
-      - TransactionCustomerGrpcService
-      description: Calls gRPC `TransactionCustomerGrpcService.SaveTransactionCustomer`
-        with `SaveTransactionCustomerRequest` → `TransactionCustomerMessageResponse`.
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/SaveTransactionCustomerRequest'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TransactionCustomerMessageResponse'
-      x-grpc:
-        service: TransactionCustomerGrpcService
-        rpc: SaveTransactionCustomer
-  /deposit-withdrawal-mngt/deposit-withdrawal-ch/v0/withdrawal/get-user-branch-code:
-    post:
-      summary: Operation
-      tags: []
-      description: Automatically generated operation based on controller mapping.
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-components:
-  securitySchemes:
-    BearerAuth:
-      type: http
-      scheme: bearer
-  headers:
-    Access-Control-Allow-Origin:
-      description: '*.garantibbva.com.tr'
-      schema:
+    description: Decimal type from proto (scale/precision/value).
+    properties:
+      scale:
+        type: integer
+        format: int32
+        description: Number of fractional digits.
+        example: 2
+      precision:
+        type: integer
+        format: int32
+        description: Total significant digits.
+        example: 10
+      value:
         type: string
-    GUID:
-      description: Header GUID
-      schema:
-        $ref: '#/components/parameters/GuidHeader'
-  schemas:
-    TransactionGrpcResponse:
-      type: object
-      description: Response model for transaction operations
-      example:
-        message: Transaction completed successfully
-      properties:
-        message:
-          type: string
-          description: Response message indicating transaction status
-          example: Transaction completed successfully
-    CustomerRelationshipTypeResponse:
-      type: object
-      description: Response model for customer relationship type operations
-      example:
-        customerRelationshipTypes:
-        - description: GUARDIAN
-        - description: PROXY
-      properties:
-        customerRelationshipTypes:
-          type: array
-          description: List of available customer relationship types
-          items:
-            $ref: '#/components/schemas/CustomerRelationshipType'
-    CustomerRelationshipType:
-      type: object
-      description: Model representing a customer relationship type
-      example:
-        description: GUARDIAN
-      properties:
-        description:
-          type: string
-          description: Description of the customer relationship type
-          example: GUARDIAN
-    RepresentativePersonRequest:
-      type: object
-      properties:
-        customerNum:
-          type: string
-        customerNum2:
-          type: string
-        relationTypeText:
-          type: string
-        acceptableLatency:
-          type: string
-        shareRate:
-          type: string
-        shareAmount:
-          type: string
-        confirmationDate:
-          type: string
-        headerInfo:
-          $ref: '#/components/schemas/HeaderInfo'
-        serverData:
-          $ref: '#/components/schemas/ServerData'
-      additionalProperties: false
-    RepresentativePersonResponse:
-      type: object
-      properties:
-        representativePerson:
-          type: array
-          items:
-            $ref: '#/components/schemas/RepresentativePerson'
-      additionalProperties: false
-    RepresentativePerson:
-      type: object
-      properties:
-        name:
-          type: string
-        surname:
-          type: string
-        customerNum:
-          type: string
-      additionalProperties: false
-    OperationCodeGrpcRequest:
-      type: object
-      properties:
-        operatorCustomer:
-          type: array
-          items:
-            $ref: '#/components/schemas/Customer'
-        accountCustomerNum:
-          type: string
-        accountBranch:
-          type: string
-        accountNumber:
-          type: integer
-          format: int32
-        isChequeOperation:
-          type: boolean
-      additionalProperties: false
-    Customer:
-      type: object
-      properties:
-        operatorCustomerNum:
-          type: string
-      additionalProperties: false
-    OperationCodeGrpcResponse:
-      type: object
-      properties:
-        opCode1:
-          type: string
-        opCode2:
-          type: string
-      additionalProperties: false
-    HeaderInfo:
-      type: object
-      properties:
-        command:
-          type: string
-        sourceProgramId:
-          type: string
-        unitNum:
-          type: string
-        channelCode:
-          type: string
-        moduleCode:
-          type: string
-        submoduleCode:
-          type: string
-      additionalProperties: false
-    ServerData:
-      type: object
-      properties:
-        userId:
-          type: string
-        referenceId:
-          type: string
-      additionalProperties: false
-    GetOperationCodeResponse:
-      type: object
-      properties:
-        opCode1:
-          type: string
-        opCode2:
-          type: string
-      additionalProperties: false
-    Account:
-      type: object
-      properties:
-        number:
-          type: string
-        branch:
-          type: integer
-          format: int32
-      additionalProperties: false
-    Money:
-      type: object
-      properties:
-        amount:
-          $ref: '#/components/schemas/BigDecimal'
-        currency:
-          type: string
-      additionalProperties: false
-    CommissionServerData:
-      type: object
-      properties:
-        userId:
-          type: string
-        referenceId:
-          type: string
-      additionalProperties: false
-    DigitalOrderReadRequest:
-      type: object
-      properties:
-        instructionId:
-          type: string
-          format: int64
-        customerNum:
-          type: integer
-          format: int32
-        accountNumber:
-          type: integer
-          format: int32
-        branchCode:
-          type: integer
-          format: int32
-        amount:
-          $ref: '#/components/schemas/BigDecimal'
-        currencyCode:
-          type: string
-        identityNumber:
-          type: string
-        documentId:
-          type: string
-        transactionDate:
-          type: string
-        status:
-          type: string
-        transactionType:
-          type: integer
-          format: int32
-        processUnitNum:
-          type: integer
-          format: int32
-      additionalProperties: false
-    DigitalOrderReadResponse:
-      type: object
-      properties:
-        readBranchInstructionDepositWithdrawal:
-          type: array
-          items:
-            $ref: '#/components/schemas/ReadBranchInstructionDepositWithdrawal'
-      additionalProperties: false
-    ReadBranchInstructionDepositWithdrawal:
-      type: object
-      properties:
-        instructionId:
-          type: string
-          format: int64
-        customerNum:
-          type: integer
-          format: int32
-        accountNumber:
-          type: integer
-          format: int32
-        branchCode:
-          type: integer
-          format: int32
-        amount:
-          $ref: '#/components/schemas/BigDecimal'
-        currencyCode:
-          type: string
-        identityNumber:
-          type: string
-        documentId:
-          type: string
-        transactionDate:
-          type: string
-        status:
-          type: string
-        transactionType:
-          type: integer
-          format: int32
-        processUnitNum:
-          type: integer
-          format: int32
-      additionalProperties: false
-    CustomerInfo:
-      type: object
-      properties:
-        customerFullName:
-          type: string
-        customerNumber:
-          type: string
-          format: int64
-        customerAddress:
-          type: string
-        accountType:
-          type: string
-        tckn:
-          type: string
-        nationality:
-          type: string
-      additionalProperties: false
-    BranchInfo:
-      type: object
-      properties:
-        branchName:
-          type: string
-        branchCity:
-          type: string
-        branchDistrict:
-          type: string
-        countryCode:
-          type: string
-        branchAddress:
-          type: string
-        referenceNumber:
-          type: integer
-          format: int32
-      additionalProperties: false
-    OperationCodeItemGrpc:
-      type: object
-      properties:
-        processMainCode:
-          type: string
-        processSubCode:
-          type: string
-        processDescription:
-          type: string
-      additionalProperties: false
-    CreateReceiptTransaction:
-      type: object
-      properties:
-        instanceIdAs:
-          type: string
-        instanceId:
-          type: string
-        referenceIdAs:
-          type: string
-        referenceId1:
-          type: string
-        txnReferenceIdAs:
-          type: string
-        txnReferenceId:
-          type: string
-      additionalProperties: false
-    CreateReceiptErrorComponent:
-      type: object
-      properties:
-        severityCodeAs:
-          type: string
-        severityCode:
-          type: string
-        rollbackIndicatorAs:
-          type: string
-        rollbackIndicator:
-          type: string
-        originServIdAs:
-          type: string
-        returnCodeAs:
-          type: string
-        returnCode:
-          type: integer
-          format: int32
-        reasonCodeAs:
-          type: string
-        reasonCode:
-          type: integer
-          format: int32
-      additionalProperties: false
-    RecipientInfoList:
-      type: object
-      properties:
-        emailAddress:
-          type: string
-        type:
-          type: string
-        customerNum:
-          type: string
-      additionalProperties: false
-    Transaction:
-      type: object
-      properties:
-        operationType:
-          type: string
-        processDate:
-          type: string
-        customerNumber:
-          type: integer
-          format: int32
-        accountBranchCode:
-          type: integer
-          format: int32
-        customerAccountNum:
-          type: integer
-          format: int32
-        ownerUnitNum:
-          type: integer
-          format: int32
-        approvalUnitNum:
-          type: integer
-          format: int32
-        transactionAmount:
-          $ref: '#/components/schemas/BigDecimal'
-        currencyCode:
-          type: string
-        transactionTLAmount:
-          $ref: '#/components/schemas/BigDecimal'
-        currencyRate:
-          $ref: '#/components/schemas/BigDecimal'
-        currencyType:
-          type: string
-        rateType:
-          type: string
-        channelCode:
-          type: string
-        channelType:
-          type: string
-        channelDetailText:
-          type: string
-        financialDomainCode:
-          type: string
-        financialFamilyCode:
-          type: string
-        financialSubFamilyCode:
-          type: string
-        purposeValueCode:
-          type: string
-        receiptInfoId:
-          type: string
-        contractInfoId:
-          type: string
-        accountingGuid:
-          type: string
-        priceInqueryId:
-          type: string
-        surveyInfoId:
-          type: string
-        gmaticId:
-          type: string
-        commisionAmount:
-          $ref: '#/components/schemas/BigDecimal'
-        commisionCurrencyCode:
-          type: string
-        chargeAmount:
-          $ref: '#/components/schemas/BigDecimal'
-        chargeCurrencyCode:
-          type: string
-        taxAmount:
-          $ref: '#/components/schemas/BigDecimal'
-        taxCurrencyCode:
-          type: string
-        statusCode:
-          type: string
-        cicsTxnId:
-          type: string
-        checkNumber:
-          type: string
-        goldValuationId:
-          type: string
-        prosecutorNotificationInfo:
-          type: string
-        transactionRelationType:
-          type: string
-        transactionExplanationText:
-          type: string
-        requestText:
-          type: string
-      additionalProperties: false
-    FindTransactionByCustomerNumberGrpcRequest:
-      type: object
-      properties:
-        customerNumber:
-          type: integer
-          format: int32
-      additionalProperties: false
-    FindTransactionByCustomerNumberGrpcResponse:
-      type: object
-      properties:
-        transactions:
-          type: array
-          items:
-            $ref: '#/components/schemas/Transaction'
-      additionalProperties: false
-    TrnxCompleteWithdrawalGrpcRequest:
-      type: object
-      properties:
-        operationType:
-          type: string
-        customerNumber:
-          type: integer
-          format: int32
-        accountBranchCode:
-          type: integer
-          format: int32
-        customerAccountNum:
-          type: integer
-          format: int32
-        transactionAmount:
-          $ref: '#/components/schemas/BigDecimal'
-        createUserId:
-          type: string
-        channelCode:
-          type: string
-        channelDetailText:
-          type: string
-        operation1Code:
-          type: string
-        operation2Code:
-          type: string
-        relatedProductCode:
-          type: string
-        purposeValueCode:
-          type: string
-        surveyIfoId:
-          type: string
-        commissionAmount:
-          $ref: '#/components/schemas/BigDecimal'
-        commissionCurrencyCode:
-          type: string
-        priceInqueryId:
-          type: string
-        chargeAmount:
-          $ref: '#/components/schemas/BigDecimal'
-        chargeCurrencyCode:
-          type: string
-        requestText:
-          type: string
-        transactionExplanationText:
-          type: string
-        checkNumber:
-          type: string
-        goldValuationId:
-          type: string
-        prosecutorNotificationInfo:
-          type: string
-        transactionRelationType:
-          type: string
-        gmaticId:
-          type: string
-        currencyCode:
-          type: string
-        tcNumber:
-          type: string
-        birthDate:
-          type: string
-        isCheck:
-          type: boolean
-        processingPersonInfo:
-          type: array
-          items:
-            $ref: '#/components/schemas/ProcessingPersonInfoRequest'
-        atmInfo:
-          $ref: '#/components/schemas/AtmInfoRequest'
-        commissionAccountInfo:
-          $ref: '#/components/schemas/CommissionAccountInfo'
-        isNotificationToProsecutor:
-          type: boolean
-        customerName:
-          type: string
-        customerSurname:
-          type: string
-        accountBalanceAmount:
-          $ref: '#/components/schemas/BigDecimal'
-        addressLine1:
-          type: string
-        addressLine2:
-          type: string
-        regionName:
-          type: string
-        districtName:
-          type: string
-        cityName:
-          type: string
-        postalCode:
-          type: string
-        phoneNumber:
-          type: string
-        cicsTxnId:
-          type: string
-        sourceId:
-          type: string
-        kpsValidationBypass:
-          type: boolean
-      additionalProperties: false
-    CommissionAccountInfo:
-      type: object
-      properties:
-        accountNumber:
-          type: integer
-          format: int32
-        branch:
-          type: integer
-          format: int32
-        currency:
-          type: string
-        usableBalanceAmount:
-          type: string
-      additionalProperties: false
-    ProcessingPersonInfoRequest:
-      type: object
-      properties:
-        statusCode:
-          type: string
-        processCustomerNum:
-          type: string
-      additionalProperties: false
-    AtmInfoRequest:
-      type: object
-      properties:
-        cardNo:
-          type: string
-        isQr:
-          type: boolean
-        qrId:
-          type: string
-        atmNumber:
-          type: string
-        isCommission:
-          type: boolean
-      additionalProperties: false
-    TrnxCompleteWithdrawalGrpcResponse:
-      type: object
-      properties:
-        instanceId:
-          type: string
-        receiptInstanceId:
-          type: string
-        receiptReferenceId:
-          type: string
-        receiptTxnReferenceId:
-          type: string
-        approvalRequired:
-          type: boolean
-      additionalProperties: false
-    FilteredTransaction:
-      type: object
-      properties:
-        instanceId:
-          type: string
-        customerNameAndSurname:
-          type: string
-        processDate:
-          type: string
-        approveType:
-          type: string
-        transactionAmount:
-          $ref: '#/components/schemas/BigDecimal'
-        status:
-          type: string
-        createUserId:
-          type: string
-        approveUserId:
-          type: string
-      additionalProperties: false
-    AccountTransactionRulesGrpcRequest:
-      type: object
-      properties:
-        debitUnitNum:
-          type: integer
-          format: int32
-        debitAccountNum:
-          type: integer
-          format: int32
-        transactionAmount:
-          type: string
-        currencyCode:
-          type: string
-        transactionDate:
-          type: string
-        oprtnCustList:
-          type: array
-          items:
-            type: string
-      additionalProperties: false
-    AccountTransactionRulesGrpcResponse:
-      type: object
-      properties:
-        messages:
-          type: array
-          items:
-            type: string
-        accountUsableBalanceAmount:
-          $ref: '#/components/schemas/BigDecimal'
-        debitUnitNum:
-          type: integer
-          format: int32
-        debitAccountNum:
-          type: integer
-          format: int32
-        debitCustomerFirstName:
-          type: string
-        debitCustomerLastName:
-          type: string
-        debitAccountCurrCode:
-          type: string
-        debitAccountCustomerNum:
-          type: integer
-          format: int32
-        debitCustomerType:
-          type: string
-        checkRelatedAccount:
-          type: string
-      additionalProperties: false
-    SaveRepresentativePersonRequest:
-      type: object
-      properties:
-        customerNum:
-          type: string
-        opnDefinedKey:
-          type: string
-        partyType:
-          type: string
-        recordStatus:
-          type: string
-        serverData:
-          $ref: '#/components/schemas/ServerData'
-      additionalProperties: false
-    SaveRepresentativePersonResponse:
-      type: object
-      properties:
-        customerNum:
-          type: string
-        name:
-          type: string
-        surname:
-          type: string
-        citizenText:
-          type: string
-        mernisNum:
-          type: string
-        birthDate:
-          type: string
-        otherNationalityId:
-          type: string
-      additionalProperties: false
-    CustomerInfoGrpcRequest:
-      type: object
-      properties:
-        customerNum:
-          type: string
-      additionalProperties: false
-    CustomerInfoGrpcResponse:
-      type: object
-      properties:
-        customerNum:
-          type: string
-        name:
-          type: string
-        surname:
-          type: string
-        citizen:
-          type: string
-        mernisNum:
-          type: string
-        birthDate:
-          type: string
-        otherNationalityId:
-          type: string
-        customerType:
-          type: string
-        isOperant:
-          type: boolean
-        operantMessages:
-          type: array
-          items:
-            type: string
-        isActivePerson:
-          type: boolean
-        customerSubType:
-          type: string
-        customerSubType2:
-          type: string
-      additionalProperties: false
-    ExtendedCustomerInfoGrpcResponse:
-      type: object
-      properties:
-        customerNum:
-          type: string
-        name:
-          type: string
-        surname:
-          type: string
-        citizenText:
-          type: string
-        mernisNum:
-          type: string
-        birthDate:
-          type: string
-        otherNationalityId:
-          type: string
-        settledCountryCode:
-          type: string
-        birthPlace:
-          type: string
-        motherName:
-          type: string
-        fatherName:
-          type: string
-        phoneNumCountryCode:
-          type: string
-        phoneNum:
-          type: string
-        pasaportNumText:
-          type: string
-        addressType:
-          type: string
-        countryCode:
-          type: string
-        cityCode:
-          type: string
-        addressLine:
-          type: string
-        postalCode:
-          type: string
-        regionName:
-          type: string
-        workingStyle:
-          type: string
-        jobTitle:
-          type: string
-      additionalProperties: false
-    GetKpsInfoRequest:
-      type: object
-      properties:
-        nationalId:
-          type: string
-        birthDate:
-          type: string
-        inquiryDateMargin:
-          type: integer
-          format: int32
-      additionalProperties: false
-    GetKpsInfoResponse:
-      type: object
-      properties:
-        nationalIdNum:
-          type: string
-        name:
-          type: string
-        surname:
-          type: string
-        birthDate:
-          type: string
-        birthPlace:
-          type: string
-        fatherName:
-          type: string
-        motherName:
-          type: string
-        serialCode:
-          type: string
-        sequenceNumber:
-          type: integer
-          format: int32
-        newIdentityCard:
-          type: boolean
-      additionalProperties: false
-    SaveTransactionCustomerRequest:
-      type: object
-      properties:
-        nationalIdNum:
-          type: string
-        name:
-          type: string
-        surname:
-          type: string
-        birthDate:
-          type: string
-        nationalityCode:
-          type: string
-        kktcNationalId:
-          type: string
-        passportId:
-          type: string
-        countryCode:
-          type: string
-        birthPlace:
-          type: string
-        fatherName:
-          type: string
-        motherName:
-          type: string
-        workingType:
-          type: string
-        jobTitle:
-          type: string
-        cityCode:
-          type: string
-        cityName:
-          type: string
-        countyName:
-          type: string
-        phoneCountryCode:
-          type: string
-        phoneNum:
-          type: string
-        postcode:
-          type: string
-        address:
-          type: string
-        addressType:
-          type: string
-        customerNum:
-          type: string
-      additionalProperties: false
-    TransactionCustomerMessageResponse:
-      type: object
-      properties:
-        message:
-          type: string
-        customerNum:
-          type: integer
-          format: int32
-      additionalProperties: false
-    BigDecimal:
-      type: object
-      description: Decimal type from proto (scale/precision/value).
-      properties:
-        scale:
-          type: integer
-          format: int32
-          minimum: 0
-          description: Number of fractional digits.
-          example: 2
-        precision:
-          type: integer
-          format: int32
-          minimum: 0
-          description: Total number of significant digits.
-          example: 10
-        value:
-          type: string
-          format: byte
-          description: Big-endian binary integer content, base64-encoded.
-          example: AAECAw==
-      additionalProperties: false
-  responses:
-    HttpOKwithTransactionGrpcResponseResult:
-      description: OK.
-      headers:
-        Access-Control-Allow-Origin:
-          $ref: '#/components/headers/Access-Control-Allow-Origin'
-        GUID:
-          $ref: '#/components/headers/GUID'
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/TransactionGrpcResponse'
-    HttpOKwithCustomerRelationshipTypeResponseResult:
-      description: OK.
-      headers:
-        Access-Control-Allow-Origin:
-          $ref: '#/components/headers/Access-Control-Allow-Origin'
-        GUID:
-          $ref: '#/components/headers/GUID'
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/CustomerRelationshipTypeResponse'
-    HttpOKwithRepresentativePersonResponseResult:
-      description: OK.
-      headers:
-        Access-Control-Allow-Origin:
-          $ref: '#/components/headers/Access-Control-Allow-Origin'
-        GUID:
-          $ref: '#/components/headers/GUID'
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/RepresentativePersonResponse'
-    HttpOKwithOperationCodeGrpcResponseResult:
-      description: OK.
-      headers:
-        Access-Control-Allow-Origin:
-          $ref: '#/components/headers/Access-Control-Allow-Origin'
-        GUID:
-          $ref: '#/components/headers/GUID'
-      content:
-        application/json:
-          schema:
-            $ref: '#/components/schemas/OperationCodeGrpcResponse'
-    BadRequest:
-      description: Bad request.
-      headers:
-        Access-Control-Allow-Origin:
-          $ref: '#/components/headers/Access-Control-Allow-Origin'
-        GUID:
-          $ref: '#/components/headers/GUID'
-    Forbiden:
-      description: Forbidden
-      headers:
-        Access-Control-Allow-Origin:
-          $ref: '#/components/headers/Access-Control-Allow-Origin'
-        GUID:
-          $ref: '#/components/headers/GUID'
-    MethodNotAllowed:
-      description: Method not allowed.
-      headers:
-        Access-Control-Allow-Origin:
-          $ref: '#/components/headers/Access-Control-Allow-Origin'
-        GUID:
-          $ref: '#/components/headers/GUID'
-    ServerError:
-      description: Internal Server error.
-      headers:
-        Access-Control-Allow-Origin:
-          $ref: '#/components/headers/Access-Control-Allow-Origin'
-        GUID:
-          $ref: '#/components/headers/GUID'
-    Unauthorized:
-      description: Unauthorized.
-      headers:
-        Access-Control-Allow-Origin:
-          $ref: '#/components/headers/Access-Control-Allow-Origin'
-        GUID:
-          $ref: '#/components/headers/GUID'
-  parameters:
-    AuthorizationTokenHeader:
-      name: Authorization
-      in: header
-      description: Oauth Access token information
-      example: Bearer 4c4f8643-29e1-4b7f-b62c-03ea78dad48e
-      required: false
-      schema:
+        format: byte
+        description: Binary integer content, base64-encoded.
+        example: AAECAw==
+    example: {scale: 2, precision: 10, value: AAECAw==}
+  ChequeCommissionInfoRequest:
+    type: object
+    description: 'Schema auto-generated from proto: ChequeCommissionInfoRequest.'
+    properties:
+      customerNo:
         type: string
-    ContentTypeHeader:
-      name: Content-Type
-      in: header
-      description: application/json , application/xml
-      example: application/json
-      required: true
-      schema:
+        description: Field `string`.
+        example: string
+      opCode:
+        $ref: '#/components/schemas/GetOperationCodeResponse'
+      chequeAmount:
+        $ref: '#/components/schemas/Money'
+      account:
+        $ref: '#/components/schemas/Account'
+      commissionServerData:
+        $ref: '#/components/schemas/CommissionServerData'
+    example: {customerNo: string, opCode: {$ref: '#/components/schemas/GetOperationCodeResponse'},
+      chequeAmount: {$ref: '#/components/schemas/Money'}, account: {$ref: '#/components/schemas/Account'},
+      commissionServerData: {$ref: '#/components/schemas/CommissionServerData'}}
+  GetOperationCodeResponse:
+    type: object
+    description: 'Schema auto-generated from proto: GetOperationCodeResponse.'
+    properties:
+      opCode1:
         type: string
-    AcceptHeader:
-      name: Accept
-      in: header
-      description: application/json , application/xml
-      example: application/json
-      required: true
-      schema:
+        description: Field `string`.
+        example: string
+      opCode2:
         type: string
-    ChannelHeader:
-      name: channel
-      in: header
-      description: Information on which channel the request comes
-      example: ATM
-      required: true
-      schema:
+        description: Field `string`.
+        example: string
+    example: {opCode1: string, opCode2: string}
+  Option:
+    type: object
+    description: 'Schema auto-generated from proto: Option.'
+    properties:
+      code:
         type: string
-    IpHeader:
-      name: ip
-      in: header
-      description: End User Client IP
-      example: 127.0.0.1
-      required: true
-      schema:
+        description: Field `string`.
+        example: string
+      descriptionKey:
         type: string
-    DialectHeader:
-      name: dialect
-      in: header
-      description: TR (Turkish) , EN (English) , RO (Romanca)
-      example: TR
-      required: true
-      schema:
-        maxLength: 2
+        description: Field `string`.
+        example: string
+    example: {code: string, descriptionKey: string}
+  Account:
+    type: object
+    description: 'Schema auto-generated from proto: Account.'
+    properties:
+      number:
         type: string
-    TenantCompanyHeader:
-      name: tenant-company-id
-      in: header
-      description: The id of the company from where the request is originated from
-        (GAR, GFC, GES)
-      example: GAR
-      required: true
-      schema:
-        maxLength: 3
+        description: Field `string`.
+        example: string
+      branch:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+    example: {number: string, branch: 123}
+  Money:
+    type: object
+    description: 'Schema auto-generated from proto: Money.'
+    properties:
+      amount:
+        $ref: '#/components/schemas/BigDecimal'
+      currency:
         type: string
-    TenantGeolocationHeader:
-      name: tenant-geolocation
-      description: Location of where the request originated from.
-      example: TUR
-      in: header
-      required: false
-      schema:
-        maxLength: 3
+        description: Field `string`.
+        example: string
+    example: {amount: {$ref: '#/components/schemas/BigDecimal'}, currency: string}
+  CommissionServerData:
+    type: object
+    description: 'Schema auto-generated from proto: CommissionServerData.'
+    properties:
+      userId:
         type: string
-    TenantAppIdHeader:
-      name: tenant-app-id
-      description: Application or Service identdification number
-      example: 7e6584354f5e6624518686f6eb124265
-      in: header
-      required: false
-      schema:
+        description: Field `string`.
+        example: string
+      referenceId:
         type: string
-    ApiKeyHeader:
-      name: api-key
-      description: It is needed for Customer and Third-Party Services
-      example: l7xx766d3fc85ca74b4bbe582e529e62747a
-      in: header
-      required: false
-      schema:
+        description: Field `string`.
+        example: string
+    example: {userId: string, referenceId: string}
+  ChequeCommissionInfoResponse:
+    type: object
+    description: 'Schema auto-generated from proto: ChequeCommissionInfoResponse.'
+    properties:
+      cost:
+        $ref: '#/components/schemas/Money'
+      isCommissionFree:
+        type: boolean
+        description: Field `bool`.
+        example: true
+    example: {cost: {$ref: '#/components/schemas/Money'}, isCommissionFree: true}
+  DigitalOrderReadRequest:
+    type: object
+    description: 'Schema auto-generated from proto: DigitalOrderReadRequest.'
+    properties:
+      instructionId:
         type: string
-    GuidHeader:
-      name: guid
-      in: header
-      description: It is used to process trace. The GUID  must be a unique value for
-        each request
-      example: '123456789012345678901234567'
-      required: true
-      schema:
+        format: int64
+        description: Field `int64`.
+        example: '123456789'
+      customerNum:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+      accountNumber:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+      branchCode:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+      amount:
+        $ref: '#/components/schemas/BigDecimal'
+      currencyCode:
         type: string
-    UserIdHeader:
-      name: user-id
-      description: 'User Id '
-      example: ME07684
-      in: header
-      required: false
-      schema:
+        description: Field `string`.
+        example: string
+      identityNumber:
         type: string
-    ClientIdHeader:
-      name: client-id
-      description: The client Id is defined by access manager for getting authorization
-        code and access token
-      example: QqWCRHVzntITMgBoa61f
-      in: header
-      required: false
-      schema:
+        description: Field `string`.
+        example: string
+      documentId:
         type: string
-    RequestTraceFlagHeader:
-      name: request-trace-flag
-      description: 'true: log the request-response paylod in backend application.false:
-        DO NOT log the request-response paylod in backend application.'
-      example: 'true'
-      in: header
-      required: false
-      schema:
+        description: Field `string`.
+        example: string
+      transactionDate:
         type: string
-    ClientTraceIdlHeader:
-      name: x-client-trace-id
-      description: It is used to process trace. It must be a unique value for each
-        request
-      example: a03debf792229fdbc6bc8a6e9b9df464
-      in: header
-      required: true
-      schema:
+        description: Field `string`.
+        example: string
+      status:
         type: string
-    ForwardedForHeader:
-      name: x-forwareded-for
-      description: It is used to inform the originated IP address of a client
-      example: 203.0.113.195
-      in: header
-      required: true
-      schema:
+        description: Field `string`.
+        example: string
+      transactionType:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+      processUnitNum:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+    example: {instructionId: '123456789', customerNum: 123, accountNumber: 123, branchCode: 123,
+      amount: {$ref: '#/components/schemas/BigDecimal'}, currencyCode: string, identityNumber: string,
+      documentId: string, transactionDate: string, status: string, transactionType: 123,
+      processUnitNum: 123}
+  DigitalOrderReadResponse:
+    type: object
+    description: 'Schema auto-generated from proto: DigitalOrderReadResponse.'
+    properties:
+      readBranchInstructionDepositWithdrawal:
+        type: array
+        description: List of `ReadBranchInstructionDepositWithdrawal`.
+        items:
+          $ref: '#/components/schemas/ReadBranchInstructionDepositWithdrawal'
+        example: []
+    example: {readBranchInstructionDepositWithdrawal: []}
+  ReadBranchInstructionDepositWithdrawal:
+    type: object
+    description: 'Schema auto-generated from proto: ReadBranchInstructionDepositWithdrawal.'
+    properties:
+      instructionId:
         type: string
+        format: int64
+        description: Field `int64`.
+        example: '123456789'
+      customerNum:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+      accountNumber:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+      branchCode:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+      amount:
+        $ref: '#/components/schemas/BigDecimal'
+      currencyCode:
+        type: string
+        description: Field `string`.
+        example: string
+      identityNumber:
+        type: string
+        description: Field `string`.
+        example: string
+      documentId:
+        type: string
+        description: Field `string`.
+        example: string
+      transactionDate:
+        type: string
+        description: Field `string`.
+        example: string
+      status:
+        type: string
+        description: Field `string`.
+        example: string
+      transactionType:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+      processUnitNum:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+    example: {instructionId: '123456789', customerNum: 123, accountNumber: 123, branchCode: 123,
+      amount: {$ref: '#/components/schemas/BigDecimal'}, currencyCode: string, identityNumber: string,
+      documentId: string, transactionDate: string, status: string, transactionType: 123,
+      processUnitNum: 123}
+  CreateSinglePdfGrpcRequest:
+    type: object
+    description: 'Schema auto-generated from proto: CreateSinglePdfGrpcRequest.'
+    properties:
+      documentType:
+        type: string
+        description: Field `string`.
+        example: string
+      documentStatus:
+        type: string
+        description: Field `string`.
+        example: string
+      async:
+        type: string
+        description: Field `string`.
+        example: string
+      userId:
+        type: string
+        description: Field `string`.
+        example: string
+      authUserId:
+        type: string
+        description: Field `string`.
+        example: string
+      xmlData:
+        type: string
+        description: Field `string`.
+        example: string
+      date:
+        type: string
+        description: Field `string`.
+        example: string
+      commissionRate:
+        type: number
+        format: double
+        description: Field `double`.
+        example: 123.45
+      transactionAmount:
+        $ref: '#/components/schemas/BigDecimal'
+      customerInfo:
+        type: array
+        description: List of `CustomerInfo`.
+        items:
+          $ref: '#/components/schemas/CustomerInfo'
+        example: []
+      branchInfo:
+        $ref: '#/components/schemas/BranchInfo'
+    example: {documentType: string, documentStatus: string, async: string, userId: string,
+      authUserId: string, xmlData: string, date: string, commissionRate: 123.45, transactionAmount: {
+        $ref: '#/components/schemas/BigDecimal'}, customerInfo: [], branchInfo: {
+        $ref: '#/components/schemas/BranchInfo'}}
+  CreateSinglePdfGrpcResponse:
+    type: object
+    description: 'Schema auto-generated from proto: CreateSinglePdfGrpcResponse.'
+    properties:
+      returnCode:
+        type: string
+        description: Field `string`.
+        example: string
+      returnMsg:
+        type: string
+        description: Field `string`.
+        example: string
+      documentId:
+        type: string
+        description: Field `string`.
+        example: string
+    example: {returnCode: string, returnMsg: string, documentId: string}
+  GetSinglePdfGrpcRequest:
+    type: object
+    description: 'Schema auto-generated from proto: GetSinglePdfGrpcRequest.'
+    properties:
+      documentId:
+        type: string
+        description: Field `string`.
+        example: string
+      userId:
+        type: string
+        description: Field `string`.
+        example: string
+      authUserId:
+        type: string
+        description: Field `string`.
+        example: string
+    example: {documentId: string, userId: string, authUserId: string}
+  GetPdfGrpcResponse:
+    type: object
+    description: 'Schema auto-generated from proto: GetPdfGrpcResponse.'
+    properties:
+      returnCode:
+        type: string
+        description: Field `string`.
+        example: string
+      returnMsg:
+        type: string
+        description: Field `string`.
+        example: string
+      pdfData:
+        type: string
+        description: Field `string`.
+        example: string
+    example: {returnCode: string, returnMsg: string, pdfData: string}
+  GetMultiPdfGrpcRequest:
+    type: object
+    description: 'Schema auto-generated from proto: GetMultiPdfGrpcRequest.'
+    properties:
+      documentIdList:
+        type: string
+        description: Field `string`.
+        example: string
+      userId:
+        type: string
+        description: Field `string`.
+        example: string
+      authUserId:
+        type: string
+        description: Field `string`.
+        example: string
+    example: {documentIdList: string, userId: string, authUserId: string}
+  CustomerInfo:
+    type: object
+    description: 'Schema auto-generated from proto: CustomerInfo.'
+    properties:
+      customerFullName:
+        type: string
+        description: Field `string`.
+        example: string
+      customerNumber:
+        type: string
+        format: int64
+        description: Field `int64`.
+        example: '123456789'
+      customerAddress:
+        type: string
+        description: Field `string`.
+        example: string
+      accountType:
+        type: string
+        description: Field `string`.
+        example: string
+      tckn:
+        type: string
+        description: Field `string`.
+        example: string
+      nationality:
+        type: string
+        description: Field `string`.
+        example: string
+    example: {customerFullName: string, customerNumber: '123456789', customerAddress: string,
+      accountType: string, tckn: string, nationality: string}
+  BranchInfo:
+    type: object
+    description: 'Schema auto-generated from proto: BranchInfo.'
+    properties:
+      branchName:
+        type: string
+        description: Field `string`.
+        example: string
+      branchCity:
+        type: string
+        description: Field `string`.
+        example: string
+      branchDistrict:
+        type: string
+        description: Field `string`.
+        example: string
+      countryCode:
+        type: string
+        description: Field `string`.
+        example: string
+      branchAddress:
+        type: string
+        description: Field `string`.
+        example: string
+      referenceNumber:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+    example: {branchName: string, branchCity: string, branchDistrict: string, countryCode: string,
+      branchAddress: string, referenceNumber: 123}
+  OperationCodeGrpcRequest:
+    type: object
+    description: 'Schema auto-generated from proto: OperationCodeGrpcRequest.'
+    properties:
+      operatorCustomer:
+        type: array
+        description: List of `Customer`.
+        items:
+          $ref: '#/components/schemas/Customer'
+        example: []
+      accountCustomerNum:
+        type: string
+        description: Field `string`.
+        example: string
+      accountBranch:
+        type: string
+        description: Field `string`.
+        example: string
+      accountNumber:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+      isChequeOperation:
+        type: boolean
+        description: Field `bool`.
+        example: true
+    example: {operatorCustomer: [], accountCustomerNum: string, accountBranch: string,
+      accountNumber: 123, isChequeOperation: true}
+  Customer:
+    type: object
+    description: 'Schema auto-generated from proto: Customer.'
+    properties:
+      operatorCustomerNum:
+        type: string
+        description: Field `string`.
+        example: string
+    example: {operatorCustomerNum: string}
+  OperationCodeGrpcResponse:
+    type: object
+    description: 'Schema auto-generated from proto: OperationCodeGrpcResponse.'
+    properties:
+      opCode1:
+        type: string
+        description: Field `string`.
+        example: string
+      opCode2:
+        type: string
+        description: Field `string`.
+        example: string
+    example: {opCode1: string, opCode2: string}
+  OperationCodeItemGrpc:
+    type: object
+    description: 'Schema auto-generated from proto: OperationCodeItemGrpc.'
+    properties:
+      processMainCode:
+        type: string
+        description: Field `string`.
+        example: string
+      processSubCode:
+        type: string
+        description: Field `string`.
+        example: string
+      processDescription:
+        type: string
+        description: Field `string`.
+        example: string
+    example: {processMainCode: string, processSubCode: string, processDescription: string}
+  GetBulkOperationCodesGrpcResponse:
+    type: object
+    description: 'Schema auto-generated from proto: GetBulkOperationCodesGrpcResponse.'
+    properties:
+      operationCodes:
+        type: array
+        description: List of `OperationCodeItemGrpc`.
+        items:
+          $ref: '#/components/schemas/OperationCodeItemGrpc'
+        example: []
+    example: {operationCodes: []}
+  CreateReceiptGrpcRequest:
+    type: object
+    description: 'Schema auto-generated from proto: CreateReceiptGrpcRequest.'
+    properties:
+      txnReferenceId:
+        type: string
+        description: Field `string`.
+        example: string
+      voucherNum:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+      currencyCode:
+        type: string
+        description: Field `string`.
+        example: string
+      transactionAmount:
+        $ref: '#/components/schemas/BigDecimal'
+      customerName:
+        type: string
+        description: Field `string`.
+        example: string
+      customerSurname:
+        type: string
+        description: Field `string`.
+        example: string
+      customerTckn:
+        type: string
+        description: Field `string`.
+        example: string
+      accountBalanceAmount:
+        $ref: '#/components/schemas/BigDecimal'
+      addressLine1:
+        type: string
+        description: Field `string`.
+        example: string
+      addressLine2:
+        type: string
+        description: Field `string`.
+        example: string
+      regionName:
+        type: string
+        description: Field `string`.
+        example: string
+      districtName:
+        type: string
+        description: Field `string`.
+        example: string
+      cityName:
+        type: string
+        description: Field `string`.
+        example: string
+      postalCode:
+        type: string
+        description: Field `string`.
+        example: string
+      customerNumber:
+        type: string
+        format: int64
+        description: Field `int64`.
+        example: '123456789'
+      accountNumber:
+        type: string
+        format: int64
+        description: Field `int64`.
+        example: '123456789'
+      txnDate:
+        type: string
+        description: Field `string`.
+        example: string
+      processMainCode:
+        type: string
+        description: Field `string`.
+        example: string
+      processSubCode:
+        type: string
+        description: Field `string`.
+        example: string
+      cicsTxnId:
+        type: string
+        description: Field `string`.
+        example: string
+      sourceId:
+        type: string
+        description: Field `string`.
+        example: string
+      phoneNumber:
+        type: string
+        description: Field `string`.
+        example: string
+      unitNum:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+      sbcReferenceNum:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+    example: {txnReferenceId: string, voucherNum: 123, currencyCode: string, transactionAmount: {
+        $ref: '#/components/schemas/BigDecimal'}, customerName: string, customerSurname: string,
+      customerTckn: string, accountBalanceAmount: {$ref: '#/components/schemas/BigDecimal'},
+      addressLine1: string, addressLine2: string, regionName: string, districtName: string,
+      cityName: string, postalCode: string, customerNumber: '123456789', accountNumber: '123456789',
+      txnDate: string, processMainCode: string, processSubCode: string, cicsTxnId: string,
+      sourceId: string, phoneNumber: string, unitNum: 123, sbcReferenceNum: 123}
+  CreateReceiptGrpcResponse:
+    type: object
+    description: 'Schema auto-generated from proto: CreateReceiptGrpcResponse.'
+    properties:
+      createReceiptTransaction:
+        $ref: '#/components/schemas/CreateReceiptTransaction'
+      createReceiptErrorComponent:
+        $ref: '#/components/schemas/CreateReceiptErrorComponent'
+    example: {createReceiptTransaction: {$ref: '#/components/schemas/CreateReceiptTransaction'},
+      createReceiptErrorComponent: {$ref: '#/components/schemas/CreateReceiptErrorComponent'}}
+  CreateReceiptTransaction:
+    type: object
+    description: 'Schema auto-generated from proto: CreateReceiptTransaction.'
+    properties:
+      instanceIdAs:
+        type: string
+        description: Field `string`.
+        example: string
+      instanceId:
+        type: string
+        description: Field `string`.
+        example: string
+      referenceIdAs:
+        type: string
+        description: Field `string`.
+        example: string
+      referenceId1:
+        type: string
+        description: Field `string`.
+        example: string
+      txnReferenceIdAs:
+        type: string
+        description: Field `string`.
+        example: string
+      txnReferenceId:
+        type: string
+        description: Field `string`.
+        example: string
+    example: {instanceIdAs: string, instanceId: string, referenceIdAs: string, referenceId1: string,
+      txnReferenceIdAs: string, txnReferenceId: string}
+  CreateReceiptErrorComponent:
+    type: object
+    description: 'Schema auto-generated from proto: CreateReceiptErrorComponent.'
+    properties:
+      severityCodeAs:
+        type: string
+        description: Field `string`.
+        example: string
+      severityCode:
+        type: string
+        description: Field `string`.
+        example: string
+      rollbackIndicatorAs:
+        type: string
+        description: Field `string`.
+        example: string
+      rollbackIndicator:
+        type: string
+        description: Field `string`.
+        example: string
+      originServIdAs:
+        type: string
+        description: Field `string`.
+        example: string
+      returnCodeAs:
+        type: string
+        description: Field `string`.
+        example: string
+      returnCode:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+      reasonCodeAs:
+        type: string
+        description: Field `string`.
+        example: string
+      reasonCode:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+    example: {severityCodeAs: string, severityCode: string, rollbackIndicatorAs: string,
+      rollbackIndicator: string, originServIdAs: string, returnCodeAs: string, returnCode: 123,
+      reasonCodeAs: string, reasonCode: 123}
+  SendEmailToCustomerRequest:
+    type: object
+    description: 'Schema auto-generated from proto: SendEmailToCustomerRequest.'
+    properties:
+      templateCode:
+        type: string
+        description: Field `string`.
+        example: string
+      subject:
+        type: string
+        description: Field `string`.
+        example: string
+      fromAddressDisplayText:
+        type: string
+        description: Field `string`.
+        example: string
+      fromAddress:
+        type: string
+        description: Field `string`.
+        example: string
+      replyToAddressDisplayText:
+        type: string
+        description: Field `string`.
+        example: string
+      replyToAddress:
+        type: string
+        description: Field `string`.
+        example: string
+      userReference:
+        type: string
+        description: Field `string`.
+        example: string
+      programName:
+        type: string
+        description: Field `string`.
+        example: string
+      sendStartTime:
+        type: string
+        description: Field `string`.
+        example: string
+      sendEndTime:
+        type: string
+        description: Field `string`.
+        example: string
+      emailXMLData:
+        type: string
+        description: Field `string`.
+        example: string
+      recipientInfoList:
+        type: array
+        description: List of `RecipientInfoList`.
+        items:
+          $ref: '#/components/schemas/RecipientInfoList'
+        example: []
+    example: {templateCode: string, subject: string, fromAddressDisplayText: string,
+      fromAddress: string, replyToAddressDisplayText: string, replyToAddress: string,
+      userReference: string, programName: string, sendStartTime: string, sendEndTime: string,
+      emailXMLData: string, recipientInfoList: []}
+  RecipientInfoList:
+    type: object
+    description: 'Schema auto-generated from proto: RecipientInfoList.'
+    properties:
+      emailAddress:
+        type: string
+        description: Field `string`.
+        example: string
+      type:
+        type: string
+        description: Field `string`.
+        example: string
+      customerNum:
+        type: string
+        description: Field `string`.
+        example: string
+    example: {emailAddress: string, type: string, customerNum: string}
+  SendEmailToCustomerResponse:
+    type: object
+    description: 'Schema auto-generated from proto: SendEmailToCustomerResponse.'
+    properties:
+      returnCode:
+        type: string
+        description: Field `string`.
+        example: string
+      returnMessage:
+        type: string
+        description: Field `string`.
+        example: string
+      encryptedReferenceText:
+        type: string
+        description: Field `string`.
+        example: string
+      emailIdentifierNum:
+        type: string
+        description: Field `string`.
+        example: string
+    example: {returnCode: string, returnMessage: string, encryptedReferenceText: string,
+      emailIdentifierNum: string}
+  Transaction:
+    type: object
+    description: 'Schema auto-generated from proto: Transaction.'
+    properties:
+      operationType:
+        type: string
+        description: Field `string`.
+        example: string
+      processDate:
+        type: string
+        description: Field `string`.
+        example: string
+      customerNumber:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+      accountBranchCode:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+      customerAccountNum:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+      ownerUnitNum:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+      approvalUnitNum:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+      transactionAmount:
+        $ref: '#/components/schemas/BigDecimal'
+      currencyCode:
+        type: string
+        description: Field `string`.
+        example: string
+      transactionTLAmount:
+        $ref: '#/components/schemas/BigDecimal'
+      currencyRate:
+        $ref: '#/components/schemas/BigDecimal'
+      currencyType:
+        type: string
+        description: Field `string`.
+        example: string
+      rateType:
+        type: string
+        description: Field `string`.
+        example: string
+      channelCode:
+        type: string
+        description: Field `string`.
+        example: string
+      channelType:
+        type: string
+        description: Field `string`.
+        example: string
+      channelDetailText:
+        type: string
+        description: Field `string`.
+        example: string
+      financialDomainCode:
+        type: string
+        description: Field `string`.
+        example: string
+      financialFamilyCode:
+        type: string
+        description: Field `string`.
+        example: string
+      financialSubFamilyCode:
+        type: string
+        description: Field `string`.
+        example: string
+      purposeValueCode:
+        type: string
+        description: Field `string`.
+        example: string
+      receiptInfoId:
+        type: string
+        description: Field `string`.
+        example: string
+      contractInfoId:
+        type: string
+        description: Field `string`.
+        example: string
+      accountingGuid:
+        type: string
+        description: Field `string`.
+        example: string
+      priceInqueryId:
+        type: string
+        description: Field `string`.
+        example: string
+      surveyInfoId:
+        type: string
+        description: Field `string`.
+        example: string
+      gmaticId:
+        type: string
+        description: Field `string`.
+        example: string
+      commisionAmount:
+        $ref: '#/components/schemas/BigDecimal'
+      commisionCurrencyCode:
+        type: string
+        description: Field `string`.
+        example: string
+      chargeAmount:
+        $ref: '#/components/schemas/BigDecimal'
+      chargeCurrencyCode:
+        type: string
+        description: Field `string`.
+        example: string
+      taxAmount:
+        $ref: '#/components/schemas/BigDecimal'
+      taxCurrencyCode:
+        type: string
+        description: Field `string`.
+        example: string
+      statusCode:
+        type: string
+        description: Field `string`.
+        example: string
+      cicsTxnId:
+        type: string
+        description: Field `string`.
+        example: string
+      checkNumber:
+        type: string
+        description: Field `string`.
+        example: string
+      goldValuationId:
+        type: string
+        description: Field `string`.
+        example: string
+      prosecutorNotificationInfo:
+        type: string
+        description: Field `string`.
+        example: string
+      transactionRelationType:
+        type: string
+        description: Field `string`.
+        example: string
+      transactionExplanationText:
+        type: string
+        description: Field `string`.
+        example: string
+      requestText:
+        type: string
+        description: Field `string`.
+        example: string
+    example: {operationType: string, processDate: string, customerNumber: 123, accountBranchCode: 123,
+      customerAccountNum: 123, ownerUnitNum: 123, approvalUnitNum: 123, transactionAmount: {
+        $ref: '#/components/schemas/BigDecimal'}, currencyCode: string, transactionTLAmount: {
+        $ref: '#/components/schemas/BigDecimal'}, currencyRate: {$ref: '#/components/schemas/BigDecimal'},
+      currencyType: string, rateType: string, channelCode: string, channelType: string,
+      channelDetailText: string, financialDomainCode: string, financialFamilyCode: string,
+      financialSubFamilyCode: string, purposeValueCode: string, receiptInfoId: string,
+      contractInfoId: string, accountingGuid: string, priceInqueryId: string, surveyInfoId: string,
+      gmaticId: string, commisionAmount: {$ref: '#/components/schemas/BigDecimal'},
+      commisionCurrencyCode: string, chargeAmount: {$ref: '#/components/schemas/BigDecimal'},
+      chargeCurrencyCode: string, taxAmount: {$ref: '#/components/schemas/BigDecimal'},
+      taxCurrencyCode: string, statusCode: string, cicsTxnId: string, checkNumber: string,
+      goldValuationId: string, prosecutorNotificationInfo: string, transactionRelationType: string,
+      transactionExplanationText: string, requestText: string}
+  FindTransactionByCustomerNumberGrpcRequest:
+    type: object
+    description: 'Schema auto-generated from proto: FindTransactionByCustomerNumberGrpcRequest.'
+    properties:
+      customerNumber:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+    example: {customerNumber: 123}
+  FindTransactionByCustomerNumberGrpcResponse:
+    type: object
+    description: 'Schema auto-generated from proto: FindTransactionByCustomerNumberGrpcResponse.'
+    properties:
+      transactions:
+        type: array
+        description: List of `Transaction`.
+        items:
+          $ref: '#/components/schemas/Transaction'
+        example: []
+    example: {transactions: []}
+  FindTransactionByIdGrpcRequest:
+    type: object
+    description: 'Schema auto-generated from proto: FindTransactionByIdGrpcRequest.'
+    properties:
+      instanceId:
+        type: string
+        description: Field `string`.
+        example: string
+    example: {instanceId: string}
+  FindTransactionByIdGrpcResponse:
+    type: object
+    description: 'Schema auto-generated from proto: FindTransactionByIdGrpcResponse.'
+    properties:
+      transaction:
+        $ref: '#/components/schemas/Transaction'
+    example: {transaction: {$ref: '#/components/schemas/Transaction'}}
+  CreateTransactionGrpcRequest:
+    type: object
+    description: 'Schema auto-generated from proto: CreateTransactionGrpcRequest.'
+    properties:
+      transactions:
+        type: array
+        description: List of `Transaction`.
+        items:
+          $ref: '#/components/schemas/Transaction'
+        example: []
+    example: {transactions: []}
+  CreateTransactionGrpcResponse:
+    type: object
+    description: 'Schema auto-generated from proto: CreateTransactionGrpcResponse.'
+    properties:
+      message:
+        type: string
+        description: Field `string`.
+        example: string
+    example: {message: string}
+  TrnxCompleteWithdrawalGrpcRequest:
+    type: object
+    description: 'Schema auto-generated from proto: TrnxCompleteWithdrawalGrpcRequest.'
+    properties:
+      operationType:
+        type: string
+        description: Field `string`.
+        example: string
+      customerNumber:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+      accountBranchCode:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+      customerAccountNum:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+      transactionAmount:
+        $ref: '#/components/schemas/BigDecimal'
+      createUserId:
+        type: string
+        description: Field `string`.
+        example: string
+      channelCode:
+        type: string
+        description: Field `string`.
+        example: string
+      channelDetailText:
+        type: string
+        description: Field `string`.
+        example: string
+      operation1Code:
+        type: string
+        description: Field `string`.
+        example: string
+      operation2Code:
+        type: string
+        description: Field `string`.
+        example: string
+      relatedProductCode:
+        type: string
+        description: Field `string`.
+        example: string
+      purposeValueCode:
+        type: string
+        description: Field `string`.
+        example: string
+      surveyIfoId:
+        type: string
+        description: Field `string`.
+        example: string
+      commissionAmount:
+        $ref: '#/components/schemas/BigDecimal'
+      commissionCurrencyCode:
+        type: string
+        description: Field `string`.
+        example: string
+      priceInqueryId:
+        type: string
+        description: Field `string`.
+        example: string
+      chargeAmount:
+        $ref: '#/components/schemas/BigDecimal'
+      chargeCurrencyCode:
+        type: string
+        description: Field `string`.
+        example: string
+      requestText:
+        type: string
+        description: Field `string`.
+        example: string
+      transactionExplanationText:
+        type: string
+        description: Field `string`.
+        example: string
+      checkNumber:
+        type: string
+        description: Field `string`.
+        example: string
+      goldValuationId:
+        type: string
+        description: Field `string`.
+        example: string
+      prosecutorNotificationInfo:
+        type: string
+        description: Field `string`.
+        example: string
+      transactionRelationType:
+        type: string
+        description: Field `string`.
+        example: string
+      gmaticId:
+        type: string
+        description: Field `string`.
+        example: string
+      currencyCode:
+        type: string
+        description: Field `string`.
+        example: string
+      tcNumber:
+        type: string
+        description: Field `string`.
+        example: string
+      birthDate:
+        type: string
+        description: Field `string`.
+        example: string
+      isCheck:
+        type: boolean
+        description: Field `bool`.
+        example: true
+      processingPersonInfo:
+        type: array
+        description: List of `ProcessingPersonInfoRequest`.
+        items:
+          $ref: '#/components/schemas/ProcessingPersonInfoRequest'
+        example: []
+      atmInfo:
+        $ref: '#/components/schemas/AtmInfoRequest'
+      commissionAccountInfo:
+        $ref: '#/components/schemas/CommissionAccountInfo'
+      isNotificationToProsecutor:
+        type: boolean
+        description: Field `bool`.
+        example: true
+      customerName:
+        type: string
+        description: Field `string`.
+        example: string
+      customerSurname:
+        type: string
+        description: Field `string`.
+        example: string
+      accountBalanceAmount:
+        $ref: '#/components/schemas/BigDecimal'
+      addressLine1:
+        type: string
+        description: Field `string`.
+        example: string
+      addressLine2:
+        type: string
+        description: Field `string`.
+        example: string
+      regionName:
+        type: string
+        description: Field `string`.
+        example: string
+      districtName:
+        type: string
+        description: Field `string`.
+        example: string
+      cityName:
+        type: string
+        description: Field `string`.
+        example: string
+      postalCode:
+        type: string
+        description: Field `string`.
+        example: string
+      phoneNumber:
+        type: string
+        description: Field `string`.
+        example: string
+      cicsTxnId:
+        type: string
+        description: Field `string`.
+        example: string
+      sourceId:
+        type: string
+        description: Field `string`.
+        example: string
+      kpsValidationBypass:
+        type: boolean
+        description: Field `bool`.
+        example: true
+    example: {operationType: string, customerNumber: 123, accountBranchCode: 123,
+      customerAccountNum: 123, transactionAmount: {$ref: '#/components/schemas/BigDecimal'},
+      createUserId: string, channelCode: string, channelDetailText: string, operation1Code: string,
+      operation2Code: string, relatedProductCode: string, purposeValueCode: string,
+      surveyIfoId: string, commissionAmount: {$ref: '#/components/schemas/BigDecimal'},
+      commissionCurrencyCode: string, priceInqueryId: string, chargeAmount: {$ref: '#/components/schemas/BigDecimal'},
+      chargeCurrencyCode: string, requestText: string, transactionExplanationText: string,
+      checkNumber: string, goldValuationId: string, prosecutorNotificationInfo: string,
+      transactionRelationType: string, gmaticId: string, currencyCode: string, tcNumber: string,
+      birthDate: string, isCheck: true, processingPersonInfo: [], atmInfo: {$ref: '#/components/schemas/AtmInfoRequest'},
+      commissionAccountInfo: {$ref: '#/components/schemas/CommissionAccountInfo'},
+      isNotificationToProsecutor: true, customerName: string, customerSurname: string,
+      accountBalanceAmount: {$ref: '#/components/schemas/BigDecimal'}, addressLine1: string,
+      addressLine2: string, regionName: string, districtName: string, cityName: string,
+      postalCode: string, phoneNumber: string, cicsTxnId: string, sourceId: string,
+      kpsValidationBypass: true}
+  CommissionAccountInfo:
+    type: object
+    description: 'Schema auto-generated from proto: CommissionAccountInfo.'
+    properties:
+      accountNumber:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+      branch:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+      currency:
+        type: string
+        description: Field `string`.
+        example: string
+      usableBalanceAmount:
+        type: string
+        description: Field `string`.
+        example: string
+    example: {accountNumber: 123, branch: 123, currency: string, usableBalanceAmount: string}
+  ProcessingPersonInfoRequest:
+    type: object
+    description: 'Schema auto-generated from proto: ProcessingPersonInfoRequest.'
+    properties:
+      statusCode:
+        type: string
+        description: Field `string`.
+        example: string
+      processCustomerNum:
+        type: string
+        description: Field `string`.
+        example: string
+    example: {statusCode: string, processCustomerNum: string}
+  AtmInfoRequest:
+    type: object
+    description: 'Schema auto-generated from proto: AtmInfoRequest.'
+    properties:
+      cardNo:
+        type: string
+        description: Field `string`.
+        example: string
+      isQr:
+        type: boolean
+        description: Field `bool`.
+        example: true
+      qrId:
+        type: string
+        description: Field `string`.
+        example: string
+      atmNumber:
+        type: string
+        description: Field `string`.
+        example: string
+      isCommission:
+        type: boolean
+        description: Field `bool`.
+        example: true
+    example: {cardNo: string, isQr: true, qrId: string, atmNumber: string, isCommission: true}
+  TrnxCompleteWithdrawalGrpcResponse:
+    type: object
+    description: 'Schema auto-generated from proto: TrnxCompleteWithdrawalGrpcResponse.'
+    properties:
+      instanceId:
+        type: string
+        description: Field `string`.
+        example: string
+      receiptInstanceId:
+        type: string
+        description: Field `string`.
+        example: string
+      receiptReferenceId:
+        type: string
+        description: Field `string`.
+        example: string
+      receiptTxnReferenceId:
+        type: string
+        description: Field `string`.
+        example: string
+      approvalRequired:
+        type: boolean
+        description: Field `bool`.
+        example: true
+    example: {instanceId: string, receiptInstanceId: string, receiptReferenceId: string,
+      receiptTxnReferenceId: string, approvalRequired: true}
+  UpdateTransactionStatusGrpcRequest:
+    type: object
+    description: 'Schema auto-generated from proto: UpdateTransactionStatusGrpcRequest.'
+    properties:
+      instanceId:
+        type: string
+        description: Field `string`.
+        example: string
+      newStatus:
+        type: string
+        description: Field `string`.
+        example: string
+      approveInstanceId:
+        type: string
+        description: Field `string`.
+        example: string
+    example: {instanceId: string, newStatus: string, approveInstanceId: string}
+  UpdateTransactionStatusGrpcResponse:
+    type: object
+    description: 'Schema auto-generated from proto: UpdateTransactionStatusGrpcResponse.'
+    properties:
+      success:
+        type: boolean
+        description: Field `bool`.
+        example: true
+    example: {success: true}
+  FindTransactionsByJoinFiltersGrpcRequest:
+    type: object
+    description: 'Schema auto-generated from proto: FindTransactionsByJoinFiltersGrpcRequest.'
+    properties:
+      statusCode:
+        type: string
+        description: Field `string`.
+        example: string
+      ownerUnitNum:
+        type: string
+        description: Field `string`.
+        example: string
+      moneyTransactionIdStart:
+        type: string
+        description: Field `string`.
+        example: string
+      moneyTransactionIdEnd:
+        type: string
+        description: Field `string`.
+        example: string
+      approveType:
+        type: string
+        description: Field `string`.
+        example: string
+      financialSubFamilyCode:
+        type: string
+        description: Field `string`.
+        example: string
+      financialFamilyCode:
+        type: string
+        description: Field `string`.
+        example: string
+      transactionAmountMin:
+        $ref: '#/components/schemas/BigDecimal'
+      transactionAmountMax:
+        $ref: '#/components/schemas/BigDecimal'
+    example: {statusCode: string, ownerUnitNum: string, moneyTransactionIdStart: string,
+      moneyTransactionIdEnd: string, approveType: string, financialSubFamilyCode: string,
+      financialFamilyCode: string, transactionAmountMin: {$ref: '#/components/schemas/BigDecimal'},
+      transactionAmountMax: {$ref: '#/components/schemas/BigDecimal'}}
+  FilteredTransaction:
+    type: object
+    description: 'Schema auto-generated from proto: FilteredTransaction.'
+    properties:
+      instanceId:
+        type: string
+        description: Field `string`.
+        example: string
+      customerNameAndSurname:
+        type: string
+        description: Field `string`.
+        example: string
+      processDate:
+        type: string
+        description: Field `string`.
+        example: string
+      approveType:
+        type: string
+        description: Field `string`.
+        example: string
+      transactionAmount:
+        $ref: '#/components/schemas/BigDecimal'
+      status:
+        type: string
+        description: Field `string`.
+        example: string
+      createUserId:
+        type: string
+        description: Field `string`.
+        example: string
+      approveUserId:
+        type: string
+        description: Field `string`.
+        example: string
+    example: {instanceId: string, customerNameAndSurname: string, processDate: string,
+      approveType: string, transactionAmount: {$ref: '#/components/schemas/BigDecimal'},
+      status: string, createUserId: string, approveUserId: string}
+  FindTransactionsByJoinFiltersGrpcResponse:
+    type: object
+    description: 'Schema auto-generated from proto: FindTransactionsByJoinFiltersGrpcResponse.'
+    properties:
+      transactions:
+        type: array
+        description: List of `FilteredTransaction`.
+        items:
+          $ref: '#/components/schemas/FilteredTransaction'
+        example: []
+    example: {transactions: []}
+  AccountTransactionRulesGrpcRequest:
+    type: object
+    description: 'Schema auto-generated from proto: AccountTransactionRulesGrpcRequest.'
+    properties:
+      debitUnitNum:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+      debitAccountNum:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+      transactionAmount:
+        type: string
+        description: Field `string`.
+        example: string
+      currencyCode:
+        type: string
+        description: Field `string`.
+        example: string
+      transactionDate:
+        type: string
+        description: Field `string`.
+        example: string
+      oprtnCustList:
+        type: array
+        description: List of `string`.
+        items:
+          type: string
+          description: Field `string`.
+          example: string
+        example: [string]
+    example: {debitUnitNum: 123, debitAccountNum: 123, transactionAmount: string,
+      currencyCode: string, transactionDate: string, oprtnCustList: [string]}
+  AccountTransactionRulesGrpcResponse:
+    type: object
+    description: 'Schema auto-generated from proto: AccountTransactionRulesGrpcResponse.'
+    properties:
+      messages:
+        type: array
+        description: List of `string`.
+        items:
+          type: string
+          description: Field `string`.
+          example: string
+        example: [string]
+      accountUsableBalanceAmount:
+        $ref: '#/components/schemas/BigDecimal'
+      debitUnitNum:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+      debitAccountNum:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+      debitCustomerFirstName:
+        type: string
+        description: Field `string`.
+        example: string
+      debitCustomerLastName:
+        type: string
+        description: Field `string`.
+        example: string
+      debitAccountCurrCode:
+        type: string
+        description: Field `string`.
+        example: string
+      debitAccountCustomerNum:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+      debitCustomerType:
+        type: string
+        description: Field `string`.
+        example: string
+      checkRelatedAccount:
+        type: string
+        description: Field `string`.
+        example: string
+    example: {messages: [string], accountUsableBalanceAmount: {$ref: '#/components/schemas/BigDecimal'},
+      debitUnitNum: 123, debitAccountNum: 123, debitCustomerFirstName: string, debitCustomerLastName: string,
+      debitAccountCurrCode: string, debitAccountCustomerNum: 123, debitCustomerType: string,
+      checkRelatedAccount: string}
+  RepresentativePersonRequest:
+    type: object
+    description: 'Schema auto-generated from proto: RepresentativePersonRequest.'
+    properties:
+      customerNum:
+        type: string
+        description: Field `string`.
+        example: string
+      customerNum2:
+        type: string
+        description: Field `string`.
+        example: string
+      relationTypeText:
+        type: string
+        description: Field `string`.
+        example: string
+      acceptableLatency:
+        type: string
+        description: Field `string`.
+        example: string
+      shareRate:
+        type: string
+        description: Field `string`.
+        example: string
+      shareAmount:
+        type: string
+        description: Field `string`.
+        example: string
+      confirmationDate:
+        type: string
+        description: Field `string`.
+        example: string
+      headerInfo:
+        $ref: '#/components/schemas/HeaderInfo'
+      serverData:
+        $ref: '#/components/schemas/ServerData'
+    example: {customerNum: string, customerNum2: string, relationTypeText: string,
+      acceptableLatency: string, shareRate: string, shareAmount: string, confirmationDate: string,
+      headerInfo: {$ref: '#/components/schemas/HeaderInfo'}, serverData: {$ref: '#/components/schemas/ServerData'}}
+  RepresentativePersonResponse:
+    type: object
+    description: 'Schema auto-generated from proto: RepresentativePersonResponse.'
+    properties:
+      representativePerson:
+        type: array
+        description: List of `RepresentativePerson`.
+        items:
+          $ref: '#/components/schemas/RepresentativePerson'
+        example: []
+    example: {representativePerson: []}
+  RepresentativePerson:
+    type: object
+    description: 'Schema auto-generated from proto: RepresentativePerson.'
+    properties:
+      name:
+        type: string
+        description: Field `string`.
+        example: string
+      surname:
+        type: string
+        description: Field `string`.
+        example: string
+      customerNum:
+        type: string
+        description: Field `string`.
+        example: string
+    example: {name: string, surname: string, customerNum: string}
+  HeaderInfo:
+    type: object
+    description: 'Schema auto-generated from proto: HeaderInfo.'
+    properties:
+      command:
+        type: string
+        description: Field `string`.
+        example: string
+      sourceProgramId:
+        type: string
+        description: Field `string`.
+        example: string
+      unitNum:
+        type: string
+        description: Field `string`.
+        example: string
+      channelCode:
+        type: string
+        description: Field `string`.
+        example: string
+      moduleCode:
+        type: string
+        description: Field `string`.
+        example: string
+      submoduleCode:
+        type: string
+        description: Field `string`.
+        example: string
+    example: {command: string, sourceProgramId: string, unitNum: string, channelCode: string,
+      moduleCode: string, submoduleCode: string}
+  ServerData:
+    type: object
+    description: 'Schema auto-generated from proto: ServerData.'
+    properties:
+      userId:
+        type: string
+        description: Field `string`.
+        example: string
+      referenceId:
+        type: string
+        description: Field `string`.
+        example: string
+    example: {userId: string, referenceId: string}
+  SaveRepresentativePersonRequest:
+    type: object
+    description: 'Schema auto-generated from proto: SaveRepresentativePersonRequest.'
+    properties:
+      customerNum:
+        type: string
+        description: Field `string`.
+        example: string
+      opnDefinedKey:
+        type: string
+        description: Field `string`.
+        example: string
+      partyType:
+        type: string
+        description: Field `string`.
+        example: string
+      recordStatus:
+        type: string
+        description: Field `string`.
+        example: string
+      serverData:
+        $ref: '#/components/schemas/ServerData'
+    example: {customerNum: string, opnDefinedKey: string, partyType: string, recordStatus: string,
+      serverData: {$ref: '#/components/schemas/ServerData'}}
+  SaveRepresentativePersonResponse:
+    type: object
+    description: 'Schema auto-generated from proto: SaveRepresentativePersonResponse.'
+    properties:
+      customerNum:
+        type: string
+        description: Field `string`.
+        example: string
+      name:
+        type: string
+        description: Field `string`.
+        example: string
+      surname:
+        type: string
+        description: Field `string`.
+        example: string
+      citizenText:
+        type: string
+        description: Field `string`.
+        example: string
+      mernisNum:
+        type: string
+        description: Field `string`.
+        example: string
+      birthDate:
+        type: string
+        description: Field `string`.
+        example: string
+      otherNationalityId:
+        type: string
+        description: Field `string`.
+        example: string
+    example: {customerNum: string, name: string, surname: string, citizenText: string,
+      mernisNum: string, birthDate: string, otherNationalityId: string}
+  CustomerInfoGrpcRequest:
+    type: object
+    description: 'Schema auto-generated from proto: CustomerInfoGrpcRequest.'
+    properties:
+      customerNum:
+        type: string
+        description: Field `string`.
+        example: string
+    example: {customerNum: string}
+  CustomerInfoGrpcResponse:
+    type: object
+    description: 'Schema auto-generated from proto: CustomerInfoGrpcResponse.'
+    properties:
+      customerNum:
+        type: string
+        description: Field `string`.
+        example: string
+      name:
+        type: string
+        description: Field `string`.
+        example: string
+      surname:
+        type: string
+        description: Field `string`.
+        example: string
+      citizen:
+        type: string
+        description: Field `string`.
+        example: string
+      mernisNum:
+        type: string
+        description: Field `string`.
+        example: string
+      birthDate:
+        type: string
+        description: Field `string`.
+        example: string
+      otherNationalityId:
+        type: string
+        description: Field `string`.
+        example: string
+      customerType:
+        type: string
+        description: Field `string`.
+        example: string
+      isOperant:
+        type: boolean
+        description: Field `bool`.
+        example: true
+      operantMessages:
+        type: array
+        description: List of `string`.
+        items:
+          type: string
+          description: Field `string`.
+          example: string
+        example: [string]
+      isActivePerson:
+        type: boolean
+        description: Field `bool`.
+        example: true
+      customerSubType:
+        type: string
+        description: Field `string`.
+        example: string
+      customerSubType2:
+        type: string
+        description: Field `string`.
+        example: string
+    example: {customerNum: string, name: string, surname: string, citizen: string,
+      mernisNum: string, birthDate: string, otherNationalityId: string, customerType: string,
+      isOperant: true, operantMessages: [string], isActivePerson: true, customerSubType: string,
+      customerSubType2: string}
+  ExtendedCustomerInfoGrpcResponse:
+    type: object
+    description: 'Schema auto-generated from proto: ExtendedCustomerInfoGrpcResponse.'
+    properties:
+      customerNum:
+        type: string
+        description: Field `string`.
+        example: string
+      name:
+        type: string
+        description: Field `string`.
+        example: string
+      surname:
+        type: string
+        description: Field `string`.
+        example: string
+      citizenText:
+        type: string
+        description: Field `string`.
+        example: string
+      mernisNum:
+        type: string
+        description: Field `string`.
+        example: string
+      birthDate:
+        type: string
+        description: Field `string`.
+        example: string
+      otherNationalityId:
+        type: string
+        description: Field `string`.
+        example: string
+      settledCountryCode:
+        type: string
+        description: Field `string`.
+        example: string
+      birthPlace:
+        type: string
+        description: Field `string`.
+        example: string
+      motherName:
+        type: string
+        description: Field `string`.
+        example: string
+      fatherName:
+        type: string
+        description: Field `string`.
+        example: string
+      phoneNumCountryCode:
+        type: string
+        description: Field `string`.
+        example: string
+      phoneNum:
+        type: string
+        description: Field `string`.
+        example: string
+      pasaportNumText:
+        type: string
+        description: Field `string`.
+        example: string
+      addressType:
+        type: string
+        description: Field `string`.
+        example: string
+      countryCode:
+        type: string
+        description: Field `string`.
+        example: string
+      cityCode:
+        type: string
+        description: Field `string`.
+        example: string
+      addressLine:
+        type: string
+        description: Field `string`.
+        example: string
+      postalCode:
+        type: string
+        description: Field `string`.
+        example: string
+      regionName:
+        type: string
+        description: Field `string`.
+        example: string
+      workingStyle:
+        type: string
+        description: Field `string`.
+        example: string
+      jobTitle:
+        type: string
+        description: Field `string`.
+        example: string
+    example: {customerNum: string, name: string, surname: string, citizenText: string,
+      mernisNum: string, birthDate: string, otherNationalityId: string, settledCountryCode: string,
+      birthPlace: string, motherName: string, fatherName: string, phoneNumCountryCode: string,
+      phoneNum: string, pasaportNumText: string, addressType: string, countryCode: string,
+      cityCode: string, addressLine: string, postalCode: string, regionName: string,
+      workingStyle: string, jobTitle: string}
+  GetKpsInfoRequest:
+    type: object
+    description: 'Schema auto-generated from proto: GetKpsInfoRequest.'
+    properties:
+      nationalId:
+        type: string
+        description: Field `string`.
+        example: string
+      birthDate:
+        type: string
+        description: Field `string`.
+        example: string
+      inquiryDateMargin:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+    example: {nationalId: string, birthDate: string, inquiryDateMargin: 123}
+  GetKpsInfoResponse:
+    type: object
+    description: 'Schema auto-generated from proto: GetKpsInfoResponse.'
+    properties:
+      nationalIdNum:
+        type: string
+        description: Field `string`.
+        example: string
+      name:
+        type: string
+        description: Field `string`.
+        example: string
+      surname:
+        type: string
+        description: Field `string`.
+        example: string
+      birthDate:
+        type: string
+        description: Field `string`.
+        example: string
+      birthPlace:
+        type: string
+        description: Field `string`.
+        example: string
+      fatherName:
+        type: string
+        description: Field `string`.
+        example: string
+      motherName:
+        type: string
+        description: Field `string`.
+        example: string
+      serialCode:
+        type: string
+        description: Field `string`.
+        example: string
+      sequenceNumber:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+      newIdentityCard:
+        type: boolean
+        description: Field `bool`.
+        example: true
+    example: {nationalIdNum: string, name: string, surname: string, birthDate: string,
+      birthPlace: string, fatherName: string, motherName: string, serialCode: string,
+      sequenceNumber: 123, newIdentityCard: true}
+  SaveTransactionCustomerRequest:
+    type: object
+    description: 'Schema auto-generated from proto: SaveTransactionCustomerRequest.'
+    properties:
+      nationalIdNum:
+        type: string
+        description: Field `string`.
+        example: string
+      name:
+        type: string
+        description: Field `string`.
+        example: string
+      surname:
+        type: string
+        description: Field `string`.
+        example: string
+      birthDate:
+        type: string
+        description: Field `string`.
+        example: string
+      nationalityCode:
+        type: string
+        description: Field `string`.
+        example: string
+      kktcNationalId:
+        type: string
+        description: Field `string`.
+        example: string
+      passportId:
+        type: string
+        description: Field `string`.
+        example: string
+      countryCode:
+        type: string
+        description: Field `string`.
+        example: string
+      birthPlace:
+        type: string
+        description: Field `string`.
+        example: string
+      fatherName:
+        type: string
+        description: Field `string`.
+        example: string
+      motherName:
+        type: string
+        description: Field `string`.
+        example: string
+      workingType:
+        type: string
+        description: Field `string`.
+        example: string
+      jobTitle:
+        type: string
+        description: Field `string`.
+        example: string
+      cityCode:
+        type: string
+        description: Field `string`.
+        example: string
+      cityName:
+        type: string
+        description: Field `string`.
+        example: string
+      countyName:
+        type: string
+        description: Field `string`.
+        example: string
+      phoneCountryCode:
+        type: string
+        description: Field `string`.
+        example: string
+      phoneNum:
+        type: string
+        description: Field `string`.
+        example: string
+      postcode:
+        type: string
+        description: Field `string`.
+        example: string
+      address:
+        type: string
+        description: Field `string`.
+        example: string
+      addressType:
+        type: string
+        description: Field `string`.
+        example: string
+      customerNum:
+        type: string
+        description: Field `string`.
+        example: string
+    example: {nationalIdNum: string, name: string, surname: string, birthDate: string,
+      nationalityCode: string, kktcNationalId: string, passportId: string, countryCode: string,
+      birthPlace: string, fatherName: string, motherName: string, workingType: string,
+      jobTitle: string, cityCode: string, cityName: string, countyName: string, phoneCountryCode: string,
+      phoneNum: string, postcode: string, address: string, addressType: string, customerNum: string}
+  TransactionCustomerMessageResponse:
+    type: object
+    description: 'Schema auto-generated from proto: TransactionCustomerMessageResponse.'
+    properties:
+      message:
+        type: string
+        description: Field `string`.
+        example: string
+      customerNum:
+        type: integer
+        format: int32
+        description: Field `int32`.
+        example: 123
+    example: {message: string, customerNum: 123}
