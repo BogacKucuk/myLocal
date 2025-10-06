@@ -1195,9 +1195,7 @@ components:
           type: string
           example: string
           description: Field `currency`.
-      example:
-        amount: 100.5
-        currency: string
+      example: {amount: 100.5, currency: string}
     OperationCode:
       type: object
       description: 'Schema from code DTO: OperationCode.'
@@ -1210,9 +1208,7 @@ components:
           type: string
           example: string
           description: Field `opCode2`.
-      example:
-        opCode1: string
-        opCode2: string
+      example: {opCode1: string, opCode2: string}
     Account:
       type: object
       description: 'Schema from code DTO: Account.'
@@ -1226,9 +1222,7 @@ components:
           type: string
           example: string
           description: Field `number`.
-      example:
-        branch: 123
-        number: string
+      example: {branch: 123, number: string}
     CommissionServerData:
       type: object
       description: 'Schema from code DTO: CommissionServerData.'
@@ -1241,9 +1235,7 @@ components:
           type: string
           example: string
           description: Field `referenceId`.
-      example:
-        userId: string
-        referenceId: string
+      example: {userId: string, referenceId: string}
     PageableInboundDto:
       type: object
       description: 'Schema from code DTO: PageableInboundDto.'
@@ -1259,11 +1251,10 @@ components:
           example: 123
           description: Field `size`.
         sort:
-          $ref: '#/components/schemas/SortInboundDto'
-      example:
-        page: 123
-        size: 123
-        sort: {}
+          allOf:
+          - $ref: '#/components/schemas/SortInboundDto'
+          description: Field `sort`.
+      example: {page: 123, size: 123, sort: {}}
     SortInboundDto:
       type: object
       description: 'Schema from code DTO: SortInboundDto.'
@@ -1279,9 +1270,7 @@ components:
           - SORT_DIRECTION_DESC
           example: SORT_DIRECTION_ASC
           description: Field `direction`.
-      example:
-        field: string
-        direction: SORT_DIRECTION_ASC
+      example: {field: string, direction: SORT_DIRECTION_ASC}
     ProcessFilterRequestDto:
       type: object
       description: 'Schema from code DTO: ProcessFilterRequestDto.'
@@ -1328,17 +1317,9 @@ components:
           type: string
           example: string
           description: Field `financialFamilyCode`.
-      example:
-        status: string
-        approveType: string
-        approvalUnitNum: 123
-        transactionAmountMin: string
-        transactionAmountMax: string
-        approveDateFirst: string
-        approveDateLast: string
-        approveOrder: 123
-        financialSubFamilyCode: string
-        financialFamilyCode: string
+      example: {status: string, approveType: string, approvalUnitNum: 123, transactionAmountMin: string,
+        transactionAmountMax: string, approveDateFirst: string, approveDateLast: string,
+        approveOrder: 123, financialSubFamilyCode: string, financialFamilyCode: string}
     ReadBranchInstructionDepositWithdrawalDto:
       type: object
       description: 'Schema from code DTO: ReadBranchInstructionDepositWithdrawalDto.'
@@ -1398,19 +1379,10 @@ components:
           format: int32
           example: 123
           description: Field `processUnitNum`.
-      example:
-        instructionId: '123456789'
-        customerNum: 123
-        accountNumber: 123
-        branchCode: 123
-        amount: 100.5
-        currencyCode: string
-        identityNumber: string
-        documentId: string
-        transactionDate: string
-        status: string
-        transactionType: 123
-        processUnitNum: 123
+      example: {instructionId: '123456789', customerNum: 123, accountNumber: 123,
+        branchCode: 123, amount: 100.5, currencyCode: string, identityNumber: string,
+        documentId: string, transactionDate: string, status: string, transactionType: 123,
+        processUnitNum: 123}
     CustomerInfo:
       type: object
       description: 'Schema from code DTO: CustomerInfo.'
@@ -1440,13 +1412,8 @@ components:
           type: string
           example: string
           description: Field `nationality`.
-      example:
-        customerFullName: string
-        customerNumber: '123456789'
-        customerAddress: string
-        accountType: string
-        tckn: string
-        nationality: string
+      example: {customerFullName: string, customerNumber: '123456789', customerAddress: string,
+        accountType: string, tckn: string, nationality: string}
     BranchInfo:
       type: object
       description: 'Schema from code DTO: BranchInfo.'
@@ -1476,13 +1443,8 @@ components:
           format: int32
           example: 123
           description: Field `referenceNumber`.
-      example:
-        branchName: string
-        branchCity: string
-        branchDistrict: string
-        countryCode: string
-        branchAddress: string
-        referenceNumber: 123
+      example: {branchName: string, branchCity: string, branchDistrict: string, countryCode: string,
+        branchAddress: string, referenceNumber: 123}
     OpCodeCustomerDto:
       type: object
       description: 'Schema from code DTO: OpCodeCustomerDto.'
@@ -1491,8 +1453,7 @@ components:
           type: string
           example: string
           description: Field `operatorCustomerNum`.
-      example:
-        operatorCustomerNum: string
+      example: {operatorCustomerNum: string}
     TransactionDto:
       type: object
       description: 'Schema from code DTO: TransactionDto.'
@@ -1668,47 +1629,17 @@ components:
           type: string
           example: string
           description: Field `requestText`.
-      example:
-        operationType: string
-        processDate: string
-        customerNumber: 123
-        accountBranchCode: 123
-        customerAccountNum: 123
-        ownerUnitNum: 123
-        approvalUnitNum: 123
-        transactionAmount: 100.5
-        currencyCode: string
-        transactionTLAmount: 100.5
-        currencyRate: 100.5
-        currencyType: string
-        rateType: string
-        channelCode: string
-        channelType: string
-        channelDetailText: string
-        financialDomainCode: string
-        financialFamilyCode: string
-        financialSubFamilyCode: string
-        purposeValueCode: string
-        receiptInfoId: string
-        contractInfoId: string
-        accountingGuid: string
-        priceInqueryId: string
-        surveyInfoId: string
-        gmaticId: string
-        commisionAmount: 100.5
-        commisionCurrencyCode: string
-        chargeAmount: 100.5
-        chargeCurrencyCode: string
-        taxAmount: 100.5
-        taxCurrencyCode: string
-        statusCode: string
-        cicsTxnId: string
-        checkNumber: string
-        goldValuationId: string
-        prosecutorNotificationInfo: string
-        transactionRelationType: string
-        transactionExplanationText: string
-        requestText: string
+      example: {operationType: string, processDate: string, customerNumber: 123, accountBranchCode: 123,
+        customerAccountNum: 123, ownerUnitNum: 123, approvalUnitNum: 123, transactionAmount: 100.5,
+        currencyCode: string, transactionTLAmount: 100.5, currencyRate: 100.5, currencyType: string,
+        rateType: string, channelCode: string, channelType: string, channelDetailText: string,
+        financialDomainCode: string, financialFamilyCode: string, financialSubFamilyCode: string,
+        purposeValueCode: string, receiptInfoId: string, contractInfoId: string, accountingGuid: string,
+        priceInqueryId: string, surveyInfoId: string, gmaticId: string, commisionAmount: 100.5,
+        commisionCurrencyCode: string, chargeAmount: 100.5, chargeCurrencyCode: string,
+        taxAmount: 100.5, taxCurrencyCode: string, statusCode: string, cicsTxnId: string,
+        checkNumber: string, goldValuationId: string, prosecutorNotificationInfo: string,
+        transactionRelationType: string, transactionExplanationText: string, requestText: string}
     AtmInfoRequest:
       type: object
       description: 'Schema from code DTO: AtmInfoRequest.'
@@ -1733,12 +1664,7 @@ components:
           type: boolean
           example: true
           description: Field `isCommission`.
-      example:
-        cardNo: string
-        isQr: true
-        qrId: string
-        atmNumber: string
-        isCommission: true
+      example: {cardNo: string, isQr: true, qrId: string, atmNumber: string, isCommission: true}
     ProcessingPersonInfoRequest:
       type: object
       description: 'Schema from code DTO: ProcessingPersonInfoRequest.'
@@ -1751,9 +1677,25 @@ components:
           type: string
           example: string
           description: Field `processCustomerNum`.
-      example:
-        statusCode: string
-        processCustomerNum: string
+      example: {statusCode: string, processCustomerNum: string}
+    OperationCodeItem:
+      type: object
+      description: Operation code item (process main/sub codes and description).
+      properties:
+        processMainCode:
+          type: string
+          description: Main process code.
+          example: P001
+        processSubCode:
+          type: string
+          description: Sub process code.
+          example: S010
+        processDescription:
+          type: string
+          description: Process description.
+          example: Cash withdrawal.
+      example: {processMainCode: P001, processSubCode: S010, processDescription: Cash
+          withdrawal.}
   responses:
     HttpOKwithTransactionGrpcResponseResult:
       description: OK.
