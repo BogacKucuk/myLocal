@@ -2,14 +2,14 @@ openapi: 3.0.0
 info:
   title: deposit-withdrawal-channel v0
   description: Service API for deposit-withdrawal-channel v0
-  version: 0.1.0
+  version: 0.1.7
   x-generation-options:
     type: object
     api-domain: Intranet
     api-company: Garanti
-    api-use-ssl: true
+    api-use-ssl: yes
     api-auth: token
-    api-auth-version: '3'
+    api-auth-version: "3"
     smart-config-description: deposit-withdrawal-channel Channel Service API YAML
     generator-backend-servers:
       type: object
@@ -21,2388 +21,2495 @@ info:
     email: api.support@garanti.com.tr
     name: Garanti API Support Team
 tags:
-- name: deposit-withdrawal-channel
-  description: deposit-withdrawal-channel
+  - name: deposit-withdrawal-channel
+    description: deposit-withdrawal-channel
+  - name: ChequeCommissionInfoService
+    description: Endpoints backed by gRPC service ChequeCommissionInfoService
+  - name: DigitalOrderGrpcService
+    description: Endpoints backed by gRPC service DigitalOrderGrpcService
+  - name: GoldDocumentGrpcService
+    description: Endpoints backed by gRPC service GoldDocumentGrpcService
+  - name: OperationCodeGrpcService
+    description: Endpoints backed by gRPC service OperationCodeGrpcService
+  - name: TransactionGrpcService
+    description: Endpoints backed by gRPC service TransactionGrpcService
+  - name: TransactionCustomerGrpcService
+    description: Endpoints backed by gRPC service TransactionCustomerGrpcService
 security:
-- BearerAuth: []
+  - BearerAuth: []
 servers:
-- url: https://apigw-dev.apps-t.fw.garanti.com.tr:443/deposit-withdrawal-mngt/deposit-withdrawal-ch/v0
+  - url: https://apigw-dev.apps-t.fw.garanti.com.tr:443/deposit-withdrawal-mngt/deposit-withdrawal-ch/v0
 paths:
-  /createTransaction:
+  /cheque-cost-info:
     post:
-      tags:
-      - Transaction-Grpc-Service
-      operationId: createTransaction
-      summary: createTransaction
-      description: createTransaction
-      parameters:
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
+      tags: [ChequeCommissionInfoService]
+      description: 'commission info'
+      summary: Çek Komisyon Bilgisi Sorgula
+      operationId: chequeCommissionInfo
       requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetChequeCostRequest'
+      responses:
+        '200':
+          description: Success
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetChequeCostResponse'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
+  /approve/list:
+    post:
+      summary: List Process Management
+      tags: [TransactionCustomerGrpcService]
+      description: Lists representative persons and process management data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcessRequestDto'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaginationResultDto_ProcessResponseDto'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
+  /approve/approve:
+    post:
+      summary: Approve Process
+      tags: []
+      description: Approves a process
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcessStateChangeRequestDto'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessStateChangeResponseDto'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
+  /approve/reject:
+    post:
+      summary: Reject Process
+      tags: []
+      description: Rejects a process
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ProcessStateChangeRequestDto'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProcessStateChangeResponseDto'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
+  /approve/changeStatusFraudProcess:
+    post:
+      summary: Change Status Fraud Process
+      tags: []
+      description: Changes the status of a fraud process
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ApproveBulkFraudProcessRequestDto'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApproveBulkFraudProcessResponseDto'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
+  /withdrawal/read-digital-order:
+    post:
+      summary: Read Digital Order
+      tags: [DigitalOrderGrpcService]
+      description: Reads digital order information
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DigitalOrderReadRequestDto'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DigitalOrderReadResponseDto'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
+  /withdrawal/create-gold-document:
+    post:
+      summary: Create Gold Document
+      tags: [GoldDocumentGrpcService]
+      description: Creates a single PDF document
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSinglePdfRequestDto'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreateSinglePdfResponseDto'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
+  /withdrawal/get-gold-document:
+    post:
+      summary: Get Gold Document
+      tags: [GoldDocumentGrpcService]
+      description: Retrieves a single PDF document
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetSinglePdfRequestDto'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetPdfResponseDto'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
+  /withdrawal/get-operation-code:
+    post:
+      summary: Get Operation Code
+      tags: [OperationCodeGrpcService]
+      description: Retrieves operation codes
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OperationCodeRequestDto'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationCodeResponseDto'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
+  /withdrawal/get-bulk-operation-codes:
+    post:
+      summary: Get Bulk Operation Codes
+      tags: [OperationCodeGrpcService]
+      description: Retrieves bulk operation codes
+      requestBody:
+        required: false
         content:
           application/json:
             schema:
               type: object
-              description: Generic object (auto-fixed from invalid ref 'TransactionGrpcRequest').
-              example: {}
-            example: {operationType: DEPOSIT, customerNumber: 12345678, customerAccount: TR123456789012345678901234,
-              transactionAmount: 1000.5, currency: TRY, channel: BRANCH, request: [
-                PARAM1, PARAM2]}
-        required: true
       responses:
         '200':
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetBulkOperationCodeResponseDto'
         '400':
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
+          description: Bad Request
         '401':
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
+          description: Unauthorized
         '403':
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
+          description: Forbidden
         '405':
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
+          description: Method Not Allowed
         '500':
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
-  /listCustomerRelationshipTypes:
+          description: Internal Server Error
+  /withdrawal/find-transaction-by-customer-number:
     post:
-      tags:
-      - Transaction-Customer-Grpc-Service
-      operationId: listCustomerRelationshipTypes
-      summary: listCustomerRelationshipTypes
-      description: listCustomerRelationshipTypes
-      parameters:
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
+      summary: Find Transaction By Customer Number
+      tags: [TransactionGrpcService]
+      description: Finds transactions by customer number
       requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FindTransactionRequestDto'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionListDto'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
+  /withdrawal/trnx-complete-withdrawal:
+    post:
+      summary: Complete Withdrawal Transaction
+      tags: [TransactionGrpcService]
+      description: Completes a withdrawal transaction
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TrnxCompleteWithdrawalRequestDto'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TrnxCompleteWithdrawalResponseDto'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
+  /withdrawal/transaction-status-update:
+    post:
+      summary: Update Transaction Status
+      tags: [TransactionGrpcService]
+      description: Updates transaction status
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionStatusUpdateRequestDto'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionStatusUpdateResponseDto'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
+  /withdrawal/find-transactions-by-filters:
+    post:
+      summary: Find Transactions By Filters
+      tags: [TransactionGrpcService]
+      description: Finds transactions using filter criteria
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TransactionFilterRequestDto'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/TransactionFilterResponseDto'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
+  /withdrawal/account-transaction-rules:
+    post:
+      summary: Account Transaction Rules
+      tags: [TransactionGrpcService]
+      description: Validates account transaction rules
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AccountTransactionRulesRequestDto'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountTransactionRulesResponseDto'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
+  /withdrawal/list-representative-persons:
+    post:
+      summary: List Representative Persons
+      tags: [TransactionCustomerGrpcService]
+      description: Lists representative persons
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RepresentativePersonRequestDto'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/RepresentativePersonDto'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
+  /withdrawal/save-representative-person:
+    post:
+      summary: Save Representative Person
+      tags: [TransactionCustomerGrpcService]
+      description: Saves a representative person
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveRepresentativePersonRequestDto'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaveRepresentativePersonDto'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
+  /withdrawal/get-customer-info:
+    post:
+      summary: Get Customer Info
+      tags: [TransactionCustomerGrpcService]
+      description: Retrieves customer information
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerInfoRequestDto'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CustomerInfoResponseDto'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
+  /withdrawal/get-extended-customer-info:
+    post:
+      summary: Get Extended Customer Info
+      tags: [TransactionCustomerGrpcService]
+      description: Retrieves extended customer information
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CustomerInfoRequestDto'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExtendedCustomerInfoDto'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
+  /withdrawal/get-kps-info:
+    post:
+      summary: Get KPS Info
+      tags: [TransactionCustomerGrpcService]
+      description: Retrieves KPS (Turkish identity) information
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/GetKpsInfoRequestDto'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetKpsInfoResponseDto'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
+  /withdrawal/save-transaction-customer:
+    post:
+      summary: Save Transaction Customer
+      tags: [TransactionCustomerGrpcService]
+      description: Saves transaction customer information
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SaveTransactionCustomerRequestDto'
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionMessageResponseDto'
+        '400':
+          description: Bad Request
+        '401':
+          description: Unauthorized
+        '403':
+          description: Forbidden
+        '405':
+          description: Method Not Allowed
+        '500':
+          description: Internal Server Error
+  /withdrawal/get-user-branch-code:
+    post:
+      summary: Get User Branch Code
+      tags: []
+      description: Retrieves the user's branch code
+      requestBody:
+        required: false
         content:
           application/json:
             schema:
               type: object
-              description: Generic object (auto-fixed from invalid ref 'CustomerRelationshipTypeRequest').
-              example: {}
-            example: {headerInfo: {command: LIST, sourceProgramId: WEBAPI, unitNum: '001',
-                channelCode: INTERNET, moduleCode: CUSTOMER, submoduleCode: RELATION},
-              serverData: {userId: USER123, referenceId: REF123456789}}
-        required: true
       responses:
         '200':
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: integer
+                format: int32
+                description: "Branch code of the user"
+                example: 123
         '400':
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
+          description: Bad Request
         '401':
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
+          description: Unauthorized
         '403':
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
+          description: Forbidden
         '405':
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
+          description: Method Not Allowed
         '500':
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
-  /listRepresentativePersons:
-    post:
-      tags:
-      - Transaction-Customer-Grpc-Service
-      operationId: listRepresentativePersons
-      summary: listRepresentativePersons
-      description: listRepresentativePersons
-      parameters:
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              description: Generic object (auto-fixed from invalid ref 'RepresentativePersonRequest').
-              example: {}
-            example: {customerNum: '123456', customerNum2: '654321', relationTypeText: GUARDIAN,
-              acceptableLatency: '5', shareRate: '100', shareAmount: '1000', confirmationDate: '2023-01-01',
-              headerInfo: {command: LIST, sourceProgramId: WEBAPI, unitNum: '001',
-                channelCode: INTERNET, moduleCode: CUSTOMER, submoduleCode: RELATION},
-              serverData: {userId: USER123, referenceId: REF123456789}}
-        required: true
-      responses:
-        '200':
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
-        '400':
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
-        '401':
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
-        '403':
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
-        '405':
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
-        '500':
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
-  /getOperationCode:
-    post:
-      tags:
-      - Transaction-Customer-Grpc-Service
-      operationId: getOperationCode
-      summary: getOperationCode
-      description: getOperationCode
-      parameters:
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      - type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
-      requestBody:
-        content:
-          application/json:
-            schema:
-              type: object
-              description: Generic object (auto-fixed from invalid ref 'OperationCodeGrpcRequest').
-              example: {}
-            example: {operatorCustomer: [{operatorCustomerNum: '12345678'}], accountCustomerNum: '87654321',
-              accountBranch: '002'}
-        required: true
-      responses:
-        '200':
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
-        '400':
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
-        '401':
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
-        '403':
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
-        '405':
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
-        '500':
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
+          description: Internal Server Error
 components:
   securitySchemes:
     BearerAuth:
       type: http
       scheme: bearer
-  headers:
-    Access-Control-Allow-Origin:
-      description: '*.garantibbva.com.tr'
-      schema:
-        type: string
-    GUID:
-      description: Header GUID
-      schema:
-        type: object
-        description: Generic object (auto-fixed from invalid ref).
-        example: {}
   schemas:
-    TransactionFilterResponseDto:
-      type: object
-      description: 'Schema from controller DTO: TransactionFilterResponseDto.'
-      properties:
-        instanceId:
-          type: string
-          example: string
-          description: Field "instanceId"
-        customerNameAndSurname:
-          type: string
-          example: string
-          description: Field "customerNameAndSurname"
-        processDate:
-          type: string
-          example: string
-          description: Field "processDate"
-        approveType:
-          type: string
-          example: string
-          description: Field "approveType"
-        transactionAmount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field "transactionAmount"
-        status:
-          type: string
-          example: string
-          description: Field "status"
-        createUserId:
-          type: string
-          example: string
-          description: Field "createUserId"
-        approveUserId:
-          type: string
-          example: string
-          description: Field "approveUserId"
-      example: {instanceId: string, customerNameAndSurname: string, processDate: string,
-        approveType: string, transactionAmount: 100.5, status: string, createUserId: string,
-        approveUserId: string}
-    TransactionMessageResponseDto:
-      type: object
-      description: 'Schema from controller DTO: TransactionMessageResponseDto.'
-      properties:
-        message:
-          type: string
-          example: string
-          description: Field "message"
-        customerNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "customerNum"
-      example: {message: string, customerNum: 123}
-    OperationCodeResponseDto:
-      type: object
-      description: 'Schema from controller DTO: OperationCodeResponseDto.'
-      properties:
-        opCode1:
-          type: string
-          example: string
-          description: Field "opCode1"
-        opCode2:
-          type: string
-          example: string
-          description: Field "opCode2"
-      example: {opCode1: string, opCode2: string}
-    ChequeMoney:
-      type: object
-      description: 'Schema from controller DTO: ChequeMoney.'
-      properties:
-        amount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field "amount"
-        currency:
-          type: string
-          example: string
-          description: Field "currency"
-      example: {amount: 100.5, currency: string}
-    TransactionDto:
-      type: object
-      description: 'Schema from controller DTO: TransactionDto.'
-      properties:
-        operationType:
-          type: string
-          example: string
-          description: Field "operationType"
-        processDate:
-          type: string
-          example: string
-          description: Field "processDate"
-        customerNumber:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "customerNumber"
-        accountBranchCode:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "accountBranchCode"
-        customerAccountNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "customerAccountNum"
-        ownerUnitNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "ownerUnitNum"
-        approvalUnitNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "approvalUnitNum"
-        transactionAmount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field "transactionAmount"
-        currencyCode:
-          type: string
-          example: string
-          description: Field "currencyCode"
-        transactionTLAmount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field "transactionTLAmount"
-        currencyRate:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field "currencyRate"
-        currencyType:
-          type: string
-          example: string
-          description: Field "currencyType"
-        rateType:
-          type: string
-          example: string
-          description: Field "rateType"
-        channelCode:
-          type: string
-          example: string
-          description: Field "channelCode"
-        channelType:
-          type: string
-          example: string
-          description: Field "channelType"
-        channelDetailText:
-          type: string
-          example: string
-          description: Field "channelDetailText"
-        financialDomainCode:
-          type: string
-          example: string
-          description: Field "financialDomainCode"
-        financialFamilyCode:
-          type: string
-          example: string
-          description: Field "financialFamilyCode"
-        financialSubFamilyCode:
-          type: string
-          example: string
-          description: Field "financialSubFamilyCode"
-        purposeValueCode:
-          type: string
-          example: string
-          description: Field "purposeValueCode"
-        receiptInfoId:
-          type: string
-          example: string
-          description: Field "receiptInfoId"
-        contractInfoId:
-          type: string
-          example: string
-          description: Field "contractInfoId"
-        accountingGuid:
-          type: string
-          example: string
-          description: Field "accountingGuid"
-        priceInqueryId:
-          type: string
-          example: string
-          description: Field "priceInqueryId"
-        surveyInfoId:
-          type: string
-          example: string
-          description: Field "surveyInfoId"
-        gmaticId:
-          type: string
-          example: string
-          description: Field "gmaticId"
-        commisionAmount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field "commisionAmount"
-        commisionCurrencyCode:
-          type: string
-          example: string
-          description: Field "commisionCurrencyCode"
-        chargeAmount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field "chargeAmount"
-        chargeCurrencyCode:
-          type: string
-          example: string
-          description: Field "chargeCurrencyCode"
-        taxAmount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field "taxAmount"
-        taxCurrencyCode:
-          type: string
-          example: string
-          description: Field "taxCurrencyCode"
-        statusCode:
-          type: string
-          example: string
-          description: Field "statusCode"
-        cicsTxnId:
-          type: string
-          example: string
-          description: Field "cicsTxnId"
-        checkNumber:
-          type: string
-          example: string
-          description: Field "checkNumber"
-        goldValuationId:
-          type: string
-          example: string
-          description: Field "goldValuationId"
-        prosecutorNotificationInfo:
-          type: string
-          example: string
-          description: Field "prosecutorNotificationInfo"
-        transactionRelationType:
-          type: string
-          example: string
-          description: Field "transactionRelationType"
-        transactionExplanationText:
-          type: string
-          example: string
-          description: Field "transactionExplanationText"
-        requestText:
-          type: string
-          example: string
-          description: Field "requestText"
-      example: {operationType: string, processDate: string, customerNumber: 123, accountBranchCode: 123,
-        customerAccountNum: 123, ownerUnitNum: 123, approvalUnitNum: 123, transactionAmount: 100.5,
-        currencyCode: string, transactionTLAmount: 100.5, currencyRate: 100.5, currencyType: string,
-        rateType: string, channelCode: string, channelType: string, channelDetailText: string,
-        financialDomainCode: string, financialFamilyCode: string, financialSubFamilyCode: string,
-        purposeValueCode: string, receiptInfoId: string, contractInfoId: string, accountingGuid: string,
-        priceInqueryId: string, surveyInfoId: string, gmaticId: string, commisionAmount: 100.5,
-        commisionCurrencyCode: string, chargeAmount: 100.5, chargeCurrencyCode: string,
-        taxAmount: 100.5, taxCurrencyCode: string, statusCode: string, cicsTxnId: string,
-        checkNumber: string, goldValuationId: string, prosecutorNotificationInfo: string,
-        transactionRelationType: string, transactionExplanationText: string, requestText: string}
-    ProcessRequestDto:
-      type: object
-      description: 'Schema from controller DTO: ProcessRequestDto.'
-      properties:
-        pagination:
-          allOf:
-          - $ref: '#/components/schemas/PageableInboundDto'
-          description: Field "pagination"
-          example: {}
-        filter:
-          allOf:
-          - $ref: '#/components/schemas/ProcessFilterRequestDto'
-          description: Field "filter"
-          example: {}
-      example: {pagination: {}, filter: {}}
-    GetPdfResponseDto:
-      type: object
-      description: 'Schema from controller DTO: GetPdfResponseDto.'
-      properties:
-        returnCode:
-          type: string
-          example: string
-          description: Field "returnCode"
-        returnMsg:
-          type: string
-          example: string
-          description: Field "returnMsg"
-        printType:
-          type: string
-          example: string
-          description: Field "printType"
-        paperTrayText:
-          type: string
-          example: string
-          description: Field "paperTrayText"
-        secPaperTrayText:
-          type: string
-          example: string
-          description: Field "secPaperTrayText"
-        pdfData:
-          type: string
-          example: string
-          description: Field "pdfData"
-      example: {returnCode: string, returnMsg: string, printType: string, paperTrayText: string,
-        secPaperTrayText: string, pdfData: string}
-    CommissionServerData:
-      type: object
-      description: 'Schema from controller DTO: CommissionServerData.'
-      properties:
-        userId:
-          type: string
-          example: string
-          description: Field "userId"
-        referenceId:
-          type: string
-          example: string
-          description: Field "referenceId"
-      example: {userId: string, referenceId: string}
-    CreateSinglePdfResponseDto:
-      type: object
-      description: 'Schema from controller DTO: CreateSinglePdfResponseDto.'
-      properties:
-        returnCode:
-          type: string
-          example: string
-          description: Field "returnCode"
-        returnMsg:
-          type: string
-          example: string
-          description: Field "returnMsg"
-        documentId:
-          type: string
-          example: string
-          description: Field "documentId"
-      example: {returnCode: string, returnMsg: string, documentId: string}
-    TrnxCompleteWithdrawalResponseDto:
-      type: object
-      description: 'Schema from controller DTO: TrnxCompleteWithdrawalResponseDto.'
-      properties:
-        instanceId:
-          type: string
-          example: string
-          description: Field "instanceId"
-        approvalRequired:
-          type: boolean
-          example: true
-          description: Field "approvalRequired"
-      example: {instanceId: string, approvalRequired: true}
-    TransactionStatusUpdateRequestDto:
-      type: object
-      description: 'Schema from controller DTO: TransactionStatusUpdateRequestDto.'
-      properties:
-        instanceId:
-          type: string
-          example: string
-          description: Field "instanceId"
-        status:
-          type: string
-          example: string
-          description: Field "status"
-        approveInstanceId:
-          type: string
-          example: string
-          description: Field "approveInstanceId"
-      example: {instanceId: string, status: string, approveInstanceId: string}
-    DigitalOrderReadResponseDto:
-      type: object
-      description: 'Schema from controller DTO: DigitalOrderReadResponseDto.'
-      properties:
-        readBranchInstructionDepositWithdrawal:
-          type: array
-          items:
-            $ref: '#/components/schemas/ReadBranchInstructionDepositWithdrawalDto'
-          description: Field "readBranchInstructionDepositWithdrawal"
-          example: [string]
-      example: {readBranchInstructionDepositWithdrawal: [string]}
-    OperationCode:
-      type: object
-      description: 'Schema from controller DTO: OperationCode.'
-      properties:
-        opCode1:
-          type: string
-          example: string
-          description: Field "opCode1"
-        opCode2:
-          type: string
-          example: string
-          description: Field "opCode2"
-      example: {opCode1: string, opCode2: string}
-    ServerData:
-      type: object
-      description: 'Schema from controller DTO: ServerData.'
-      properties:
-        userId:
-          type: string
-          example: string
-          description: Field "userId"
-        referenceId:
-          type: string
-          example: string
-          description: Field "referenceId"
-      example: {userId: string, referenceId: string}
-    GetSinglePdfRequestDto:
-      type: object
-      description: 'Schema from controller DTO: GetSinglePdfRequestDto.'
-      properties:
-        documentId:
-          type: string
-          example: string
-          description: Field "documentId"
-        userId:
-          type: string
-          example: string
-          description: Field "userId"
-        authUserId:
-          type: string
-          example: string
-          description: Field "authUserId"
-      example: {documentId: string, userId: string, authUserId: string}
-    OperationCodeItem:
-      type: object
-      description: 'Schema from controller DTO: OperationCodeItem.'
-      properties:
-        processMainCode:
-          type: string
-          example: string
-          description: Field "processMainCode"
-        processSubCode:
-          type: string
-          example: string
-          description: Field "processSubCode"
-        processDescription:
-          type: string
-          example: string
-          description: Field "processDescription"
-      example: {processMainCode: string, processSubCode: string, processDescription: string}
+    # Cheque Cost Schemas
     GetChequeCostRequest:
       type: object
-      description: 'Schema from controller DTO: GetChequeCostRequest.'
+      description: Request for getting cheque cost information
       properties:
         customerNo:
           type: string
-          example: string
-          description: Field "customerNo"
+          description: Customer number
+          example: "123456"
         opCode:
-          allOf:
-          - $ref: '#/components/schemas/OperationCode'
-          description: Field "opCode"
-          example: {}
+          $ref: '#/components/schemas/OperationCode'
         chequeAmount:
-          allOf:
-          - $ref: '#/components/schemas/ChequeMoney'
-          description: Field "chequeAmount"
-          example: {}
+          $ref: '#/components/schemas/ChequeMoney'
         account:
-          allOf:
-          - $ref: '#/components/schemas/Account'
-          description: Field "account"
-          example: {}
+          $ref: '#/components/schemas/Account'
         commissionServerData:
-          allOf:
-          - $ref: '#/components/schemas/CommissionServerData'
-          description: Field "commissionServerData"
-          example: {}
-      example: {customerNo: string, opCode: {}, chequeAmount: {}, account: {}, commissionServerData: {}}
-    ProcessingPersonInfoRequest:
+          $ref: '#/components/schemas/CommissionServerData'
+      example: {"customerNo": "123456", "opCode": {"opCode1": "01", "opCode2": "02"}, "chequeAmount": {"amount": 1000.50, "currency": "TRY"}, "account": {"branch": 100, "number": "987654"}, "commissionServerData": {"userId": "USER001", "referenceId": "REF123"}}
+
+    GetChequeCostResponse:
       type: object
-      description: 'Schema from controller DTO: ProcessingPersonInfoRequest.'
+      description: Response containing cheque cost information
       properties:
-        statusCode:
-          type: string
-          example: string
-          description: Field "statusCode"
-        processCustomerNum:
-          type: string
-          example: string
-          description: Field "processCustomerNum"
-      example: {statusCode: string, processCustomerNum: string}
-    ProcessStateChangeRequestDto:
-      type: object
-      description: 'Schema from controller DTO: ProcessStateChangeRequestDto.'
-      properties:
-        operationType:
-          type: string
-          example: string
-          description: Field "operationType"
-        instanceId:
-          type: string
-          example: string
-          description: Field "instanceId"
-      example: {operationType: string, instanceId: string}
-    ProcessFilterRequestDto:
-      type: object
-      description: 'Schema from controller DTO: ProcessFilterRequestDto.'
-      properties:
-        status:
-          type: string
-          example: string
-          description: Field "status"
-        approveType:
-          type: string
-          example: string
-          description: Field "approveType"
-        approvalUnitNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "approvalUnitNum"
-        transactionAmountMin:
-          type: string
-          example: string
-          description: Field "transactionAmountMin"
-        transactionAmountMax:
-          type: string
-          example: string
-          description: Field "transactionAmountMax"
-        approveDateFirst:
-          type: string
-          example: string
-          description: Field "approveDateFirst"
-        approveDateLast:
-          type: string
-          example: string
-          description: Field "approveDateLast"
-        approveOrder:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "approveOrder"
-        financialSubFamilyCode:
-          type: string
-          example: string
-          description: Field "financialSubFamilyCode"
-        financialFamilyCode:
-          type: string
-          example: string
-          description: Field "financialFamilyCode"
-      example: {status: string, approveType: string, approvalUnitNum: 123, transactionAmountMin: string,
-        transactionAmountMax: string, approveDateFirst: string, approveDateLast: string,
-        approveOrder: 123, financialSubFamilyCode: string, financialFamilyCode: string}
-    OperationCodeRequestDto:
-      type: object
-      description: 'Schema from controller DTO: OperationCodeRequestDto.'
-      properties:
-        operatorCustomer:
-          type: array
-          items:
-            $ref: '#/components/schemas/OpCodeCustomerDto'
-          description: Field "operatorCustomer"
-          example: [string]
-        accountCustomerNum:
-          type: string
-          example: string
-          description: Field "accountCustomerNum"
-        accountBranch:
-          type: string
-          example: string
-          description: Field "accountBranch"
-        accountNumber:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "accountNumber"
-      example: {operatorCustomer: [string], accountCustomerNum: string, accountBranch: string,
-        accountNumber: 123}
-    TrnxCompleteWithdrawalRequestDto:
-      type: object
-      description: 'Schema from controller DTO: TrnxCompleteWithdrawalRequestDto.'
-      properties:
-        operationType:
-          type: string
-          example: string
-          description: Field "operationType"
-        customerNumber:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "customerNumber"
-        accountBranchCode:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "accountBranchCode"
-        customerAccountNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "customerAccountNum"
-        transactionAmount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field "transactionAmount"
-        createUserId:
-          type: string
-          example: string
-          description: Field "createUserId"
-        channelCode:
-          type: string
-          example: string
-          description: Field "channelCode"
-        channelDetailText:
-          type: string
-          example: string
-          description: Field "channelDetailText"
-        operation1Code:
-          type: string
-          example: string
-          description: Field "operation1Code"
-        operation2Code:
-          type: string
-          example: string
-          description: Field "operation2Code"
-        relatedProductCode:
-          type: string
-          example: string
-          description: Field "relatedProductCode"
-        purposeValueCode:
-          type: string
-          example: string
-          description: Field "purposeValueCode"
-        surveyIfoId:
-          type: string
-          example: string
-          description: Field "surveyIfoId"
-        commissionAmount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field "commissionAmount"
-        commissionCurrencyCode:
-          type: string
-          example: string
-          description: Field "commissionCurrencyCode"
-        priceInqueryId:
-          type: string
-          example: string
-          description: Field "priceInqueryId"
-        chargeAmount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field "chargeAmount"
-        chargeCurrencyCode:
-          type: string
-          example: string
-          description: Field "chargeCurrencyCode"
-        requestText:
-          type: string
-          example: string
-          description: Field "requestText"
-        transactionExplanationText:
-          type: string
-          example: string
-          description: Field "transactionExplanationText"
-        checkNumber:
-          type: string
-          example: string
-          description: Field "checkNumber"
-        goldValuationId:
-          type: string
-          example: string
-          description: Field "goldValuationId"
-        prosecutorNotificationInfo:
-          type: string
-          example: string
-          description: Field "prosecutorNotificationInfo"
-        transactionRelationType:
-          type: string
-          example: string
-          description: Field "transactionRelationType"
-        gmaticId:
-          type: string
-          example: string
-          description: Field "gmaticId"
-        currencyCode:
-          type: string
-          example: string
-          description: Field "currencyCode"
-        tcNumber:
-          type: string
-          example: string
-          description: Field "tcNumber"
-        birthDate:
-          type: string
-          example: string
-          description: Field "birthDate"
-        isCheck:
+        cost:
+          $ref: '#/components/schemas/ChequeMoney'
+        isCommissionFree:
           type: boolean
-          example: true
-          description: Field "isCheck"
-        atmInfo:
-          allOf:
-          - $ref: '#/components/schemas/AtmInfoRequest'
-          description: Field "atmInfo"
-          example: {}
-        processingPersonInfo:
-          type: array
-          items:
-            $ref: '#/components/schemas/ProcessingPersonInfoRequest'
-          description: Field "processingPersonInfo"
-          example: [string]
-        customerName:
-          type: string
-          example: string
-          description: Field "customerName"
-        customerSurname:
-          type: string
-          example: string
-          description: Field "customerSurname"
-        accountBalanceAmount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field "accountBalanceAmount"
-        addressLine1:
-          type: string
-          example: string
-          description: Field "addressLine1"
-        addressLine2:
-          type: string
-          example: string
-          description: Field "addressLine2"
-        regionName:
-          type: string
-          example: string
-          description: Field "regionName"
-        districtName:
-          type: string
-          example: string
-          description: Field "districtName"
-        cityName:
-          type: string
-          example: string
-          description: Field "cityName"
-        postalCode:
-          type: string
-          example: string
-          description: Field "postalCode"
-        phoneNumber:
-          type: string
-          example: string
-          description: Field "phoneNumber"
-        cicsTxnId:
-          type: string
-          example: string
-          description: Field "cicsTxnId"
-        sourceId:
-          type: string
-          example: string
-          description: Field "sourceId"
-        kpsValidationBypass:
-          type: boolean
-          example: true
-          description: Field "kpsValidationBypass"
-      example: {operationType: string, customerNumber: 123, accountBranchCode: 123,
-        customerAccountNum: 123, transactionAmount: 100.5, createUserId: string, channelCode: string,
-        channelDetailText: string, operation1Code: string, operation2Code: string,
-        relatedProductCode: string, purposeValueCode: string, surveyIfoId: string,
-        commissionAmount: 100.5, commissionCurrencyCode: string, priceInqueryId: string,
-        chargeAmount: 100.5, chargeCurrencyCode: string, requestText: string, transactionExplanationText: string,
-        checkNumber: string, goldValuationId: string, prosecutorNotificationInfo: string,
-        transactionRelationType: string, gmaticId: string, currencyCode: string, tcNumber: string,
-        birthDate: string, isCheck: true, atmInfo: {}, processingPersonInfo: [string],
-        customerName: string, customerSurname: string, accountBalanceAmount: 100.5,
-        addressLine1: string, addressLine2: string, regionName: string, districtName: string,
-        cityName: string, postalCode: string, phoneNumber: string, cicsTxnId: string,
-        sourceId: string, kpsValidationBypass: true}
-    CustomerInfoResponseDto:
+          description: Indicates if commission is free
+          example: false
+      example: {"cost": {"amount": 25.00, "currency": "TRY"}, "isCommissionFree": false}
+
+    ChequeMoney:
       type: object
-      description: 'Schema from controller DTO: CustomerInfoResponseDto.'
+      description: Money representation with amount and currency
       properties:
-        customerNum:
-          type: string
-          example: string
-          description: Field "customerNum"
-        name:
-          type: string
-          example: string
-          description: Field "name"
-        surname:
-          type: string
-          example: string
-          description: Field "surname"
-        citizen:
-          type: string
-          example: string
-          description: Field "citizen"
-        mernisNum:
-          type: string
-          example: string
-          description: Field "mernisNum"
-        birthDate:
-          type: string
-          example: string
-          description: Field "birthDate"
-        otherNationalityId:
-          type: string
-          example: string
-          description: Field "otherNationalityId"
-        customerType:
-          type: string
-          example: string
-          description: Field "customerType"
-        isOperant:
-          type: boolean
-          example: true
-          description: Field "isOperant"
-        operantMessages:
-          type: array
-          items:
-            type: string
-            example: string
-          description: Field "operantMessages"
-          example: [string]
-        isActivePerson:
-          type: boolean
-          example: true
-          description: Field "isActivePerson"
-        customerSubType:
-          type: string
-          example: string
-          description: Field "customerSubType"
-        customerSubType2:
-          type: string
-          example: string
-          description: Field "customerSubType2"
-      example: {customerNum: string, name: string, surname: string, citizen: string,
-        mernisNum: string, birthDate: string, otherNationalityId: string, customerType: string,
-        isOperant: true, operantMessages: [string], isActivePerson: true, customerSubType: string,
-        customerSubType2: string}
-    ProcessStateChangeResponseDto:
-      type: object
-      description: 'Schema from controller DTO: ProcessStateChangeResponseDto.'
-      properties:
-        message:
-          type: string
-          example: string
-          description: Field "message"
-      example: {message: string}
-    SaveRepresentativePersonDto:
-      type: object
-      description: 'Schema from controller DTO: SaveRepresentativePersonDto.'
-      properties:
-        customerNum:
-          type: string
-          example: string
-          description: Field "customerNum"
-        name:
-          type: string
-          example: string
-          description: Field "name"
-        surname:
-          type: string
-          example: string
-          description: Field "surname"
-        citizenText:
-          type: string
-          example: string
-          description: Field "citizenText"
-        mernisNum:
-          type: string
-          example: string
-          description: Field "mernisNum"
-        birthDate:
-          type: string
-          example: string
-          description: Field "birthDate"
-        otherNationalityId:
-          type: string
-          example: string
-          description: Field "otherNationalityId"
-      example: {customerNum: string, name: string, surname: string, citizenText: string,
-        mernisNum: string, birthDate: string, otherNationalityId: string}
-    FindTransactionRequestDto:
-      type: object
-      description: 'Schema from controller DTO: FindTransactionRequestDto.'
-      properties:
-        customerNumber:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "customerNumber"
-      example: {customerNumber: 123}
-    CustomerInfoRequestDto:
-      type: object
-      description: 'Schema from controller DTO: CustomerInfoRequestDto.'
-      properties:
-        customerNum:
-          type: string
-          example: string
-          description: Field "customerNum"
-      example: {customerNum: string}
-    BranchInfo:
-      type: object
-      description: 'Schema from controller DTO: BranchInfo.'
-      properties:
-        branchName:
-          type: string
-          example: string
-          description: Field "branchName"
-        branchCity:
-          type: string
-          example: string
-          description: Field "branchCity"
-        branchDistrict:
-          type: string
-          example: string
-          description: Field "branchDistrict"
-        countryCode:
-          type: string
-          example: string
-          description: Field "countryCode"
-        branchAddress:
-          type: string
-          example: string
-          description: Field "branchAddress"
-        referenceNumber:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "referenceNumber"
-      example: {branchName: string, branchCity: string, branchDistrict: string, countryCode: string,
-        branchAddress: string, referenceNumber: 123}
-    SaveTransactionCustomerRequestDto:
-      type: object
-      description: 'Schema from controller DTO: SaveTransactionCustomerRequestDto.'
-      properties:
-        nationalIdNum:
-          type: string
-          example: string
-          description: Field "nationalIdNum"
-        name:
-          type: string
-          example: string
-          description: Field "name"
-        surname:
-          type: string
-          example: string
-          description: Field "surname"
-        birthDate:
-          type: string
-          example: string
-          description: Field "birthDate"
-        nationalityCode:
-          type: string
-          example: string
-          description: Field "nationalityCode"
-        kktcNationalId:
-          type: string
-          example: string
-          description: Field "kktcNationalId"
-        passportId:
-          type: string
-          example: string
-          description: Field "passportId"
-        countryCode:
-          type: string
-          example: string
-          description: Field "countryCode"
-        birthPlace:
-          type: string
-          example: string
-          description: Field "birthPlace"
-        fatherName:
-          type: string
-          example: string
-          description: Field "fatherName"
-        motherName:
-          type: string
-          example: string
-          description: Field "motherName"
-        workingType:
-          type: string
-          example: string
-          description: Field "workingType"
-        jobTitle:
-          type: string
-          example: string
-          description: Field "jobTitle"
-        cityCode:
-          type: string
-          example: string
-          description: Field "cityCode"
-        cityName:
-          type: string
-          example: string
-          description: Field "cityName"
-        countyName:
-          type: string
-          example: string
-          description: Field "countyName"
-        phoneCountryCode:
-          type: string
-          example: string
-          description: Field "phoneCountryCode"
-        phoneNum:
-          type: string
-          example: string
-          description: Field "phoneNum"
-        postcode:
-          type: string
-          example: string
-          description: Field "postcode"
-        address:
-          type: string
-          example: string
-          description: Field "address"
-        addressType:
-          type: string
-          example: string
-          description: Field "addressType"
-        customerNum:
-          type: string
-          example: string
-          description: Field "customerNum"
-      example: {nationalIdNum: string, name: string, surname: string, birthDate: string,
-        nationalityCode: string, kktcNationalId: string, passportId: string, countryCode: string,
-        birthPlace: string, fatherName: string, motherName: string, workingType: string,
-        jobTitle: string, cityCode: string, cityName: string, countyName: string,
-        phoneCountryCode: string, phoneNum: string, postcode: string, address: string,
-        addressType: string, customerNum: string}
-    AccountTransactionRulesRequestDto:
-      type: object
-      description: 'Schema from controller DTO: AccountTransactionRulesRequestDto.'
-      properties:
-        debitUnitNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "debitUnitNum"
-        debitAccountNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "debitAccountNum"
-        transactionAmount:
-          type: string
-          example: string
-          description: Field "transactionAmount"
-        currencyCode:
-          type: string
-          example: string
-          description: Field "currencyCode"
-        transactionDate:
-          type: string
-          example: string
-          description: Field "transactionDate"
-        oprtnCustList:
-          type: array
-          items:
-            type: string
-            example: string
-          description: Field "oprtnCustList"
-          example: [string]
-      example: {debitUnitNum: 123, debitAccountNum: 123, transactionAmount: string,
-        currencyCode: string, transactionDate: string, oprtnCustList: [string]}
-    RepresentativePersonDto:
-      type: object
-      description: 'Schema from controller DTO: RepresentativePersonDto.'
-      properties:
-        name:
-          type: string
-          example: string
-          description: Field "name"
-        surname:
-          type: string
-          example: string
-          description: Field "surname"
-        customerNum:
-          type: string
-          example: string
-          description: Field "customerNum"
-      example: {name: string, surname: string, customerNum: string}
-    CreateSinglePdfRequestDto:
-      type: object
-      description: 'Schema from controller DTO: CreateSinglePdfRequestDto.'
-      properties:
-        documentType:
-          type: string
-          example: string
-          description: Field "documentType"
-        documentStatus:
-          type: string
-          example: string
-          description: Field "documentStatus"
-        async:
-          type: string
-          example: string
-          description: Field "async"
-        userId:
-          type: string
-          example: string
-          description: Field "userId"
-        authUserId:
-          type: string
-          example: string
-          description: Field "authUserId"
-        xmlData:
-          type: string
-          example: string
-          description: Field "xmlData"
-        date:
-          type: string
-          example: string
-          description: Field "date"
-        commissionRate:
+        amount:
           type: number
           format: double
-          example: 123.45
-          description: Field "commissionRate"
-        transactionAmount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field "transactionAmount"
-        customerInfo:
-          type: array
-          items:
-            $ref: '#/components/schemas/CustomerInfo'
-          description: Field "customerInfo"
-          example: [string]
-        branchInfo:
-          allOf:
-          - $ref: '#/components/schemas/BranchInfo'
-          description: Field "branchInfo"
-          example: {}
-      example: {documentType: string, documentStatus: string, async: string, userId: string,
-        authUserId: string, xmlData: string, date: string, commissionRate: 123.45,
-        transactionAmount: 100.5, customerInfo: [string], branchInfo: {}}
-    TransactionListDto:
+          description: Amount value
+          example: 1000.50
+        currency:
+          type: string
+          description: Currency code (e.g., TRY, USD, EUR)
+          example: "TRY"
+      example: {"amount": 1000.50, "currency": "TRY"}
+
+    OperationCode:
       type: object
-      description: 'Schema from controller DTO: TransactionListDto.'
+      description: Operation code information
       properties:
-        transactions:
-          type: array
-          items:
-            $ref: '#/components/schemas/TransactionDto'
-          description: Field "transactions"
-          example: [string]
-      example: {transactions: [string]}
-    AccountTransactionRulesResponseDto:
-      type: object
-      description: 'Schema from controller DTO: AccountTransactionRulesResponseDto.'
-      properties:
-        messages:
-          type: array
-          items:
-            type: string
-            example: string
-          description: Field "messages"
-          example: [string]
-        accountUsableBalanceAmount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field "accountUsableBalanceAmount"
-        debitUnitNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "debitUnitNum"
-        debitAccountNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "debitAccountNum"
-        debitCustomerFirstName:
+        opCode1:
           type: string
-          example: string
-          description: Field "debitCustomerFirstName"
-        debitCustomerLastName:
+          description: Primary operation code
+          example: "01"
+        opCode2:
           type: string
-          example: string
-          description: Field "debitCustomerLastName"
-        debitAccountCurrCode:
-          type: string
-          example: string
-          description: Field "debitAccountCurrCode"
-        debitAccountCustomerNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "debitAccountCustomerNum"
-        debitCustomerType:
-          type: string
-          example: string
-          description: Field "debitCustomerType"
-        checkRelatedAccount:
-          type: string
-          example: string
-          description: Field "checkRelatedAccount"
-      example: {messages: [string], accountUsableBalanceAmount: 100.5, debitUnitNum: 123,
-        debitAccountNum: 123, debitCustomerFirstName: string, debitCustomerLastName: string,
-        debitAccountCurrCode: string, debitAccountCustomerNum: 123, debitCustomerType: string,
-        checkRelatedAccount: string}
-    ProcessResponseDto:
-      type: object
-      description: 'Schema from controller DTO: ProcessResponseDto.'
-      properties:
-        moneyTransactionId:
-          type: string
-          example: string
-          description: Field "moneyTransactionId"
-        status:
-          type: string
-          example: string
-          description: Field "status"
-        approveOrder:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "approveOrder"
-        approveType:
-          type: string
-          example: string
-          description: Field "approveType"
-        approveUserRole:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "approveUserRole"
-        approveUserId:
-          type: string
-          example: string
-          description: Field "approveUserId"
-        approveDate:
-          type: string
-          example: string
-          description: Field "approveDate"
-        approvalUnitNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "approvalUnitNum"
-        transactionAmount:
-          type: string
-          example: string
-          description: Field "transactionAmount"
-        customerNumber:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "customerNumber"
-        createUserId:
-          type: string
-          example: string
-          description: Field "createUserId"
-        requestText:
-          type: string
-          example: string
-          description: Field "requestText"
-        instanceId:
-          type: string
-          example: string
-          description: Field "instanceId"
-      example: {moneyTransactionId: string, status: string, approveOrder: 123, approveType: string,
-        approveUserRole: 123, approveUserId: string, approveDate: string, approvalUnitNum: 123,
-        transactionAmount: string, customerNumber: 123, createUserId: string, requestText: string,
-        instanceId: string}
+          description: Secondary operation code
+          example: "02"
+      example: {"opCode1": "01", "opCode2": "02"}
+
     Account:
       type: object
-      description: 'Schema from controller DTO: Account.'
+      description: Account information
       properties:
         branch:
           type: integer
           format: int32
-          example: 123
-          description: Field "branch"
+          description: Branch code
+          example: 100
         number:
           type: string
-          example: string
-          description: Field "number"
-      example: {branch: 123, number: string}
-    GetBulkOperationCodeResponseDto:
+          description: Account number
+          example: "987654"
+      example: {"branch": 100, "number": "987654"}
+
+    CommissionServerData:
       type: object
-      description: 'Schema from controller DTO: GetBulkOperationCodeResponseDto.'
+      description: Server data for commission processing
       properties:
-        operationCodeItems:
-          type: array
-          items:
-            $ref: '#/components/schemas/OperationCodeItem'
-          description: Field "operationCodeItems"
-          example: [string]
-        processMainCode:
+        userId:
           type: string
-          example: string
-          description: Field "processMainCode"
-        processSubCode:
+          description: User identifier
+          example: "USER001"
+        referenceId:
           type: string
-          example: string
-          description: Field "processSubCode"
-        processDescription:
-          type: string
-          example: string
-          description: Field "processDescription"
-      example: {operationCodeItems: [string], processMainCode: string, processSubCode: string,
-        processDescription: string}
-    TransactionStatusUpdateResponseDto:
+          description: Reference identifier
+          example: "REF123"
+      example: {"userId": "USER001", "referenceId": "REF123"}
+
+    # Approve Schemas
+    ProcessRequestDto:
       type: object
-      description: 'Schema from controller DTO: TransactionStatusUpdateResponseDto.'
+      description: Request for process management list with pagination and filters
       properties:
-        success:
-          type: boolean
-          example: true
-          description: Field "success"
-      example: {success: true}
-    GetKpsInfoRequestDto:
-      type: object
-      description: 'Schema from controller DTO: GetKpsInfoRequestDto.'
-      properties:
-        nationalId:
-          type: string
-          example: string
-          description: Field "nationalId"
-        birthDate:
-          type: string
-          example: string
-          description: Field "birthDate"
-        inquiryDateMargin:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "inquiryDateMargin"
-      example: {nationalId: string, birthDate: string, inquiryDateMargin: 123}
+        pagination:
+          $ref: '#/components/schemas/PageableInboundDto'
+        filter:
+          $ref: '#/components/schemas/ProcessFilterRequestDto'
+      example: {"pagination": {"page": 0, "size": 10, "sort": {"field": "createDate", "direction": "SORT_DIRECTION_DESC"}}, "filter": {"status": "PENDING", "approveType": "SINGLE"}}
+
     PageableInboundDto:
       type: object
-      description: 'Schema from controller DTO: PageableInboundDto.'
+      description: Pagination parameters
       properties:
         page:
           type: integer
           format: int32
-          example: 123
-          description: Field "page"
+          description: Page number (zero-based)
+          example: 0
         size:
           type: integer
           format: int32
-          example: 123
-          description: Field "size"
+          description: Number of records per page
+          example: 10
         sort:
-          allOf:
-          - $ref: '#/components/schemas/SortInboundDto'
-          description: Field "sort"
-          example: {}
-      example: {page: 123, size: 123, sort: {}}
-    ExtendedCustomerInfoDto:
-      type: object
-      description: 'Schema from controller DTO: ExtendedCustomerInfoDto.'
-      properties:
-        customerNum:
-          type: string
-          example: string
-          description: Field "customerNum"
-        name:
-          type: string
-          example: string
-          description: Field "name"
-        surname:
-          type: string
-          example: string
-          description: Field "surname"
-        citizenText:
-          type: string
-          example: string
-          description: Field "citizenText"
-        mernisNum:
-          type: string
-          example: string
-          description: Field "mernisNum"
-        birthDate:
-          type: string
-          example: string
-          description: Field "birthDate"
-        otherNationalityId:
-          type: string
-          example: string
-          description: Field "otherNationalityId"
-        settledCountryCode:
-          type: string
-          example: string
-          description: Field "settledCountryCode"
-        birthPlace:
-          type: string
-          example: string
-          description: Field "birthPlace"
-        motherName:
-          type: string
-          example: string
-          description: Field "motherName"
-        fatherName:
-          type: string
-          example: string
-          description: Field "fatherName"
-        phoneNumCountryCode:
-          type: string
-          example: string
-          description: Field "phoneNumCountryCode"
-        phoneNum:
-          type: string
-          example: string
-          description: Field "phoneNum"
-        pasaportNumText:
-          type: string
-          example: string
-          description: Field "pasaportNumText"
-        addressType:
-          type: string
-          example: string
-          description: Field "addressType"
-        countryCode:
-          type: string
-          example: string
-          description: Field "countryCode"
-        cityCode:
-          type: string
-          example: string
-          description: Field "cityCode"
-        addressLine:
-          type: string
-          example: string
-          description: Field "addressLine"
-        postalCode:
-          type: string
-          example: string
-          description: Field "postalCode"
-        regionName:
-          type: string
-          example: string
-          description: Field "regionName"
-        workingStyle:
-          type: string
-          example: string
-          description: Field "workingStyle"
-        jobTitle:
-          type: string
-          example: string
-          description: Field "jobTitle"
-      example: {customerNum: string, name: string, surname: string, citizenText: string,
-        mernisNum: string, birthDate: string, otherNationalityId: string, settledCountryCode: string,
-        birthPlace: string, motherName: string, fatherName: string, phoneNumCountryCode: string,
-        phoneNum: string, pasaportNumText: string, addressType: string, countryCode: string,
-        cityCode: string, addressLine: string, postalCode: string, regionName: string,
-        workingStyle: string, jobTitle: string}
-    SaveRepresentativePersonRequestDto:
-      type: object
-      description: 'Schema from controller DTO: SaveRepresentativePersonRequestDto.'
-      properties:
-        customerNum:
-          type: string
-          example: string
-          description: Field "customerNum"
-        opnDefinedKey:
-          type: string
-          example: string
-          description: Field "opnDefinedKey"
-        partyType:
-          type: string
-          example: string
-          description: Field "partyType"
-        recordStatus:
-          type: string
-          example: string
-          description: Field "recordStatus"
-      example: {customerNum: string, opnDefinedKey: string, partyType: string, recordStatus: string}
-    HeaderInfo:
-      type: object
-      description: 'Schema from controller DTO: HeaderInfo.'
-      properties:
-        command:
-          type: string
-          example: string
-          description: Field "command"
-        sourceProgramId:
-          type: string
-          example: string
-          description: Field "sourceProgramId"
-        unitNum:
-          type: string
-          example: string
-          description: Field "unitNum"
-        channelCode:
-          type: string
-          example: string
-          description: Field "channelCode"
-        moduleCode:
-          type: string
-          example: string
-          description: Field "moduleCode"
-        submoduleCode:
-          type: string
-          example: string
-          description: Field "submoduleCode"
-      example: {command: string, sourceProgramId: string, unitNum: string, channelCode: string,
-        moduleCode: string, submoduleCode: string}
-    OpCodeCustomerDto:
-      type: object
-      description: 'Schema from controller DTO: OpCodeCustomerDto.'
-      properties:
-        operatorCustomerNum:
-          type: string
-          example: string
-          description: Field "operatorCustomerNum"
-      example: {operatorCustomerNum: string}
+          $ref: '#/components/schemas/SortInboundDto'
+      example: {"page": 0, "size": 10, "sort": {"field": "createDate", "direction": "SORT_DIRECTION_DESC"}}
+
     SortInboundDto:
       type: object
-      description: 'Schema from controller DTO: SortInboundDto.'
+      description: Sort parameters
       properties:
         field:
           type: string
-          example: string
-          description: Field "field"
+          description: Field name to sort by
+          example: "createDate"
         direction:
-          allOf:
-          - type: object
-            description: Generic object (auto-fixed from invalid ref 'SortDirection').
-            example: {}
-          description: Field "direction"
-          example: {}
-      example: {field: string, direction: {}}
-    ApproveBulkFraudProcessResponseDto:
+          type: string
+          enum: [SORT_DIRECTION_ASC, SORT_DIRECTION_DESC]
+          description: Sort direction
+          example: "SORT_DIRECTION_DESC"
+      example: {"field": "createDate", "direction": "SORT_DIRECTION_DESC"}
+
+    ProcessFilterRequestDto:
       type: object
-      description: 'Schema from controller DTO: ApproveBulkFraudProcessResponseDto.'
+      description: Filter criteria for process list
       properties:
-        message:
-          type: string
-          example: string
-          description: Field "message"
-      example: {message: string}
-    DigitalOrderReadRequestDto:
-      type: object
-      description: 'Schema from controller DTO: DigitalOrderReadRequestDto.'
-      properties:
-        instructionId:
-          type: string
-          format: int64
-          example: '123456789'
-          description: Field "instructionId"
-        customerNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "customerNum"
-        accountNumber:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "accountNumber"
-        branchCode:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "branchCode"
-        amount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field "amount"
-        currencyCode:
-          type: string
-          example: string
-          description: Field "currencyCode"
-        identityNumber:
-          type: string
-          example: string
-          description: Field "identityNumber"
-        documentId:
-          type: string
-          example: string
-          description: Field "documentId"
-        transactionDate:
-          type: string
-          example: string
-          description: Field "transactionDate"
         status:
           type: string
-          example: string
-          description: Field "status"
-        transactionType:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "transactionType"
-        processUnitNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "processUnitNum"
-      example: {instructionId: '123456789', customerNum: 123, accountNumber: 123,
-        branchCode: 123, amount: 100.5, currencyCode: string, identityNumber: string,
-        documentId: string, transactionDate: string, status: string, transactionType: 123,
-        processUnitNum: 123}
-    AtmInfoRequest:
-      type: object
-      description: 'Schema from controller DTO: AtmInfoRequest.'
-      properties:
-        cardNo:
-          type: string
-          example: string
-          description: Field "cardNo"
-        isQr:
-          type: boolean
-          example: true
-          description: Field "isQr"
-        qrId:
-          type: string
-          example: string
-          description: Field "qrId"
-        atmNumber:
-          type: string
-          example: string
-          description: Field "atmNumber"
-        isCommission:
-          type: boolean
-          example: true
-          description: Field "isCommission"
-      example: {cardNo: string, isQr: true, qrId: string, atmNumber: string, isCommission: true}
-    GetChequeCostResponse:
-      type: object
-      description: 'Schema from controller DTO: GetChequeCostResponse.'
-      properties:
-        cost:
-          allOf:
-          - $ref: '#/components/schemas/ChequeMoney'
-          description: Field "cost"
-          example: {}
-        isCommissionFree:
-          type: boolean
-          example: true
-          description: Field "isCommissionFree"
-      example: {cost: {}, isCommissionFree: true}
-    TransactionFilterRequestDto:
-      type: object
-      description: 'Schema from controller DTO: TransactionFilterRequestDto.'
-      properties:
-        statusCode:
-          type: string
-          example: string
-          description: Field "statusCode"
-        ownerUnitNum:
-          type: string
-          example: string
-          description: Field "ownerUnitNum"
-        moneyTransactionIdStart:
-          type: string
-          example: string
-          description: Field "moneyTransactionIdStart"
-        moneyTransactionIdEnd:
-          type: string
-          example: string
-          description: Field "moneyTransactionIdEnd"
+          description: Process status
+          example: "PENDING"
         approveType:
           type: string
-          example: string
-          description: Field "approveType"
+          description: Approval type
+          example: "SINGLE"
+        approvalUnitNum:
+          type: integer
+          format: int32
+          description: Approval unit number
+          example: 100
+        transactionAmountMin:
+          type: string
+          description: Minimum transaction amount
+          example: "1000.00"
+        transactionAmountMax:
+          type: string
+          description: Maximum transaction amount
+          example: "50000.00"
+        approveDateFirst:
+          type: string
+          description: Start date for approval filter
+          example: "2024-01-01"
+        approveDateLast:
+          type: string
+          description: End date for approval filter
+          example: "2024-12-31"
+        approveOrder:
+          type: integer
+          format: int32
+          description: Approval order
+          example: 1
         financialSubFamilyCode:
           type: string
-          example: string
-          description: Field "financialSubFamilyCode"
+          description: Financial sub-family code
+          example: "SF01"
         financialFamilyCode:
           type: string
-          example: string
-          description: Field "financialFamilyCode"
-        transactionAmountMin:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field "transactionAmountMin"
-        transactionAmountMax:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field "transactionAmountMax"
-      example: {statusCode: string, ownerUnitNum: string, moneyTransactionIdStart: string,
-        moneyTransactionIdEnd: string, approveType: string, financialSubFamilyCode: string,
-        financialFamilyCode: string, transactionAmountMin: 100.5, transactionAmountMax: 100.5}
-    ReadBranchInstructionDepositWithdrawalDto:
+          description: Financial family code
+          example: "F01"
+      example: {"status": "PENDING", "approveType": "SINGLE", "approvalUnitNum": 100, "transactionAmountMin": "1000.00", "transactionAmountMax": "50000.00"}
+
+    PaginationResultDto_ProcessResponseDto:
       type: object
-      description: 'Schema from controller DTO: ReadBranchInstructionDepositWithdrawalDto.'
-      properties:
-        instructionId:
-          type: string
-          format: int64
-          example: '123456789'
-          description: Field "instructionId"
-        customerNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "customerNum"
-        accountNumber:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "accountNumber"
-        branchCode:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "branchCode"
-        amount:
-          type: number
-          format: bigdecimal
-          example: 100.5
-          description: Field "amount"
-        currencyCode:
-          type: string
-          example: string
-          description: Field "currencyCode"
-        identityNumber:
-          type: string
-          example: string
-          description: Field "identityNumber"
-        documentId:
-          type: string
-          example: string
-          description: Field "documentId"
-        transactionDate:
-          type: string
-          example: string
-          description: Field "transactionDate"
-        status:
-          type: string
-          example: string
-          description: Field "status"
-        transactionType:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "transactionType"
-        processUnitNum:
-          type: integer
-          format: int32
-          example: 123
-          description: Field "processUnitNum"
-      example: {instructionId: '123456789', customerNum: 123, accountNumber: 123,
-        branchCode: 123, amount: 100.5, currencyCode: string, identityNumber: string,
-        documentId: string, transactionDate: string, status: string, transactionType: 123,
-        processUnitNum: 123}
-    PaginationResultDto:
-      type: object
-      description: 'Schema from controller DTO: PaginationResultDto.'
+      description: Paginated result for process list
       properties:
         totalCount:
           type: integer
           format: int32
-          example: 123
-          description: Field "totalCount"
+          description: Total number of records
+          example: 150
         records:
           type: array
+          description: List of process records
           items:
-            type: object
-            description: Generic object (auto-fixed from invalid ref 'T').
-            example: {}
-          description: Field "records"
-          example: [string]
-      example: {totalCount: 123, records: [string]}
+            $ref: '#/components/schemas/ProcessResponseDto'
+      example: {"totalCount": 150, "records": [{"moneyTransactionId": "TXN001", "status": "PENDING", "approveType": "SINGLE"}]}
+
+    ProcessResponseDto:
+      type: object
+      description: Process response information
+      properties:
+        moneyTransactionId:
+          type: string
+          description: Money transaction identifier
+          example: "TXN001"
+        status:
+          type: string
+          description: Process status
+          example: "PENDING"
+        approveOrder:
+          type: integer
+          format: int32
+          description: Approval order
+          example: 1
+        approveType:
+          type: string
+          description: Approval type
+          example: "SINGLE"
+        approveUserRole:
+          type: integer
+          format: int32
+          description: Approval user role
+          example: 5
+        approveUserId:
+          type: string
+          description: Approving user identifier
+          example: "USER001"
+        approveDate:
+          type: string
+          description: Approval date
+          example: "2024-10-07"
+        approvalUnitNum:
+          type: integer
+          format: int32
+          description: Approval unit number
+          example: 100
+        transactionAmount:
+          type: string
+          description: Transaction amount
+          example: "15000.00"
+        customerNumber:
+          type: integer
+          format: int32
+          description: Customer number
+          example: 123456
+        createUserId:
+          type: string
+          description: Creator user identifier
+          example: "USER002"
+        requestText:
+          type: string
+          description: Request text or notes
+          example: "Withdrawal request for customer"
+        instanceId:
+          type: string
+          description: Process instance identifier
+          example: "INST001"
+      example: {"moneyTransactionId": "TXN001", "status": "PENDING", "approveOrder": 1, "approveType": "SINGLE", "customerNumber": 123456}
+
+    ProcessStateChangeRequestDto:
+      type: object
+      description: Request for changing process state
+      properties:
+        operationType:
+          type: string
+          description: Type of operation (APPROVE, REJECT)
+          example: "APPROVE"
+        instanceId:
+          type: string
+          description: Process instance identifier
+          example: "INST001"
+      example: {"operationType": "APPROVE", "instanceId": "INST001"}
+
+    ProcessStateChangeResponseDto:
+      type: object
+      description: Response after process state change
+      properties:
+        message:
+          type: string
+          description: Result message
+          example: "Process approved successfully"
+      example: {"message": "Process approved successfully"}
+
     ApproveBulkFraudProcessRequestDto:
       type: object
-      description: 'Schema from controller DTO: ApproveBulkFraudProcessRequestDto.'
+      description: Request for bulk fraud process approval
       properties:
         instanceId:
           type: string
-          example: string
-          description: Field "instanceId"
+          description: Process instance identifier
+          example: "INST001"
         status:
           type: string
-          example: string
-          description: Field "status"
-      example: {instanceId: string, status: string}
+          description: New status
+          example: "APPROVED"
+      example: {"instanceId": "INST001", "status": "APPROVED"}
+
+    ApproveBulkFraudProcessResponseDto:
+      type: object
+      description: Response after bulk fraud process status change
+      properties:
+        message:
+          type: string
+          description: Result message
+          example: "Fraud process status changed successfully"
+      example: {"message": "Fraud process status changed successfully"}
+
+    # Digital Order Schemas
+    DigitalOrderReadRequestDto:
+      type: object
+      description: Request for reading digital order
+      properties:
+        instructionId:
+          type: integer
+          format: int64
+          description: Instruction identifier
+          example: 123456789
+        customerNum:
+          type: integer
+          format: int32
+          description: Customer number
+          example: 123456
+        accountNumber:
+          type: integer
+          format: int32
+          description: Account number
+          example: 987654
+        branchCode:
+          type: integer
+          format: int32
+          description: Branch code
+          example: 100
+        amount:
+          type: number
+          format: double
+          description: Transaction amount
+          example: 1000.50
+        currencyCode:
+          type: string
+          description: Currency code
+          example: "TRY"
+        identityNumber:
+          type: string
+          description: Identity number
+          example: "12345678901"
+        documentId:
+          type: string
+          description: Document identifier
+          example: "DOC001"
+        transactionDate:
+          type: string
+          description: Transaction date
+          example: "2024-10-07"
+        status:
+          type: string
+          description: Transaction status
+          example: "PENDING"
+        transactionType:
+          type: integer
+          format: int32
+          description: Transaction type code
+          example: 1
+        processUnitNum:
+          type: integer
+          format: int32
+          description: Processing unit number
+          example: 100
+      example: {"instructionId": 123456789, "customerNum": 123456, "accountNumber": 987654, "amount": 1000.50, "currencyCode": "TRY"}
+
+    DigitalOrderReadResponseDto:
+      type: object
+      description: Response containing digital order information
+      properties:
+        readBranchInstructionDepositWithdrawal:
+          type: array
+          description: List of branch instruction deposit withdrawal records
+          items:
+            $ref: '#/components/schemas/ReadBranchInstructionDepositWithdrawalDto'
+      example: {"readBranchInstructionDepositWithdrawal": [{"instructionId": 123456789, "customerNum": 123456, "accountNumber": 987654}]}
+
+    ReadBranchInstructionDepositWithdrawalDto:
+      type: object
+      description: Branch instruction deposit withdrawal details
+      properties:
+        instructionId:
+          type: integer
+          format: int64
+          description: Instruction identifier
+          example: 123456789
+        customerNum:
+          type: integer
+          format: int32
+          description: Customer number
+          example: 123456
+        accountNumber:
+          type: integer
+          format: int32
+          description: Account number
+          example: 987654
+        branchCode:
+          type: integer
+          format: int32
+          description: Branch code
+          example: 100
+        amount:
+          type: number
+          format: double
+          description: Transaction amount
+          example: 1000.50
+        currencyCode:
+          type: string
+          description: Currency code
+          example: "TRY"
+        identityNumber:
+          type: string
+          description: Identity number
+          example: "12345678901"
+        documentId:
+          type: string
+          description: Document identifier
+          example: "DOC001"
+        transactionDate:
+          type: string
+          description: Transaction date
+          example: "2024-10-07"
+        status:
+          type: string
+          description: Transaction status
+          example: "COMPLETED"
+        transactionType:
+          type: integer
+          format: int32
+          description: Transaction type code
+          example: 1
+        processUnitNum:
+          type: integer
+          format: int32
+          description: Processing unit number
+          example: 100
+      example: {"instructionId": 123456789, "customerNum": 123456, "accountNumber": 987654, "amount": 1000.50}
+
+    # Gold Document Schemas
+    CreateSinglePdfRequestDto:
+      type: object
+      description: Request for creating a single PDF document
+      properties:
+        documentType:
+          type: string
+          description: Type of document
+          example: "WITHDRAWAL_RECEIPT"
+        documentStatus:
+          type: string
+          description: Document status
+          example: "DRAFT"
+        async:
+          type: string
+          description: Asynchronous processing flag
+          example: "false"
+        userId:
+          type: string
+          description: User identifier
+          example: "USER001"
+        authUserId:
+          type: string
+          description: Authorized user identifier
+          example: "AUTH001"
+        xmlData:
+          type: string
+          description: XML data for document generation
+          example: "<data>...</data>"
+        date:
+          type: string
+          description: Document date
+          example: "2024-10-07"
+        commissionRate:
+          type: number
+          format: double
+          description: Commission rate percentage
+          example: 2.5
+        transactionAmount:
+          type: number
+          format: double
+          description: Transaction amount
+          example: 1000.50
+        customerInfo:
+          type: array
+          description: List of customer information
+          items:
+            $ref: '#/components/schemas/CustomerInfo'
+        branchInfo:
+          $ref: '#/components/schemas/BranchInfo'
+      example: {"documentType": "WITHDRAWAL_RECEIPT", "userId": "USER001", "transactionAmount": 1000.50}
+
+    CreateSinglePdfResponseDto:
+      type: object
+      description: Response after creating PDF document
+      properties:
+        returnCode:
+          type: string
+          description: Return code indicating success or failure
+          example: "0"
+        returnMsg:
+          type: string
+          description: Return message
+          example: "Document created successfully"
+        documentId:
+          type: string
+          description: Generated document identifier
+          example: "DOC123456"
+      example: {"returnCode": "0", "returnMsg": "Document created successfully", "documentId": "DOC123456"}
+
+    GetSinglePdfRequestDto:
+      type: object
+      description: Request for retrieving a single PDF document
+      properties:
+        documentId:
+          type: string
+          description: Document identifier
+          example: "DOC123456"
+        userId:
+          type: string
+          description: User identifier
+          example: "USER001"
+        authUserId:
+          type: string
+          description: Authorized user identifier
+          example: "AUTH001"
+      example: {"documentId": "DOC123456", "userId": "USER001", "authUserId": "AUTH001"}
+
+    GetPdfResponseDto:
+      type: object
+      description: Response containing PDF document data
+      properties:
+        returnCode:
+          type: string
+          description: Return code indicating success or failure
+          example: "0"
+        returnMsg:
+          type: string
+          description: Return message
+          example: "Document retrieved successfully"
+        printType:
+          type: string
+          description: Print type specification
+          example: "A4"
+        paperTrayText:
+          type: string
+          description: Paper tray information
+          example: "Tray1"
+        secPaperTrayText:
+          type: string
+          description: Secondary paper tray information
+          example: "Tray2"
+        pdfData:
+          type: string
+          description: Base64 encoded PDF data
+          example: "JVBERi0xLjQKJeLjz9..."
+      example: {"returnCode": "0", "returnMsg": "Document retrieved successfully", "pdfData": "JVBERi0xLjQKJeLjz9..."}
+
     CustomerInfo:
       type: object
-      description: 'Schema from controller DTO: CustomerInfo.'
+      description: Customer information details
       properties:
         customerFullName:
           type: string
-          example: string
-          description: Field "customerFullName"
+          description: Customer's full name
+          example: "Ahmet Yılmaz"
         customerNumber:
-          type: string
+          type: integer
           format: int64
-          example: '123456789'
-          description: Field "customerNumber"
+          description: Customer number
+          example: 123456
         customerAddress:
           type: string
-          example: string
-          description: Field "customerAddress"
+          description: Customer address
+          example: "Atatürk Cad. No:123 Kadıköy/İstanbul"
         accountType:
           type: string
-          example: string
-          description: Field "accountType"
+          description: Account type
+          example: "CHECKING"
         tckn:
           type: string
-          example: string
-          description: Field "tckn"
+          description: Turkish citizenship ID number
+          example: "12345678901"
         nationality:
           type: string
-          example: string
-          description: Field "nationality"
-      example: {customerFullName: string, customerNumber: '123456789', customerAddress: string,
-        accountType: string, tckn: string, nationality: string}
-    GetKpsInfoResponseDto:
+          description: Nationality
+          example: "TC"
+      example: {"customerFullName": "Ahmet Yılmaz", "customerNumber": 123456, "tckn": "12345678901"}
+
+    BranchInfo:
       type: object
-      description: 'Schema from controller DTO: GetKpsInfoResponseDto.'
+      description: Branch information details
       properties:
-        nationalIdNum:
+        branchName:
           type: string
-          example: string
-          description: Field "nationalIdNum"
-        name:
+          description: Branch name
+          example: "Kadıköy Branch"
+        branchCity:
           type: string
-          example: string
-          description: Field "name"
-        surname:
+          description: Branch city
+          example: "İstanbul"
+        branchDistrict:
           type: string
-          example: string
-          description: Field "surname"
+          description: Branch district
+          example: "Kadıköy"
+        countryCode:
+          type: string
+          description: Country code
+          example: "TR"
+        branchAddress:
+          type: string
+          description: Branch address
+          example: "Bağdat Cad. No:456"
+        referenceNumber:
+          type: integer
+          format: int32
+          description: Branch reference number
+          example: 100
+      example: {"branchName": "Kadıköy Branch", "branchCity": "İstanbul", "referenceNumber": 100}
+
+    # Operation Code Schemas
+    OperationCodeRequestDto:
+      type: object
+      description: Request for operation code retrieval
+      properties:
+        operatorCustomer:
+          type: array
+          description: List of operator customers
+          items:
+            $ref: '#/components/schemas/OpCodeCustomerDto'
+        accountCustomerNum:
+          type: string
+          description: Account customer number
+          example: "123456"
+        accountBranch:
+          type: string
+          description: Account branch code
+          example: "100"
+        accountNumber:
+          type: integer
+          format: int32
+          description: Account number
+          example: 987654
+        isChequeOperation:
+          type: boolean
+          description: Indicates if this is a cheque operation
+          example: false
+      example: {"accountCustomerNum": "123456", "accountBranch": "100", "accountNumber": 987654, "isChequeOperation": false}
+
+    OpCodeCustomerDto:
+      type: object
+      description: Operator customer information
+      properties:
+        operatorCustomerNum:
+          type: string
+          description: Operator customer number
+          example: "654321"
+      example: {"operatorCustomerNum": "654321"}
+
+    OperationCodeResponseDto:
+      type: object
+      description: Response containing operation codes
+      properties:
+        opCode1:
+          type: string
+          description: Primary operation code
+          example: "01"
+        opCode2:
+          type: string
+          description: Secondary operation code
+          example: "02"
+      example: {"opCode1": "01", "opCode2": "02"}
+
+    GetBulkOperationCodeResponseDto:
+      type: object
+      description: Response containing bulk operation codes
+      properties:
+        operationCodeItems:
+          type: array
+          description: List of operation code items
+          items:
+            $ref: '#/components/schemas/OperationCodeItem'
+      example: {"operationCodeItems": [{"processMainCode": "01", "processSubCode": "001", "processDescription": "Cash withdrawal"}]}
+
+    OperationCodeItem:
+      type: object
+      description: Individual operation code item
+      properties:
+        processMainCode:
+          type: string
+          description: Main process code
+          example: "01"
+        processSubCode:
+          type: string
+          description: Sub process code
+          example: "001"
+        processDescription:
+          type: string
+          description: Process description
+          example: "Cash withdrawal"
+      example: {"processMainCode": "01", "processSubCode": "001", "processDescription": "Cash withdrawal"}
+
+    # Transaction Schemas
+    FindTransactionRequestDto:
+      type: object
+      description: Request for finding transactions by customer number
+      properties:
+        customerNumber:
+          type: integer
+          format: int32
+          description: Customer number
+          example: 123456
+      example: {"customerNumber": 123456}
+
+    TransactionListDto:
+      type: object
+      description: List of transactions
+      properties:
+        transactions:
+          type: array
+          description: Array of transaction records
+          items:
+            $ref: '#/components/schemas/TransactionDto'
+      example: {"transactions": [{"operationType": "WITHDRAWAL", "customerNumber": 123456, "transactionAmount": 1000.50}]}
+
+    TransactionDto:
+      type: object
+      description: Transaction details
+      properties:
+        operationType:
+          type: string
+          description: Type of operation
+          example: "WITHDRAWAL"
+        processDate:
+          type: string
+          description: Processing date
+          example: "2024-10-07"
+        customerNumber:
+          type: integer
+          format: int32
+          description: Customer number
+          example: 123456
+        accountBranchCode:
+          type: integer
+          format: int32
+          description: Account branch code
+          example: 100
+        customerAccountNum:
+          type: integer
+          format: int32
+          description: Customer account number
+          example: 987654
+        ownerUnitNum:
+          type: integer
+          format: int32
+          description: Owner unit number
+          example: 100
+        approvalUnitNum:
+          type: integer
+          format: int32
+          description: Approval unit number
+          example: 100
+        transactionAmount:
+          type: number
+          format: double
+          description: Transaction amount
+          example: 1000.50
+        currencyCode:
+          type: string
+          description: Currency code
+          example: "TRY"
+        transactionTLAmount:
+          type: number
+          format: double
+          description: Transaction amount in Turkish Lira
+          example: 1000.50
+        currencyRate:
+          type: number
+          format: double
+          description: Currency exchange rate
+          example: 1.0
+        currencyType:
+          type: string
+          description: Currency type
+          example: "LOCAL"
+        rateType:
+          type: string
+          description: Rate type
+          example: "BUYING"
+        channelCode:
+          type: string
+          description: Channel code
+          example: "BRANCH"
+        channelType:
+          type: string
+          description: Channel type
+          example: "PHYSICAL"
+        channelDetailText:
+          type: string
+          description: Channel detail text
+          example: "Branch counter"
+        financialDomainCode:
+          type: string
+          description: Financial domain code
+          example: "FD01"
+        financialFamilyCode:
+          type: string
+          description: Financial family code
+          example: "FF01"
+        financialSubFamilyCode:
+          type: string
+          description: Financial sub-family code
+          example: "FSF01"
+        purposeValueCode:
+          type: string
+          description: Purpose value code
+          example: "PV01"
+        receiptInfoId:
+          type: string
+          description: Receipt information identifier
+          example: "RCP001"
+        contractInfoId:
+          type: string
+          description: Contract information identifier
+          example: "CNT001"
+        accountingGuid:
+          type: string
+          description: Accounting GUID
+          example: "ACC-GUID-001"
+        priceInqueryId:
+          type: string
+          description: Price inquiry identifier
+          example: "PRC001"
+        surveyInfoId:
+          type: string
+          description: Survey information identifier
+          example: "SRV001"
+        gmaticId:
+          type: string
+          description: Gmatic identifier
+          example: "GMT001"
+        commisionAmount:
+          type: number
+          format: double
+          description: Commission amount
+          example: 25.00
+        commisionCurrencyCode:
+          type: string
+          description: Commission currency code
+          example: "TRY"
+        chargeAmount:
+          type: number
+          format: double
+          description: Charge amount
+          example: 5.00
+        chargeCurrencyCode:
+          type: string
+          description: Charge currency code
+          example: "TRY"
+        taxAmount:
+          type: number
+          format: double
+          description: Tax amount
+          example: 10.00
+        taxCurrencyCode:
+          type: string
+          description: Tax currency code
+          example: "TRY"
+        statusCode:
+          type: string
+          description: Status code
+          example: "COMPLETED"
+        cicsTxnId:
+          type: string
+          description: CICS transaction identifier
+          example: "CICS001"
+        checkNumber:
+          type: string
+          description: Check number
+          example: "CHK123456"
+        goldValuationId:
+          type: string
+          description: Gold valuation identifier
+          example: "GOLD001"
+        prosecutorNotificationInfo:
+          type: string
+          description: Prosecutor notification information
+          example: "Not applicable"
+        transactionRelationType:
+          type: string
+          description: Transaction relation type
+          example: "SINGLE"
+        transactionExplanationText:
+          type: string
+          description: Transaction explanation text
+          example: "Customer withdrawal"
+        requestText:
+          type: string
+          description: Request text
+          example: "Withdrawal request"
+      example: {"operationType": "WITHDRAWAL", "customerNumber": 123456, "transactionAmount": 1000.50, "currencyCode": "TRY"}
+
+    TrnxCompleteWithdrawalRequestDto:
+      type: object
+      description: Request for completing withdrawal transaction
+      properties:
+        operationType:
+          type: string
+          description: Type of operation
+          example: "WITHDRAWAL"
+        customerNumber:
+          type: integer
+          format: int32
+          description: Customer number
+          example: 123456
+        accountBranchCode:
+          type: integer
+          format: int32
+          description: Account branch code
+          example: 100
+        customerAccountNum:
+          type: integer
+          format: int32
+          description: Customer account number
+          example: 987654
+        transactionAmount:
+          type: number
+          format: double
+          description: Transaction amount
+          example: 1000.50
+        createUserId:
+          type: string
+          description: Creator user identifier
+          example: "USER001"
+        channelCode:
+          type: string
+          description: Channel code
+          example: "BRANCH"
+        channelDetailText:
+          type: string
+          description: Channel detail text
+          example: "Branch counter"
+        operation1Code:
+          type: string
+          description: Operation code 1
+          example: "01"
+        operation2Code:
+          type: string
+          description: Operation code 2
+          example: "02"
+        relatedProductCode:
+          type: string
+          description: Related product code
+          example: "PROD001"
+        purposeValueCode:
+          type: string
+          description: Purpose value code
+          example: "PV01"
+        surveyIfoId:
+          type: string
+          description: Survey info identifier
+          example: "SRV001"
+        commissionAmount:
+          type: number
+          format: double
+          description: Commission amount
+          example: 25.00
+        commissionCurrencyCode:
+          type: string
+          description: Commission currency code
+          example: "TRY"
+        priceInqueryId:
+          type: string
+          description: Price inquiry identifier
+          example: "PRC001"
+        chargeAmount:
+          type: number
+          format: double
+          description: Charge amount
+          example: 5.00
+        chargeCurrencyCode:
+          type: string
+          description: Charge currency code
+          example: "TRY"
+        requestText:
+          type: string
+          description: Request text
+          example: "Withdrawal request"
+        transactionExplanationText:
+          type: string
+          description: Transaction explanation
+          example: "Customer withdrawal"
+        checkNumber:
+          type: string
+          description: Check number
+          example: "CHK123456"
+        goldValuationId:
+          type: string
+          description: Gold valuation identifier
+          example: "GOLD001"
+        prosecutorNotificationInfo:
+          type: string
+          description: Prosecutor notification info
+          example: "Not applicable"
+        transactionRelationType:
+          type: string
+          description: Transaction relation type
+          example: "SINGLE"
+        gmaticId:
+          type: string
+          description: Gmatic identifier
+          example: "GMT001"
+        currencyCode:
+          type: string
+          description: Currency code
+          example: "TRY"
+        tcNumber:
+          type: string
+          description: Turkish citizenship number
+          example: "12345678901"
         birthDate:
           type: string
-          example: string
-          description: Field "birthDate"
-        birthPlace:
-          type: string
-          example: string
-          description: Field "birthPlace"
-        fatherName:
-          type: string
-          example: string
-          description: Field "fatherName"
-        motherName:
-          type: string
-          example: string
-          description: Field "motherName"
-        serialCode:
-          type: string
-          example: string
-          description: Field "serialCode"
-        sequenceNumber:
-          type: string
-          format: int64
-          example: '123456789'
-          description: Field "sequenceNumber"
-        newIdentityCard:
+          description: Birth date
+          example: "1990-01-01"
+        isCheck:
           type: boolean
+          description: Indicates if this is a check transaction
+          example: false
+        atmInfo:
+          $ref: '#/components/schemas/AtmInfoRequest'
+        processingPersonInfo:
+          type: array
+          description: Processing person information list
+          items:
+            $ref: '#/components/schemas/ProcessingPersonInfoRequest'
+        customerName:
+          type: string
+          description: Customer name
+          example: "Ahmet"
+        customerSurname:
+          type: string
+          description: Customer surname
+          example: "Yılmaz"
+        accountBalanceAmount:
+          type: number
+          format: double
+          description: Account balance amount
+          example: 5000.00
+        addressLine1:
+          type: string
+          description: Address line 1
+          example: "Atatürk Cad. No:123"
+        addressLine2:
+          type: string
+          description: Address line 2
+          example: "Daire 5"
+        regionName:
+          type: string
+          description: Region name
+          example: "Marmara"
+        districtName:
+          type: string
+          description: District name
+          example: "Kadıköy"
+        cityName:
+          type: string
+          description: City name
+          example: "İstanbul"
+        postalCode:
+          type: string
+          description: Postal code
+          example: "34700"
+        phoneNumber:
+          type: string
+          description: Phone number
+          example: "+905551234567"
+        cicsTxnId:
+          type: string
+          description: CICS transaction identifier
+          example: "CICS001"
+        sourceId:
+          type: string
+          description: Source identifier
+          example: "SRC001"
+        kpsValidationBypass:
+          type: boolean
+          description: KPS validation bypass flag
+          example: false
+      example: {"operationType": "WITHDRAWAL", "customerNumber": 123456, "transactionAmount": 1000.50, "currencyCode": "TRY"}
+
+    AtmInfoRequest:
+      type: object
+      description: ATM information for transaction
+      properties:
+        cardNo:
+          type: string
+          description: Card number
+          example: "1234****5678"
+        isQr:
+          type: boolean
+          description: QR code usage flag
+          example: false
+        qrId:
+          type: string
+          description: QR identifier
+          example: "QR123456"
+        atmNumber:
+          type: string
+          description: ATM number
+          example: "ATM001"
+        isCommission:
+          type: boolean
+          description: Commission flag
           example: true
-          description: Field "newIdentityCard"
-      example: {nationalIdNum: string, name: string, surname: string, birthDate: string,
-        birthPlace: string, fatherName: string, motherName: string, serialCode: string,
-        sequenceNumber: '123456789', newIdentityCard: true}
+      example: {"cardNo": "1234****5678", "isQr": false, "atmNumber": "ATM001", "isCommission": true}
+
+    ProcessingPersonInfoRequest:
+      type: object
+      description: Processing person information
+      properties:
+        statusCode:
+          type: string
+          description: Status code
+          example: "ACTIVE"
+        processCustomerNum:
+          type: string
+          description: Process customer number
+          example: "654321"
+      example: {"statusCode": "ACTIVE", "processCustomerNum": "654321"}
+
+    TrnxCompleteWithdrawalResponseDto:
+      type: object
+      description: Response after completing withdrawal transaction
+      properties:
+        instanceId:
+          type: string
+          description: Transaction instance identifier
+          example: "INST123456"
+        approvalRequired:
+          type: boolean
+          description: Indicates if approval is required
+          example: true
+      example: {"instanceId": "INST123456", "approvalRequired": true}
+
+    TransactionStatusUpdateRequestDto:
+      type: object
+      description: Request for updating transaction status
+      properties:
+        instanceId:
+          type: string
+          description: Transaction instance identifier
+          example: "INST123456"
+        status:
+          type: string
+          description: New status
+          example: "COMPLETED"
+        approveInstanceId:
+          type: string
+          description: Approval instance identifier
+          example: "APPR001"
+      example: {"instanceId": "INST123456", "status": "COMPLETED", "approveInstanceId": "APPR001"}
+
+    TransactionStatusUpdateResponseDto:
+      type: object
+      description: Response after transaction status update
+      properties:
+        success:
+          type: boolean
+          description: Indicates if update was successful
+          example: true
+      example: {"success": true}
+
+    TransactionFilterRequestDto:
+      type: object
+      description: Request for filtering transactions
+      properties:
+        statusCode:
+          type: string
+          description: Status code filter
+          example: "COMPLETED"
+        ownerUnitNum:
+          type: string
+          description: Owner unit number filter
+          example: "100"
+        moneyTransactionIdStart:
+          type: string
+          description: Starting transaction ID range
+          example: "TXN001"
+        moneyTransactionIdEnd:
+          type: string
+          description: Ending transaction ID range
+          example: "TXN999"
+        approveType:
+          type: string
+          description: Approval type filter
+          example: "SINGLE"
+        financialSubFamilyCode:
+          type: string
+          description: Financial sub-family code filter
+          example: "FSF01"
+        financialFamilyCode:
+          type: string
+          description: Financial family code filter
+          example: "FF01"
+        transactionAmountMin:
+          type: number
+          format: double
+          description: Minimum transaction amount
+          example: 100.00
+        transactionAmountMax:
+          type: number
+          format: double
+          description: Maximum transaction amount
+          example: 50000.00
+      example: {"statusCode": "COMPLETED", "transactionAmountMin": 100.00, "transactionAmountMax": 50000.00}
+
+    TransactionFilterResponseDto:
+      type: object
+      description: Filtered transaction response
+      properties:
+        instanceId:
+          type: string
+          description: Transaction instance identifier
+          example: "INST123456"
+        customerNameAndSurname:
+          type: string
+          description: Customer full name
+          example: "Ahmet Yılmaz"
+        processDate:
+          type: string
+          description: Process date
+          example: "2024-10-07"
+        approveType:
+          type: string
+          description: Approval type
+          example: "SINGLE"
+        transactionAmount:
+          type: number
+          format: double
+          description: Transaction amount
+          example: 1000.50
+        status:
+          type: string
+          description: Transaction status
+          example: "COMPLETED"
+        createUserId:
+          type: string
+          description: Creator user identifier
+          example: "USER001"
+        approveUserId:
+          type: string
+          description: Approver user identifier
+          example: "USER002"
+      example: {"instanceId": "INST123456", "customerNameAndSurname": "Ahmet Yılmaz", "transactionAmount": 1000.50}
+
+    AccountTransactionRulesRequestDto:
+      type: object
+      description: Request for account transaction rules validation
+      properties:
+        debitUnitNum:
+          type: integer
+          format: int32
+          description: Debit unit number
+          example: 100
+        debitAccountNum:
+          type: integer
+          format: int32
+          description: Debit account number
+          example: 987654
+        transactionAmount:
+          type: string
+          description: Transaction amount
+          example: "1000.50"
+        currencyCode:
+          type: string
+          description: Currency code
+          example: "TRY"
+        transactionDate:
+          type: string
+          description: Transaction date
+          example: "2024-10-07"
+        oprtnCustList:
+          type: array
+          description: Operator customer list
+          items:
+            type: string
+          example: ["654321", "654322"]
+      example: {"debitUnitNum": 100, "debitAccountNum": 987654, "transactionAmount": "1000.50", "currencyCode": "TRY"}
+
+    AccountTransactionRulesResponseDto:
+      type: object
+      description: Response containing account transaction rules validation results
+      properties:
+        messages:
+          type: array
+          description: Validation messages
+          items:
+            type: string
+          example: ["Validation successful", "Account has sufficient balance"]
+        accountUsableBalanceAmount:
+          type: number
+          format: double
+          description: Account usable balance amount
+          example: 5000.00
+        debitUnitNum:
+          type: integer
+          format: int32
+          description: Debit unit number
+          example: 100
+        debitAccountNum:
+          type: integer
+          format: int32
+          description: Debit account number
+          example: 987654
+        debitCustomerFirstName:
+          type: string
+          description: Debit customer first name
+          example: "Ahmet"
+        debitCustomerLastName:
+          type: string
+          description: Debit customer last name
+          example: "Yılmaz"
+        debitAccountCurrCode:
+          type: string
+          description: Debit account currency code
+          example: "TRY"
+        debitAccountCustomerNum:
+          type: integer
+          format: int32
+          description: Debit account customer number
+          example: 123456
+        debitCustomerType:
+          type: string
+          description: Debit customer type
+          example: "INDIVIDUAL"
+        checkRelatedAccount:
+          type: string
+          description: Check related account information
+          example: "No related account"
+      example: {"messages": ["Validation successful"], "accountUsableBalanceAmount": 5000.00, "debitCustomerFirstName": "Ahmet"}
+
+    # Transaction Customer Schemas
     RepresentativePersonRequestDto:
       type: object
-      description: 'Schema from controller DTO: RepresentativePersonRequestDto.'
+      description: Request for representative person information
       properties:
         customerNum:
           type: string
-          example: string
-          description: Field "customerNum"
+          description: Customer number
+          example: "123456"
         customerNum2:
           type: string
-          example: string
-          description: Field "customerNum2"
+          description: Second customer number
+          example: "654321"
         relationTypeText:
           type: string
-          example: string
-          description: Field "relationTypeText"
+          description: Relation type text
+          example: "REPRESENTATIVE"
         acceptableLatency:
           type: string
-          example: string
-          description: Field "acceptableLatency"
+          description: Acceptable latency
+          example: "5000"
         shareRate:
           type: string
-          example: string
-          description: Field "shareRate"
+          description: Share rate
+          example: "50"
         shareAmount:
           type: string
-          example: string
-          description: Field "shareAmount"
+          description: Share amount
+          example: "1000.00"
         confirmationDate:
           type: string
-          example: string
-          description: Field "confirmationDate"
-      example: {customerNum: string, customerNum2: string, relationTypeText: string,
-        acceptableLatency: string, shareRate: string, shareAmount: string, confirmationDate: string}
-  responses:
-    HttpOKwithTransactionGrpcResponseResult:
-      description: OK.
-      headers:
-        Access-Control-Allow-Origin:
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
-        GUID:
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
-      content:
-        application/json:
-          schema:
-            type: object
-            description: Generic object (auto-fixed from invalid ref 'TransactionGrpcResponse').
-            example: {}
-    HttpOKwithCustomerRelationshipTypeResponseResult:
-      description: OK.
-      headers:
-        Access-Control-Allow-Origin:
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
-        GUID:
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
-      content:
-        application/json:
-          schema:
-            type: object
-            description: Generic object (auto-fixed from invalid ref 'CustomerRelationshipTypeResponse').
-            example: {}
-    HttpOKwithRepresentativePersonResponseResult:
-      description: OK.
-      headers:
-        Access-Control-Allow-Origin:
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
-        GUID:
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
-      content:
-        application/json:
-          schema:
-            type: object
-            description: Generic object (auto-fixed from invalid ref 'RepresentativePersonResponse').
-            example: {}
-    HttpOKwithOperationCodeGrpcResponseResult:
-      description: OK.
-      headers:
-        Access-Control-Allow-Origin:
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
-        GUID:
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
-      content:
-        application/json:
-          schema:
-            type: object
-            description: Generic object (auto-fixed from invalid ref 'OperationCodeGrpcResponse').
-            example: {}
-    BadRequest:
-      description: Bad request.
-      headers:
-        Access-Control-Allow-Origin:
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
-        GUID:
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
-    Forbiden:
-      description: Forbidden
-      headers:
-        Access-Control-Allow-Origin:
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
-        GUID:
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
-    MethodNotAllowed:
-      description: Method not allowed.
-      headers:
-        Access-Control-Allow-Origin:
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
-        GUID:
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
-    ServerError:
-      description: Internal Server error.
-      headers:
-        Access-Control-Allow-Origin:
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
-        GUID:
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
-    Unauthorized:
-      description: Unauthorized.
-      headers:
-        Access-Control-Allow-Origin:
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
-        GUID:
-          type: object
-          description: Generic object (auto-fixed from invalid ref).
-          example: {}
+          description: Confirmation date
+          example: "2024-10-07"
+        headerInfo:
+          $ref: '#/components/schemas/HeaderInfo'
+        serverData:
+          $ref: '#/components/schemas/ServerData'
+      example: {"customerNum": "123456", "relationTypeText": "REPRESENTATIVE", "shareRate": "50"}
+
+    HeaderInfo:
+      type: object
+      description: Header information for request
+      properties:
+        command:
+          type: string
+          description: Command type
+          example: "LIST"
+        sourceProgramId:
+          type: string
+          description: Source program identifier
+          example: "PROG001"
+        unitNum:
+          type: string
+          description: Unit number
+          example: "100"
+        channelCode:
+          type: string
+          description: Channel code
+          example: "BRANCH"
+        moduleCode:
+          type: string
+          description: Module code
+          example: "MOD01"
+        submoduleCode:
+          type: string
+          description: Submodule code
+          example: "SUBMOD01"
+      example: {"command": "LIST", "sourceProgramId": "PROG001", "unitNum": "100"}
+
+    ServerData:
+      type: object
+      description: Server data for processing
+      properties:
+        userId:
+          type: string
+          description: User identifier
+          example: "USER001"
+        referenceId:
+          type: string
+          description: Reference identifier
+          example: "REF123"
+      example: {"userId": "USER001", "referenceId": "REF123"}
+
+    RepresentativePersonDto:
+      type: object
+      description: Representative person information
+      properties:
+        name:
+          type: string
+          description: Representative person's name
+          example: "Mehmet"
+        surname:
+          type: string
+          description: Representative person's surname
+          example: "Demir"
+        customerNum:
+          type: string
+          description: Customer number
+          example: "654321"
+      example: {"name": "Mehmet", "surname": "Demir", "customerNum": "654321"}
+
+    SaveRepresentativePersonRequestDto:
+      type: object
+      description: Request for saving representative person
+      properties:
+        customerNum:
+          type: string
+          description: Customer number
+          example: "123456"
+        opnDefinedKey:
+          type: string
+          description: Operation defined key
+          example: "OPN001"
+        partyType:
+          type: string
+          description: Party type
+          example: "REPRESENTATIVE"
+        recordStatus:
+          type: string
+          description: Record status
+          example: "ACTIVE"
+        serverData:
+          $ref: '#/components/schemas/ServerData'
+      example: {"customerNum": "123456", "partyType": "REPRESENTATIVE", "recordStatus": "ACTIVE"}
+
+    SaveRepresentativePersonDto:
+      type: object
+      description: Response after saving representative person
+      properties:
+        customerNum:
+          type: string
+          description: Customer number
+          example: "654321"
+        name:
+          type: string
+          description: Representative person's name
+          example: "Mehmet"
+        surname:
+          type: string
+          description: Representative person's surname
+          example: "Demir"
+        citizenText:
+          type: string
+          description: Citizenship text
+          example: "TC"
+        mernisNum:
+          type: string
+          description: MERNIS number
+          example: "12345678901"
+        birthDate:
+          type: string
+          description: Birth date
+          example: "1985-05-15"
+        otherNationalityId:
+          type: string
+          description: Other nationality identifier
+          example: "N/A"
+      example: {"customerNum": "654321", "name": "Mehmet", "surname": "Demir", "mernisNum": "12345678901"}
+
+    CustomerInfoRequestDto:
+      type: object
+      description: Request for customer information
+      properties:
+        customerNum:
+          type: string
+          description: Customer number
+          example: "123456"
+      example: {"customerNum": "123456"}
+
+    CustomerInfoResponseDto:
+      type: object
+      description: Response containing customer information
+      properties:
+        customerNum:
+          type: string
+          description: Customer number
+          example: "123456"
+        name:
+          type: string
+          description: Customer's first name
+          example: "Ahmet"
+        surname:
+          type: string
+          description: Customer's surname
+          example: "Yılmaz"
+        citizen:
+          type: string
+          description: Citizenship information
+          example: "TC"
+        mernisNum:
+          type: string
+          description: MERNIS number
+          example: "12345678901"
+        birthDate:
+          type: string
+          description: Birth date
+          example: "1990-01-01"
+        otherNationalityId:
+          type: string
+          description: Other nationality identifier
+          example: "N/A"
+        customerType:
+          type: string
+          description: Customer type
+          example: "INDIVIDUAL"
+        isOperant:
+          type: boolean
+          description: Indicates if customer is operant
+          example: true
+        operantMessages:
+          type: array
+          description: Operant messages
+          items:
+            type: string
+          example: ["Customer is active", "No restrictions"]
+        isActivePerson:
+          type: boolean
+          description: Indicates if person is active
+          example: true
+        customerSubType:
+          type: string
+          description: Customer sub-type
+          example: "STANDARD"
+        customerSubType2:
+          type: string
+          description: Customer sub-type 2
+          example: "REGULAR"
+      example: {"customerNum": "123456", "name": "Ahmet", "surname": "Yılmaz", "isOperant": true}
+
+    ExtendedCustomerInfoDto:
+      type: object
+      description: Extended customer information
+      properties:
+        customerNum:
+          type: string
+          description: Customer number
+          example: "123456"
+        name:
+          type: string
+          description: Customer's first name
+          example: "Ahmet"
+        surname:
+          type: string
+          description: Customer's surname
+          example: "Yılmaz"
+        citizenText:
+          type: string
+          description: Citizenship text
+          example: "TC"
+        mernisNum:
+          type: string
+          description: MERNIS number
+          example: "12345678901"
+        birthDate:
+          type: string
+          description: Birth date
+          example: "1990-01-01"
+        otherNationalityId:
+          type: string
+          description: Other nationality identifier
+          example: "N/A"
+        settledCountryCode:
+          type: string
+          description: Settled country code
+          example: "TR"
+        birthPlace:
+          type: string
+          description: Birth place
+          example: "İstanbul"
+        motherName:
+          type: string
+          description: Mother's name
+          example: "Ayşe"
+        fatherName:
+          type: string
+          description: Father's name
+          example: "Mustafa"
+        phoneNumCountryCode:
+          type: string
+          description: Phone number country code
+          example: "+90"
+        phoneNum:
+          type: string
+          description: Phone number
+          example: "5551234567"
+        pasaportNumText:
+          type: string
+          description: Passport number
+          example: "U12345678"
+        addressType:
+          type: string
+          description: Address type
+          example: "HOME"
+        countryCode:
+          type: string
+          description: Country code
+          example: "TR"
+        cityCode:
+          type: string
+          description: City code
+          example: "34"
+        addressLine:
+          type: string
+          description: Address line
+          example: "Atatürk Cad. No:123 Daire 5"
+        postalCode:
+          type: string
+          description: Postal code
+          example: "34700"
+        regionName:
+          type: string
+          description: Region name
+          example: "Marmara"
+        workingStyle:
+          type: string
+          description: Working style
+          example: "FULL_TIME"
+        jobTitle:
+          type: string
+          description: Job title
+          example: "Engineer"
+      example: {"customerNum": "123456", "name": "Ahmet", "surname": "Yılmaz", "birthPlace": "İstanbul"}
+
+    GetKpsInfoRequestDto:
+      type: object
+      description: Request for KPS (Turkish identity verification system) information
+      properties:
+        nationalId:
+          type: string
+          description: National identity number
+          example: "12345678901"
+        birthDate:
+          type: string
+          description: Birth date
+          example: "1990-01-01"
+        inquiryDateMargin:
+          type: integer
+          format: int32
+          description: Inquiry date margin in days
+          example: 7
+      example: {"nationalId": "12345678901", "birthDate": "1990-01-01", "inquiryDateMargin": 7}
+
+    GetKpsInfoResponseDto:
+      type: object
+      description: Response containing KPS information
+      properties:
+        nationalIdNum:
+          type: string
+          description: National identity number
+          example: "12345678901"
+        name:
+          type: string
+          description: Person's name
+          example: "Ahmet"
+        surname:
+          type: string
+          description: Person's surname
+          example: "Yılmaz"
+        birthDate:
+          type: string
+          description: Birth date
+          example: "1990-01-01"
+        birthPlace:
+          type: string
+          description: Birth place
+          example: "İstanbul"
+        fatherName:
+          type: string
+          description: Father's name
+          example: "Mustafa"
+        motherName:
+          type: string
+          description: Mother's name
+          example: "Ayşe"
+        serialCode:
+          type: string
+          description: Serial code of identity card
+          example: "A01"
+        sequenceNumber:
+          type: integer
+          format: int64
+          description: Sequence number
+          example: 123456
+        newIdentityCard:
+          type: boolean
+          description: Indicates if this is a new identity card
+          example: true
+      example: {"nationalIdNum": "12345678901", "name": "Ahmet", "surname": "Yılmaz", "newIdentityCard": true}
+
+    SaveTransactionCustomerRequestDto:
+      type: object
+      description: Request for saving transaction customer
+      properties:
+        nationalIdNum:
+          type: string
+          description: National identity number
+          example: "12345678901"
+        name:
+          type: string
+          description: Customer's first name
+          example: "Ahmet"
+        surname:
+          type: string
+          description: Customer's surname
+          example: "Yılmaz"
+        birthDate:
+          type: string
+          description: Birth date
+          example: "1990-01-01"
+        nationalityCode:
+          type: string
+          description: Nationality code
+          example: "TR"
+        kktcNationalId:
+          type: string
+          description: KKTC (Turkish Republic of Northern Cyprus) national ID
+          example: "N/A"
+        passportId:
+          type: string
+          description: Passport identifier
+          example: "U12345678"
+        countryCode:
+          type: string
+          description: Country code
+          example: "TR"
+        birthPlace:
+          type: string
+          description: Birth place
+          example: "İstanbul"
+        fatherName:
+          type: string
+          description: Father's name
+          example: "Mustafa"
+        motherName:
+          type: string
+          description: Mother's name
+          example: "Ayşe"
+        workingType:
+          type: string
+          description: Working type
+          example: "FULL_TIME"
+        jobTitle:
+          type: string
+          description: Job title
+          example: "Engineer"
+        cityCode:
+          type: string
+          description: City code
+          example: "34"
+        cityName:
+          type: string
+          description: City name
+          example: "İstanbul"
+        countyName:
+          type: string
+          description: County name
+          example: "Kadıköy"
+        phoneCountryCode:
+          type: string
+          description: Phone country code
+          example: "+90"
+        phoneNum:
+          type: string
+          description: Phone number
+          example: "5551234567"
+        postcode:
+          type: string
+          description: Postal code
+          example: "34700"
+        address:
+          type: string
+          description: Full address
+          example: "Atatürk Cad. No:123 Daire 5"
+        addressType:
+          type: string
+          description: Address type
+          example: "HOME"
+        customerNum:
+          type: string
+          description: Customer number
+          example: "123456"
+      example: {"nationalIdNum": "12345678901", "name": "Ahmet", "surname": "Yılmaz", "cityName": "İstanbul"}
+
+    TransactionMessageResponseDto:
+      type: object
+      description: Response containing transaction message
+      properties:
+        message:
+          type: string
+          description: Result message
+          example: "Transaction customer saved successfully"
+        customerNum:
+          type: integer
+          format: int32
+          description: Customer number
+          example: 123456
+      example: {"message": "Transaction customer saved successfully", "customerNum": 123456}
+
   parameters:
     AuthorizationTokenHeader:
       name: Authorization
@@ -2456,8 +2563,7 @@ components:
     TenantCompanyHeader:
       name: tenant-company-id
       in: header
-      description: The id of the company from where the request is originated from
-        (GAR, GFC, GES)
+      description: The id of the company from where the request is originated from (GAR, GFC, GES)
       example: GAR
       required: true
       schema:
@@ -2491,8 +2597,7 @@ components:
     GuidHeader:
       name: guid
       in: header
-      description: It is used to process trace. The GUID  must be a unique value for
-        each request
+      description: It is used to process trace. The GUID must be a unique value for each request
       example: '123456789012345678901234567'
       required: true
       schema:
@@ -2507,8 +2612,7 @@ components:
         type: string
     ClientIdHeader:
       name: client-id
-      description: The client Id is defined by access manager for getting authorization
-        code and access token
+      description: The client Id is defined by access manager for getting authorization code and access token
       example: QqWCRHVzntITMgBoa61f
       in: header
       required: false
@@ -2516,8 +2620,7 @@ components:
         type: string
     RequestTraceFlagHeader:
       name: request-trace-flag
-      description: 'true: log the request-response paylod in backend application.false:
-        DO NOT log the request-response paylod in backend application.'
+      description: 'true: log the request-response paylod in backend application.false: DO NOT log the request-response paylod in backend application.'
       example: 'true'
       in: header
       required: false
@@ -2525,8 +2628,7 @@ components:
         type: string
     ClientTraceIdlHeader:
       name: x-client-trace-id
-      description: It is used to process trace. It must be a unique value for each
-        request
+      description: It is used to process trace. It must be a unique value for each request
       example: a03debf792229fdbc6bc8a6e9b9df464
       in: header
       required: true
