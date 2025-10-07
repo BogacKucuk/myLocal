@@ -86,18 +86,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  totalCount:
-                    type: integer
-                    format: int32
-                    description: Total number of records
-                    example: 150
-                  records:
-                    type: array
-                    description: List of process records
-                    items:
-                      $ref: '#/components/schemas/ProcessResponseDto'
+                $ref: '#/components/schemas/PaginationResultDto_ProcessResponseDto'
         '400':
           description: Bad Request
         '401':
@@ -862,6 +851,22 @@ components:
           example: "F01"
       example: {"status": "PENDING", "approveType": "SINGLE", "approvalUnitNum": 100, "transactionAmountMin": "1000.00", "transactionAmountMax": "50000.00"}
 
+    PaginationResultDto_ProcessResponseDto:
+      type: object
+      description: Paginated result for process list
+      properties:
+        totalCount:
+          type: integer
+          format: int32
+          description: Total number of records
+          example: 150
+        records:
+          type: array
+          description: List of process records
+          items:
+            $ref: '#/components/schemas/ProcessResponseDto'
+      example: {"totalCount": 150, "records": [{"moneyTransactionId": "TXN001", "status": "PENDING", "approveType": "SINGLE"}]}
+
     ProcessResponseDto:
       type: object
       description: Process response information
@@ -976,6 +981,78 @@ components:
     DigitalOrderReadRequestDto:
       type: object
       description: Request for reading digital order
+      properties:
+        instructionId:
+          type: integer
+          format: int64
+          description: Instruction identifier
+          example: 123456789
+        customerNum:
+          type: integer
+          format: int32
+          description: Customer number
+          example: 123456
+        accountNumber:
+          type: integer
+          format: int32
+          description: Account number
+          example: 987654
+        branchCode:
+          type: integer
+          format: int32
+          description: Branch code
+          example: 100
+        amount:
+          type: number
+          format: double
+          description: Transaction amount
+          example: 1000.50
+        currencyCode:
+          type: string
+          description: Currency code
+          example: "TRY"
+        identityNumber:
+          type: string
+          description: Identity number
+          example: "12345678901"
+        documentId:
+          type: string
+          description: Document identifier
+          example: "DOC001"
+        transactionDate:
+          type: string
+          description: Transaction date
+          example: "2024-10-07"
+        status:
+          type: string
+          description: Transaction status
+          example: "PENDING"
+        transactionType:
+          type: integer
+          format: int32
+          description: Transaction type code
+          example: 1
+        processUnitNum:
+          type: integer
+          format: int32
+          description: Processing unit number
+          example: 100
+      example: {"instructionId": 123456789, "customerNum": 123456, "accountNumber": 987654, "amount": 1000.50, "currencyCode": "TRY"}
+
+    DigitalOrderReadResponseDto:
+      type: object
+      description: Response containing digital order information
+      properties:
+        readBranchInstructionDepositWithdrawal:
+          type: array
+          description: List of branch instruction deposit withdrawal records
+          items:
+            $ref: '#/components/schemas/ReadBranchInstructionDepositWithdrawalDto'
+      example: {"readBranchInstructionDepositWithdrawal": [{"instructionId": 123456789, "customerNum": 123456, "accountNumber": 987654}]}
+
+    ReadBranchInstructionDepositWithdrawalDto:
+      type: object
+      description: Branch instruction deposit withdrawal details
       properties:
         instructionId:
           type: integer
@@ -2564,76 +2641,4 @@ components:
       in: header
       required: true
       schema:
-        type: string "DOC001"
-        transactionDate:
-          type: string
-          description: Transaction date
-          example: "2024-10-07"
-        status:
-          type: string
-          description: Transaction status
-          example: "PENDING"
-        transactionType:
-          type: integer
-          format: int32
-          description: Transaction type code
-          example: 1
-        processUnitNum:
-          type: integer
-          format: int32
-          description: Processing unit number
-          example: 100
-      example: {"instructionId": 123456789, "customerNum": 123456, "accountNumber": 987654, "amount": 1000.50, "currencyCode": "TRY"}
-
-    DigitalOrderReadResponseDto:
-      type: object
-      description: Response containing digital order information
-      properties:
-        readBranchInstructionDepositWithdrawal:
-          type: array
-          description: List of branch instruction deposit withdrawal records
-          items:
-            $ref: '#/components/schemas/ReadBranchInstructionDepositWithdrawalDto'
-      example: {"readBranchInstructionDepositWithdrawal": [{"instructionId": 123456789, "customerNum": 123456, "accountNumber": 987654}]}
-
-    ReadBranchInstructionDepositWithdrawalDto:
-      type: object
-      description: Branch instruction deposit withdrawal details
-      properties:
-        instructionId:
-          type: integer
-          format: int64
-          description: Instruction identifier
-          example: 123456789
-        customerNum:
-          type: integer
-          format: int32
-          description: Customer number
-          example: 123456
-        accountNumber:
-          type: integer
-          format: int32
-          description: Account number
-          example: 987654
-        branchCode:
-          type: integer
-          format: int32
-          description: Branch code
-          example: 100
-        amount:
-          type: number
-          format: double
-          description: Transaction amount
-          example: 1000.50
-        currencyCode:
-          type: string
-          description: Currency code
-          example: "TRY"
-        identityNumber:
-          type: string
-          description: Identity number
-          example: "12345678901"
-        documentId:
-          type: string
-          description: Document identifier
-          example:
+        type: string
