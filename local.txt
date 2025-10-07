@@ -865,6 +865,52 @@ components:
     ProcessFilterRequestDto:
       type: object
       description: Filter criteria for process list
+      properties:
+        status:
+          type: string
+          description: Process status
+          example: "PENDING"
+        approveType:
+          type: string
+          description: Approval type
+          example: "SINGLE"
+        approvalUnitNum:
+          type: integer
+          format: int32
+          description: Approval unit number
+          example: 100
+        transactionAmountMin:
+          type: string
+          description: Minimum transaction amount
+          example: "1000.00"
+        transactionAmountMax:
+          type: string
+          description: Maximum transaction amount
+          example: "50000.00"
+        approveDateFirst:
+          type: string
+          description: Start date for approval filter
+          example: "2024-01-01"
+        approveDateLast:
+          type: string
+          description: End date for approval filter
+          example: "2024-12-31"
+        approveOrder:
+          type: integer
+          format: int32
+          description: Approval order
+          example: 1
+        financialSubFamilyCode:
+          type: string
+          description: Financial sub-family code
+          example: "SF01"
+        financialFamilyCode:
+          type: string
+          description: Financial family code
+          example: "F01"
+      example: {"status": "PENDING", "approveType": "SINGLE", "approvalUnitNum": 100, "transactionAmountMin": "1000.00", "transactionAmountMax": "50000.00"}
+
+    ProcessResponseDto:
       type: object
       description: Process response information
       properties:
