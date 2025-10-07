@@ -1,4 +1,1229 @@
-openapi: 3.0.0
+GetSinglePdfRequestDto:
+      type: object
+      description: Request for retrieving a single PDF document
+      properties:
+        documentId:
+          type: string
+          description: Document identifier
+          example: "DOC123456"
+        userId:
+          type: string
+          description: User identifier
+          example: "USER001"
+        authUserId:
+          type: string
+          description: Authorized user identifier
+          example: "AUTH001"
+
+    GetPdfResponseDto:
+      type: object
+      description: Response containing PDF document data
+      properties:
+        returnCode:
+          type: string
+          description: Return code indicating success or failure
+          example: "0"
+        returnMsg:
+          type: string
+          description: Return message
+          example: "Document retrieved successfully"
+        printType:
+          type: string
+          description: Print type specification
+          example: "A4"
+        paperTrayText:
+          type: string
+          description: Paper tray information
+          example: "Tray1"
+        secPaperTrayText:
+          type: string
+          description: Secondary paper tray information
+          example: "Tray2"
+        pdfData:
+          type: string
+          description: Base64 encoded PDF data
+          example: "JVBERi0xLjQKJeLjz9..."
+
+    CustomerInfo:
+      type: object
+      description: Customer information details
+      properties:
+        customerFullName:
+          type: string
+          description: Customer's full name
+          example: "Ahmet Yılmaz"
+        customerNumber:
+          type: integer
+          format: int64
+          description: Customer number
+          example: 123456
+        customerAddress:
+          type: string
+          description: Customer address
+          example: "Atatürk Cad. No:123 Kadıköy/İstanbul"
+        accountType:
+          type: string
+          description: Account type
+          example: "CHECKING"
+        tckn:
+          type: string
+          description: Turkish citizenship ID number
+          example: "12345678901"
+        nationality:
+          type: string
+          description: Nationality
+          example: "TC"
+
+    BranchInfo:
+      type: object
+      description: Branch information details
+      properties:
+        branchName:
+          type: string
+          description: Branch name
+          example: "Kadıköy Branch"
+        branchCity:
+          type: string
+          description: Branch city
+          example: "İstanbul"
+        branchDistrict:
+          type: string
+          description: Branch district
+          example: "Kadıköy"
+        countryCode:
+          type: string
+          description: Country code
+          example: "TR"
+        branchAddress:
+          type: string
+          description: Branch address
+          example: "Bağdat Cad. No:456"
+        referenceNumber:
+          type: integer
+          format: int32
+          description: Branch reference number
+          example: 100
+
+    OperationCodeRequestDto:
+      type: object
+      description: Request for operation code retrieval
+      properties:
+        operatorCustomer:
+          type: array
+          description: List of operator customers
+          items:
+            $ref: '#/components/schemas/OpCodeCustomerDto'
+        accountCustomerNum:
+          type: string
+          description: Account customer number
+          example: "123456"
+        accountBranch:
+          type: string
+          description: Account branch code
+          example: "100"
+        accountNumber:
+          type: integer
+          format: int32
+          description: Account number
+          example: 987654
+        isChequeOperation:
+          type: boolean
+          description: Indicates if this is a cheque operation
+          example: false
+
+    OpCodeCustomerDto:
+      type: object
+      description: Operator customer information
+      properties:
+        operatorCustomerNum:
+          type: string
+          description: Operator customer number
+          example: "654321"
+
+    OperationCodeResponseDto:
+      type: object
+      description: Response containing operation codes
+      properties:
+        opCode1:
+          type: string
+          description: Primary operation code
+          example: "01"
+        opCode2:
+          type: string
+          description: Secondary operation code
+          example: "02"
+
+    GetBulkOperationCodeResponseDto:
+      type: object
+      description: Response containing bulk operation codes
+      properties:
+        operationCodeItems:
+          type: array
+          description: List of operation code items
+          items:
+            $ref: '#/components/schemas/OperationCodeItem'
+
+    OperationCodeItem:
+      type: object
+      description: Individual operation code item
+      properties:
+        processMainCode:
+          type: string
+          description: Main process code
+          example: "01"
+        processSubCode:
+          type: string
+          description: Sub process code
+          example: "001"
+        processDescription:
+          type: string
+          description: Process description
+          example: "Cash withdrawal"
+
+    FindTransactionRequestDto:
+      type: object
+      description: Request for finding transactions by customer number
+      properties:
+        customerNumber:
+          type: integer
+          format: int32
+          description: Customer number
+          example: 123456
+
+    TransactionListDto:
+      type: object
+      description: List of transactions
+      properties:
+        transactions:
+          type: array
+          description: Array of transaction records
+          items:
+            $ref: '#/components/schemas/TransactionDto'
+
+    TransactionDto:
+      type: object
+      description: Transaction details
+      properties:
+        operationType:
+          type: string
+          description: Type of operation
+          example: "WITHDRAWAL"
+        processDate:
+          type: string
+          description: Processing date
+          example: "2024-10-07"
+        customerNumber:
+          type: integer
+          format: int32
+          description: Customer number
+          example: 123456
+        accountBranchCode:
+          type: integer
+          format: int32
+          description: Account branch code
+          example: 100
+        customerAccountNum:
+          type: integer
+          format: int32
+          description: Customer account number
+          example: 987654
+        ownerUnitNum:
+          type: integer
+          format: int32
+          description: Owner unit number
+          example: 100
+        approvalUnitNum:
+          type: integer
+          format: int32
+          description: Approval unit number
+          example: 100
+        transactionAmount:
+          type: number
+          format: double
+          description: Transaction amount
+          example: 1000.50
+        currencyCode:
+          type: string
+          description: Currency code
+          example: "TRY"
+        transactionTLAmount:
+          type: number
+          format: double
+          description: Transaction amount in Turkish Lira
+          example: 1000.50
+        currencyRate:
+          type: number
+          format: double
+          description: Currency exchange rate
+          example: 1.0
+        currencyType:
+          type: string
+          description: Currency type
+          example: "LOCAL"
+        rateType:
+          type: string
+          description: Rate type
+          example: "BUYING"
+        channelCode:
+          type: string
+          description: Channel code
+          example: "BRANCH"
+        channelType:
+          type: string
+          description: Channel type
+          example: "PHYSICAL"
+        channelDetailText:
+          type: string
+          description: Channel detail text
+          example: "Branch counter"
+        financialDomainCode:
+          type: string
+          description: Financial domain code
+          example: "FD01"
+        financialFamilyCode:
+          type: string
+          description: Financial family code
+          example: "FF01"
+        financialSubFamilyCode:
+          type: string
+          description: Financial sub-family code
+          example: "FSF01"
+        purposeValueCode:
+          type: string
+          description: Purpose value code
+          example: "PV01"
+        receiptInfoId:
+          type: string
+          description: Receipt information identifier
+          example: "RCP001"
+        contractInfoId:
+          type: string
+          description: Contract information identifier
+          example: "CNT001"
+        accountingGuid:
+          type: string
+          description: Accounting GUID
+          example: "ACC-GUID-001"
+        priceInqueryId:
+          type: string
+          description: Price inquiry identifier
+          example: "PRC001"
+        surveyInfoId:
+          type: string
+          description: Survey information identifier
+          example: "SRV001"
+        gmaticId:
+          type: string
+          description: Gmatic identifier
+          example: "GMT001"
+        commisionAmount:
+          type: number
+          format: double
+          description: Commission amount
+          example: 25.00
+        commisionCurrencyCode:
+          type: string
+          description: Commission currency code
+          example: "TRY"
+        chargeAmount:
+          type: number
+          format: double
+          description: Charge amount
+          example: 5.00
+        chargeCurrencyCode:
+          type: string
+          description: Charge currency code
+          example: "TRY"
+        taxAmount:
+          type: number
+          format: double
+          description: Tax amount
+          example: 10.00
+        taxCurrencyCode:
+          type: string
+          description: Tax currency code
+          example: "TRY"
+        statusCode:
+          type: string
+          description: Status code
+          example: "COMPLETED"
+        cicsTxnId:
+          type: string
+          description: CICS transaction identifier
+          example: "CICS001"
+        checkNumber:
+          type: string
+          description: Check number
+          example: "CHK123456"
+        goldValuationId:
+          type: string
+          description: Gold valuation identifier
+          example: "GOLD001"
+        prosecutorNotificationInfo:
+          type: string
+          description: Prosecutor notification information
+          example: "Not applicable"
+        transactionRelationType:
+          type: string
+          description: Transaction relation type
+          example: "SINGLE"
+        transactionExplanationText:
+          type: string
+          description: Transaction explanation text
+          example: "Customer withdrawal"
+        requestText:
+          type: string
+          description: Request text
+          example: "Withdrawal request"
+
+    TrnxCompleteWithdrawalRequestDto:
+      type: object
+      description: Request for completing withdrawal transaction
+      properties:
+        operationType:
+          type: string
+          description: Type of operation
+          example: "WITHDRAWAL"
+        customerNumber:
+          type: integer
+          format: int32
+          description: Customer number
+          example: 123456
+        accountBranchCode:
+          type: integer
+          format: int32
+          description: Account branch code
+          example: 100
+        customerAccountNum:
+          type: integer
+          format: int32
+          description: Customer account number
+          example: 987654
+        transactionAmount:
+          type: number
+          format: double
+          description: Transaction amount
+          example: 1000.50
+        createUserId:
+          type: string
+          description: Creator user identifier
+          example: "USER001"
+        channelCode:
+          type: string
+          description: Channel code
+          example: "BRANCH"
+        channelDetailText:
+          type: string
+          description: Channel detail text
+          example: "Branch counter"
+        operation1Code:
+          type: string
+          description: Operation code 1
+          example: "01"
+        operation2Code:
+          type: string
+          description: Operation code 2
+          example: "02"
+        relatedProductCode:
+          type: string
+          description: Related product code
+          example: "PROD001"
+        purposeValueCode:
+          type: string
+          description: Purpose value code
+          example: "PV01"
+        surveyIfoId:
+          type: string
+          description: Survey info identifier
+          example: "SRV001"
+        commissionAmount:
+          type: number
+          format: double
+          description: Commission amount
+          example: 25.00
+        commissionCurrencyCode:
+          type: string
+          description: Commission currency code
+          example: "TRY"
+        priceInqueryId:
+          type: string
+          description: Price inquiry identifier
+          example: "PRC001"
+        chargeAmount:
+          type: number
+          format: double
+          description: Charge amount
+          example: 5.00
+        chargeCurrencyCode:
+          type: string
+          description: Charge currency code
+          example: "TRY"
+        requestText:
+          type: string
+          description: Request text
+          example: "Withdrawal request"
+        transactionExplanationText:
+          type: string
+          description: Transaction explanation
+          example: "Customer withdrawal"
+        checkNumber:
+          type: string
+          description: Check number
+          example: "CHK123456"
+        goldValuationId:
+          type: string
+          description: Gold valuation identifier
+          example: "GOLD001"
+        prosecutorNotificationInfo:
+          type: string
+          description: Prosecutor notification info
+          example: "Not applicable"
+        transactionRelationType:
+          type: string
+          description: Transaction relation type
+          example: "SINGLE"
+        gmaticId:
+          type: string
+          description: Gmatic identifier
+          example: "GMT001"
+        currencyCode:
+          type: string
+          description: Currency code
+          example: "TRY"
+        tcNumber:
+          type: string
+          description: Turkish citizenship number
+          example: "12345678901"
+        birthDate:
+          type: string
+          description: Birth date
+          example: "1990-01-01"
+        isCheck:
+          type: boolean
+          description: Indicates if this is a check transaction
+          example: false
+        atmInfo:
+          $ref: '#/components/schemas/AtmInfoRequest'
+        processingPersonInfo:
+          type: array
+          description: Processing person information list
+          items:
+            $ref: '#/components/schemas/ProcessingPersonInfoRequest'
+        customerName:
+          type: string
+          description: Customer name
+          example: "Ahmet"
+        customerSurname:
+          type: string
+          description: Customer surname
+          example: "Yılmaz"
+        accountBalanceAmount:
+          type: number
+          format: double
+          description: Account balance amount
+          example: 5000.00
+        addressLine1:
+          type: string
+          description: Address line 1
+          example: "Atatürk Cad. No:123"
+        addressLine2:
+          type: string
+          description: Address line 2
+          example: "Daire 5"
+        regionName:
+          type: string
+          description: Region name
+          example: "Marmara"
+        districtName:
+          type: string
+          description: District name
+          example: "Kadıköy"
+        cityName:
+          type: string
+          description: City name
+          example: "İstanbul"
+        postalCode:
+          type: string
+          description: Postal code
+          example: "34700"
+        phoneNumber:
+          type: string
+          description: Phone number
+          example: "+905551234567"
+        cicsTxnId:
+          type: string
+          description: CICS transaction identifier
+          example: "CICS001"
+        sourceId:
+          type: string
+          description: Source identifier
+          example: "SRC001"
+        kpsValidationBypass:
+          type: boolean
+          description: KPS validation bypass flag
+          example: false
+
+    AtmInfoRequest:
+      type: object
+      description: ATM information for transaction
+      properties:
+        cardNo:
+          type: string
+          description: Card number
+          example: "1234****5678"
+        isQr:
+          type: boolean
+          description: QR code usage flag
+          example: false
+        qrId:
+          type: string
+          description: QR identifier
+          example: "QR123456"
+        atmNumber:
+          type: string
+          description: ATM number
+          example: "ATM001"
+        isCommission:
+          type: boolean
+          description: Commission flag
+          example: true
+
+    ProcessingPersonInfoRequest:
+      type: object
+      description: Processing person information
+      properties:
+        statusCode:
+          type: string
+          description: Status code
+          example: "ACTIVE"
+        processCustomerNum:
+          type: string
+          description: Process customer number
+          example: "654321"
+
+    TrnxCompleteWithdrawalResponseDto:
+      type: object
+      description: Response after completing withdrawal transaction
+      properties:
+        instanceId:
+          type: string
+          description: Transaction instance identifier
+          example: "INST123456"
+        approvalRequired:
+          type: boolean
+          description: Indicates if approval is required
+          example: true
+
+    TransactionStatusUpdateRequestDto:
+      type: object
+      description: Request for updating transaction status
+      properties:
+        instanceId:
+          type: string
+          description: Transaction instance identifier
+          example: "INST123456"
+        status:
+          type: string
+          description: New status
+          example: "COMPLETED"
+        approveInstanceId:
+          type: string
+          description: Approval instance identifier
+          example: "APPR001"
+
+    TransactionStatusUpdateResponseDto:
+      type: object
+      description: Response after transaction status update
+      properties:
+        success:
+          type: boolean
+          description: Indicates if update was successful
+          example: true
+
+    TransactionFilterRequestDto:
+      type: object
+      description: Request for filtering transactions
+      properties:
+        statusCode:
+          type: string
+          description: Status code filter
+          example: "COMPLETED"
+        ownerUnitNum:
+          type: string
+          description: Owner unit number filter
+          example: "100"
+        moneyTransactionIdStart:
+          type: string
+          description: Starting transaction ID range
+          example: "TXN001"
+        moneyTransactionIdEnd:
+          type: string
+          description: Ending transaction ID range
+          example: "TXN999"
+        approveType:
+          type: string
+          description: Approval type filter
+          example: "SINGLE"
+        financialSubFamilyCode:
+          type: string
+          description: Financial sub-family code filter
+          example: "FSF01"
+        financialFamilyCode:
+          type: string
+          description: Financial family code filter
+          example: "FF01"
+        transactionAmountMin:
+          type: number
+          format: double
+          description: Minimum transaction amount
+          example: 100.00
+        transactionAmountMax:
+          type: number
+          format: double
+          description: Maximum transaction amount
+          example: 50000.00
+
+    TransactionFilterResponseDto:
+      type: object
+      description: Filtered transaction response
+      properties:
+        instanceId:
+          type: string
+          description: Transaction instance identifier
+          example: "INST123456"
+        customerNameAndSurname:
+          type: string
+          description: Customer full name
+          example: "Ahmet Yılmaz"
+        processDate:
+          type: string
+          description: Process date
+          example: "2024-10-07"
+        approveType:
+          type: string
+          description: Approval type
+          example: "SINGLE"
+        transactionAmount:
+          type: number
+          format: double
+          description: Transaction amount
+          example: 1000.50
+        status:
+          type: string
+          description: Transaction status
+          example: "COMPLETED"
+        createUserId:
+          type: string
+          description: Creator user identifier
+          example: "USER001"
+        approveUserId:
+          type: string
+          description: Approver user identifier
+          example: "USER002"
+
+    AccountTransactionRulesRequestDto:
+      type: object
+      description: Request for account transaction rules validation
+      properties:
+        debitUnitNum:
+          type: integer
+          format: int32
+          description: Debit unit number
+          example: 100
+        debitAccountNum:
+          type: integer
+          format: int32
+          description: Debit account number
+          example: 987654
+        transactionAmount:
+          type: string
+          description: Transaction amount
+          example: "1000.50"
+        currencyCode:
+          type: string
+          description: Currency code
+          example: "TRY"
+        transactionDate:
+          type: string
+          description: Transaction date
+          example: "2024-10-07"
+        oprtnCustList:
+          type: array
+          description: Operator customer list
+          items:
+            type: string
+          example: ["654321", "654322"]
+
+    AccountTransactionRulesResponseDto:
+      type: object
+      description: Response containing account transaction rules validation results
+      properties:
+        messages:
+          type: array
+          description: Validation messages
+          items:
+            type: string
+          example: ["Validation successful", "Account has sufficient balance"]
+        accountUsableBalanceAmount:
+          type: number
+          format: double
+          description: Account usable balance amount
+          example: 5000.00
+        debitUnitNum:
+          type: integer
+          format: int32
+          description: Debit unit number
+          example: 100
+        debitAccountNum:
+          type: integer
+          format: int32
+          description: Debit account number
+          example: 987654
+        debitCustomerFirstName:
+          type: string
+          description: Debit customer first name
+          example: "Ahmet"
+        debitCustomerLastName:
+          type: string
+          description: Debit customer last name
+          example: "Yılmaz"
+        debitAccountCurrCode:
+          type: string
+          description: Debit account currency code
+          example: "TRY"
+        debitAccountCustomerNum:
+          type: integer
+          format: int32
+          description: Debit account customer number
+          example: 123456
+        debitCustomerType:
+          type: string
+          description: Debit customer type
+          example: "INDIVIDUAL"
+        checkRelatedAccount:
+          type: string
+          description: Check related account information
+          example: "No related account"
+
+    RepresentativePersonRequestDto:
+      type: object
+      description: Request for representative person information
+      properties:
+        customerNum:
+          type: string
+          description: Customer number
+          example: "123456"
+        customerNum2:
+          type: string
+          description: Second customer number
+          example: "654321"
+        relationTypeText:
+          type: string
+          description: Relation type text
+          example: "REPRESENTATIVE"
+        acceptableLatency:
+          type: string
+          description: Acceptable latency
+          example: "5000"
+        shareRate:
+          type: string
+          description: Share rate
+          example: "50"
+        shareAmount:
+          type: string
+          description: Share amount
+          example: "1000.00"
+        confirmationDate:
+          type: string
+          description: Confirmation date
+          example: "2024-10-07"
+        headerInfo:
+          $ref: '#/components/schemas/HeaderInfo'
+        serverData:
+          $ref: '#/components/schemas/ServerData'
+
+    HeaderInfo:
+      type: object
+      description: Header information for request
+      properties:
+        command:
+          type: string
+          description: Command type
+          example: "LIST"
+        sourceProgramId:
+          type: string
+          description: Source program identifier
+          example: "PROG001"
+        unitNum:
+          type: string
+          description: Unit number
+          example: "100"
+        channelCode:
+          type: string
+          description: Channel code
+          example: "BRANCH"
+        moduleCode:
+          type: string
+          description: Module code
+          example: "MOD01"
+        submoduleCode:
+          type: string
+          description: Submodule code
+          example: "SUBMOD01"
+
+    ServerData:
+      type: object
+      description: Server data for processing
+      properties:
+        userId:
+          type: string
+          description: User identifier
+          example: "USER001"
+        referenceId:
+          type: string
+          description: Reference identifier
+          example: "REF123"
+
+    RepresentativePersonDto:
+      type: object
+      description: Representative person information
+      properties:
+        name:
+          type: string
+          description: Representative person's name
+          example: "Mehmet"
+        surname:
+          type: string
+          description: Representative person's surname
+          example: "Demir"
+        customerNum:
+          type: string
+          description: Customer number
+          example: "654321"
+
+    SaveRepresentativePersonRequestDto:
+      type: object
+      description: Request for saving representative person
+      properties:
+        customerNum:
+          type: string
+          description: Customer number
+          example: "123456"
+        opnDefinedKey:
+          type: string
+          description: Operation defined key
+          example: "OPN001"
+        partyType:
+          type: string
+          description: Party type
+          example: "REPRESENTATIVE"
+        recordStatus:
+          type: string
+          description: Record status
+          example: "ACTIVE"
+        serverData:
+          $ref: '#/components/schemas/ServerData'
+
+    SaveRepresentativePersonDto:
+      type: object
+      description: Response after saving representative person
+      properties:
+        customerNum:
+          type: string
+          description: Customer number
+          example: "654321"
+        name:
+          type: string
+          description: Representative person's name
+          example: "Mehmet"
+        surname:
+          type: string
+          description: Representative person's surname
+          example: "Demir"
+        citizenText:
+          type: string
+          description: Citizenship text
+          example: "TC"
+        mernisNum:
+          type: string
+          description: MERNIS number
+          example: "12345678901"
+        birthDate:
+          type: string
+          description: Birth date
+          example: "1985-05-15"
+        otherNationalityId:
+          type: string
+          description: Other nationality identifier
+          example: "N/A"
+
+    CustomerInfoRequestDto:
+      type: object
+      description: Request for customer information
+      properties:
+        customerNum:
+          type: string
+          description: Customer number
+          example: "123456"
+
+    CustomerInfoResponseDto:
+      type: object
+      description: Response containing customer information
+      properties:
+        customerNum:
+          type: string
+          description: Customer number
+          example: "123456"
+        name:
+          type: string
+          description: Customer's first name
+          example: "Ahmet"
+        surname:
+          type: string
+          description: Customer's surname
+          example: "Yılmaz"
+        citizen:
+          type: string
+          description: Citizenship information
+          example: "TC"
+        mernisNum:
+          type: string
+          description: MERNIS number
+          example: "12345678901"
+        birthDate:
+          type: string
+          description: Birth date
+          example: "1990-01-01"
+        otherNationalityId:
+          type: string
+          description: Other nationality identifier
+          example: "N/A"
+        customerType:
+          type: string
+          description: Customer type
+          example: "INDIVIDUAL"
+        isOperant:
+          type: boolean
+          description: Indicates if customer is operant
+          example: true
+        operantMessages:
+          type: array
+          description: Operant messages
+          items:
+            type: string
+          example: ["Customer is active", "No restrictions"]
+        isActivePerson:
+          type: boolean
+          description: Indicates if person is active
+          example: true
+        customerSubType:
+          type: string
+          description: Customer sub-type
+          example: "STANDARD"
+        customerSubType2:
+          type: string
+          description: Customer sub-type 2
+          example: "REGULAR"
+
+    ExtendedCustomerInfoDto:
+      type: object
+      description: Extended customer information
+      properties:
+        customerNum:
+          type: string
+          description: Customer number
+          example: "123456"
+        name:
+          type: string
+          description: Customer's first name
+          example: "Ahmet"
+        surname:
+          type: string
+          description: Customer's surname
+          example: "Yılmaz"
+        citizenText:
+          type: string
+          description: Citizenship text
+          example: "TC"
+        mernisNum:
+          type: string
+          description: MERNIS number
+          example: "12345678901"
+        birthDate:
+          type: string
+          description: Birth date
+          example: "1990-01-01"
+        otherNationalityId:
+          type: string
+          description: Other nationality identifier
+          example: "N/A"
+        settledCountryCode:
+          type: string
+          description: Settled country code
+          example: "TR"
+        birthPlace:
+          type: string
+          description: Birth place
+          example: "İstanbul"
+        motherName:
+          type: string
+          description: Mother's name
+          example: "Ayşe"
+        fatherName:
+          type: string
+          description: Father's name
+          example: "Mustafa"
+        phoneNumCountryCode:
+          type: string
+          description: Phone number country code
+          example: "+90"
+        phoneNum:
+          type: string
+          description: Phone number
+          example: "5551234567"
+        pasaportNumText:
+          type: string
+          description: Passport number
+          example: "U12345678"
+        addressType:
+          type: string
+          description: Address type
+          example: "HOME"
+        countryCode:
+          type: string
+          description: Country code
+          example: "TR"
+        cityCode:
+          type: string
+          description: City code
+          example: "34"
+        addressLine:
+          type: string
+          description: Address line
+          example: "Atatürk Cad. No:123 Daire 5"
+        postalCode:
+          type: string
+          description: Postal code
+          example: "34700"
+        regionName:
+          type: string
+          description: Region name
+          example: "Marmara"
+        workingStyle:
+          type: string
+          description: Working style
+          example: "FULL_TIME"
+        jobTitle:
+          type: string
+          description: Job title
+          example: "Engineer"
+
+    GetKpsInfoRequestDto:
+      type: object
+      description: Request for KPS (Turkish identity verification system) information
+      properties:
+        nationalId:
+          type: string
+          description: National identity number
+          example: "12345678901"
+        birthDate:
+          type: string
+          description: Birth date
+          example: "1990-01-01"
+        inquiryDateMargin:
+          type: integer
+          format: int32
+          description: Inquiry date margin in days
+          example: 7
+
+    GetKpsInfoResponseDto:
+      type: object
+      description: Response containing KPS information
+      properties:
+        nationalIdNum:
+          type: string
+          description: National identity number
+          example: "12345678901"
+        name:
+          type: string
+          description: Person's name
+          example: "Ahmet"
+        surname:
+          type: string
+          description: Person's surname
+          example: "Yılmaz"
+        birthDate:
+          type: string
+          description: Birth date
+          example: "1990-01-01"
+        birthPlace:
+          type: string
+          description: Birth place
+          example: "İstanbul"
+        fatherName:
+          type: string
+          description: Father's name
+          example: "Mustafa"
+        motherName:
+          type: string
+          description: Mother's name
+          example: "Ayşe"
+        serialCode:
+          type: string
+          description: Serial code of identity card
+          example: "A01"
+        sequenceNumber:
+          type: integer
+          format: int64
+          description: Sequence number
+          example: 123456
+        newIdentityCard:
+          type: boolean
+          description: Indicates if this is a new identity card
+          example: true
+
+    SaveTransactionCustomerRequestDto:
+      type: object
+      description: Request for saving transaction customer
+      properties:
+        nationalIdNum:
+          type: string
+          description: National identity number
+          example: "12345678901"
+        name:
+          type: string
+          description: Customer's first name
+          example: "Ahmet"
+        surname:
+          type: string
+          description: Customer's surname
+          example: "Yılmaz"
+        birthDate:
+          type: string
+          description: Birth date
+          example: "1990-01-01"
+        nationalityCode:
+          type: string
+          description: Nationality code
+          example: "TR"
+        kktcNationalId:
+          type: string
+          description: KKTC (Turkish Republic of Northern Cyprus) national ID
+          example: "N/A"
+        passportId:
+          type: string
+          description: Passport identifier
+          example: "U12345678"
+        countryCode:
+          type: string
+          description: Country code
+          example: "TR"
+        birthPlace:
+          type: string
+          description: Birth place
+          example: "İstanbul"
+        fatherName:
+          type: stringopenapi: 3.0.0
 info:
   title: deposit-withdrawal-channel v0
   description: Service API for deposit-withdrawal-channel v0
@@ -86,7 +1311,18 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginationResultDto_ProcessResponseDto'
+                type: object
+                properties:
+                  totalCount:
+                    type: integer
+                    format: int32
+                    description: Total number of records
+                    example: 150
+                  records:
+                    type: array
+                    description: List of process records
+                    items:
+                      $ref: '#/components/schemas/ProcessResponseDto'
         '400':
           description: Bad Request
         '401':
@@ -670,7 +1906,6 @@ components:
       type: http
       scheme: bearer
   schemas:
-    # Cheque Cost Schemas
     GetChequeCostRequest:
       type: object
       description: Request for getting cheque cost information
@@ -687,7 +1922,6 @@ components:
           $ref: '#/components/schemas/Account'
         commissionServerData:
           $ref: '#/components/schemas/CommissionServerData'
-      example: {"customerNo": "123456", "opCode": {"opCode1": "01", "opCode2": "02"}, "chequeAmount": {"amount": 1000.50, "currency": "TRY"}, "account": {"branch": 100, "number": "987654"}, "commissionServerData": {"userId": "USER001", "referenceId": "REF123"}}
 
     GetChequeCostResponse:
       type: object
@@ -699,7 +1933,6 @@ components:
           type: boolean
           description: Indicates if commission is free
           example: false
-      example: {"cost": {"amount": 25.00, "currency": "TRY"}, "isCommissionFree": false}
 
     ChequeMoney:
       type: object
@@ -714,7 +1947,6 @@ components:
           type: string
           description: Currency code (e.g., TRY, USD, EUR)
           example: "TRY"
-      example: {"amount": 1000.50, "currency": "TRY"}
 
     OperationCode:
       type: object
@@ -728,7 +1960,6 @@ components:
           type: string
           description: Secondary operation code
           example: "02"
-      example: {"opCode1": "01", "opCode2": "02"}
 
     Account:
       type: object
@@ -743,7 +1974,6 @@ components:
           type: string
           description: Account number
           example: "987654"
-      example: {"branch": 100, "number": "987654"}
 
     CommissionServerData:
       type: object
@@ -757,9 +1987,7 @@ components:
           type: string
           description: Reference identifier
           example: "REF123"
-      example: {"userId": "USER001", "referenceId": "REF123"}
 
-    # Approve Schemas
     ProcessRequestDto:
       type: object
       description: Request for process management list with pagination and filters
@@ -768,7 +1996,6 @@ components:
           $ref: '#/components/schemas/PageableInboundDto'
         filter:
           $ref: '#/components/schemas/ProcessFilterRequestDto'
-      example: {"pagination": {"page": 0, "size": 10, "sort": {"field": "createDate", "direction": "SORT_DIRECTION_DESC"}}, "filter": {"status": "PENDING", "approveType": "SINGLE"}}
 
     PageableInboundDto:
       type: object
@@ -786,7 +2013,6 @@ components:
           example: 10
         sort:
           $ref: '#/components/schemas/SortInboundDto'
-      example: {"page": 0, "size": 10, "sort": {"field": "createDate", "direction": "SORT_DIRECTION_DESC"}}
 
     SortInboundDto:
       type: object
@@ -801,7 +2027,6 @@ components:
           enum: [SORT_DIRECTION_ASC, SORT_DIRECTION_DESC]
           description: Sort direction
           example: "SORT_DIRECTION_DESC"
-      example: {"field": "createDate", "direction": "SORT_DIRECTION_DESC"}
 
     ProcessFilterRequestDto:
       type: object
@@ -849,23 +2074,6 @@ components:
           type: string
           description: Financial family code
           example: "F01"
-      example: {"status": "PENDING", "approveType": "SINGLE", "approvalUnitNum": 100, "transactionAmountMin": "1000.00", "transactionAmountMax": "50000.00"}
-
-    PaginationResultDto_ProcessResponseDto:
-      type: object
-      description: Paginated result for process list
-      properties:
-        totalCount:
-          type: integer
-          format: int32
-          description: Total number of records
-          example: 150
-        records:
-          type: array
-          description: List of process records
-          items:
-            $ref: '#/components/schemas/ProcessResponseDto'
-      example: {"totalCount": 150, "records": [{"moneyTransactionId": "TXN001", "status": "PENDING", "approveType": "SINGLE"}]}
 
     ProcessResponseDto:
       type: object
@@ -927,7 +2135,6 @@ components:
           type: string
           description: Process instance identifier
           example: "INST001"
-      example: {"moneyTransactionId": "TXN001", "status": "PENDING", "approveOrder": 1, "approveType": "SINGLE", "customerNumber": 123456}
 
     ProcessStateChangeRequestDto:
       type: object
@@ -941,7 +2148,6 @@ components:
           type: string
           description: Process instance identifier
           example: "INST001"
-      example: {"operationType": "APPROVE", "instanceId": "INST001"}
 
     ProcessStateChangeResponseDto:
       type: object
@@ -951,7 +2157,6 @@ components:
           type: string
           description: Result message
           example: "Process approved successfully"
-      example: {"message": "Process approved successfully"}
 
     ApproveBulkFraudProcessRequestDto:
       type: object
@@ -965,7 +2170,6 @@ components:
           type: string
           description: New status
           example: "APPROVED"
-      example: {"instanceId": "INST001", "status": "APPROVED"}
 
     ApproveBulkFraudProcessResponseDto:
       type: object
@@ -975,9 +2179,7 @@ components:
           type: string
           description: Result message
           example: "Fraud process status changed successfully"
-      example: {"message": "Fraud process status changed successfully"}
 
-    # Digital Order Schemas
     DigitalOrderReadRequestDto:
       type: object
       description: Request for reading digital order
@@ -1037,7 +2239,6 @@ components:
           format: int32
           description: Processing unit number
           example: 100
-      example: {"instructionId": 123456789, "customerNum": 123456, "accountNumber": 987654, "amount": 1000.50, "currencyCode": "TRY"}
 
     DigitalOrderReadResponseDto:
       type: object
@@ -1048,7 +2249,6 @@ components:
           description: List of branch instruction deposit withdrawal records
           items:
             $ref: '#/components/schemas/ReadBranchInstructionDepositWithdrawalDto'
-      example: {"readBranchInstructionDepositWithdrawal": [{"instructionId": 123456789, "customerNum": 123456, "accountNumber": 987654}]}
 
     ReadBranchInstructionDepositWithdrawalDto:
       type: object
@@ -1109,9 +2309,7 @@ components:
           format: int32
           description: Processing unit number
           example: 100
-      example: {"instructionId": 123456789, "customerNum": 123456, "accountNumber": 987654, "amount": 1000.50}
 
-    # Gold Document Schemas
     CreateSinglePdfRequestDto:
       type: object
       description: Request for creating a single PDF document
@@ -1161,7 +2359,6 @@ components:
             $ref: '#/components/schemas/CustomerInfo'
         branchInfo:
           $ref: '#/components/schemas/BranchInfo'
-      example: {"documentType": "WITHDRAWAL_RECEIPT", "userId": "USER001", "transactionAmount": 1000.50}
 
     CreateSinglePdfResponseDto:
       type: object
@@ -1179,7 +2376,6 @@ components:
           type: string
           description: Generated document identifier
           example: "DOC123456"
-      example: {"returnCode": "0", "returnMsg": "Document created successfully", "documentId": "DOC123456"}
 
     GetSinglePdfRequestDto:
       type: object
@@ -1189,1456 +2385,3 @@ components:
           type: string
           description: Document identifier
           example: "DOC123456"
-        userId:
-          type: string
-          description: User identifier
-          example: "USER001"
-        authUserId:
-          type: string
-          description: Authorized user identifier
-          example: "AUTH001"
-      example: {"documentId": "DOC123456", "userId": "USER001", "authUserId": "AUTH001"}
-
-    GetPdfResponseDto:
-      type: object
-      description: Response containing PDF document data
-      properties:
-        returnCode:
-          type: string
-          description: Return code indicating success or failure
-          example: "0"
-        returnMsg:
-          type: string
-          description: Return message
-          example: "Document retrieved successfully"
-        printType:
-          type: string
-          description: Print type specification
-          example: "A4"
-        paperTrayText:
-          type: string
-          description: Paper tray information
-          example: "Tray1"
-        secPaperTrayText:
-          type: string
-          description: Secondary paper tray information
-          example: "Tray2"
-        pdfData:
-          type: string
-          description: Base64 encoded PDF data
-          example: "JVBERi0xLjQKJeLjz9..."
-      example: {"returnCode": "0", "returnMsg": "Document retrieved successfully", "pdfData": "JVBERi0xLjQKJeLjz9..."}
-
-    CustomerInfo:
-      type: object
-      description: Customer information details
-      properties:
-        customerFullName:
-          type: string
-          description: Customer's full name
-          example: "Ahmet Yılmaz"
-        customerNumber:
-          type: integer
-          format: int64
-          description: Customer number
-          example: 123456
-        customerAddress:
-          type: string
-          description: Customer address
-          example: "Atatürk Cad. No:123 Kadıköy/İstanbul"
-        accountType:
-          type: string
-          description: Account type
-          example: "CHECKING"
-        tckn:
-          type: string
-          description: Turkish citizenship ID number
-          example: "12345678901"
-        nationality:
-          type: string
-          description: Nationality
-          example: "TC"
-      example: {"customerFullName": "Ahmet Yılmaz", "customerNumber": 123456, "tckn": "12345678901"}
-
-    BranchInfo:
-      type: object
-      description: Branch information details
-      properties:
-        branchName:
-          type: string
-          description: Branch name
-          example: "Kadıköy Branch"
-        branchCity:
-          type: string
-          description: Branch city
-          example: "İstanbul"
-        branchDistrict:
-          type: string
-          description: Branch district
-          example: "Kadıköy"
-        countryCode:
-          type: string
-          description: Country code
-          example: "TR"
-        branchAddress:
-          type: string
-          description: Branch address
-          example: "Bağdat Cad. No:456"
-        referenceNumber:
-          type: integer
-          format: int32
-          description: Branch reference number
-          example: 100
-      example: {"branchName": "Kadıköy Branch", "branchCity": "İstanbul", "referenceNumber": 100}
-
-    # Operation Code Schemas
-    OperationCodeRequestDto:
-      type: object
-      description: Request for operation code retrieval
-      properties:
-        operatorCustomer:
-          type: array
-          description: List of operator customers
-          items:
-            $ref: '#/components/schemas/OpCodeCustomerDto'
-        accountCustomerNum:
-          type: string
-          description: Account customer number
-          example: "123456"
-        accountBranch:
-          type: string
-          description: Account branch code
-          example: "100"
-        accountNumber:
-          type: integer
-          format: int32
-          description: Account number
-          example: 987654
-        isChequeOperation:
-          type: boolean
-          description: Indicates if this is a cheque operation
-          example: false
-      example: {"accountCustomerNum": "123456", "accountBranch": "100", "accountNumber": 987654, "isChequeOperation": false}
-
-    OpCodeCustomerDto:
-      type: object
-      description: Operator customer information
-      properties:
-        operatorCustomerNum:
-          type: string
-          description: Operator customer number
-          example: "654321"
-      example: {"operatorCustomerNum": "654321"}
-
-    OperationCodeResponseDto:
-      type: object
-      description: Response containing operation codes
-      properties:
-        opCode1:
-          type: string
-          description: Primary operation code
-          example: "01"
-        opCode2:
-          type: string
-          description: Secondary operation code
-          example: "02"
-      example: {"opCode1": "01", "opCode2": "02"}
-
-    GetBulkOperationCodeResponseDto:
-      type: object
-      description: Response containing bulk operation codes
-      properties:
-        operationCodeItems:
-          type: array
-          description: List of operation code items
-          items:
-            $ref: '#/components/schemas/OperationCodeItem'
-      example: {"operationCodeItems": [{"processMainCode": "01", "processSubCode": "001", "processDescription": "Cash withdrawal"}]}
-
-    OperationCodeItem:
-      type: object
-      description: Individual operation code item
-      properties:
-        processMainCode:
-          type: string
-          description: Main process code
-          example: "01"
-        processSubCode:
-          type: string
-          description: Sub process code
-          example: "001"
-        processDescription:
-          type: string
-          description: Process description
-          example: "Cash withdrawal"
-      example: {"processMainCode": "01", "processSubCode": "001", "processDescription": "Cash withdrawal"}
-
-    # Transaction Schemas
-    FindTransactionRequestDto:
-      type: object
-      description: Request for finding transactions by customer number
-      properties:
-        customerNumber:
-          type: integer
-          format: int32
-          description: Customer number
-          example: 123456
-      example: {"customerNumber": 123456}
-
-    TransactionListDto:
-      type: object
-      description: List of transactions
-      properties:
-        transactions:
-          type: array
-          description: Array of transaction records
-          items:
-            $ref: '#/components/schemas/TransactionDto'
-      example: {"transactions": [{"operationType": "WITHDRAWAL", "customerNumber": 123456, "transactionAmount": 1000.50}]}
-
-    TransactionDto:
-      type: object
-      description: Transaction details
-      properties:
-        operationType:
-          type: string
-          description: Type of operation
-          example: "WITHDRAWAL"
-        processDate:
-          type: string
-          description: Processing date
-          example: "2024-10-07"
-        customerNumber:
-          type: integer
-          format: int32
-          description: Customer number
-          example: 123456
-        accountBranchCode:
-          type: integer
-          format: int32
-          description: Account branch code
-          example: 100
-        customerAccountNum:
-          type: integer
-          format: int32
-          description: Customer account number
-          example: 987654
-        ownerUnitNum:
-          type: integer
-          format: int32
-          description: Owner unit number
-          example: 100
-        approvalUnitNum:
-          type: integer
-          format: int32
-          description: Approval unit number
-          example: 100
-        transactionAmount:
-          type: number
-          format: double
-          description: Transaction amount
-          example: 1000.50
-        currencyCode:
-          type: string
-          description: Currency code
-          example: "TRY"
-        transactionTLAmount:
-          type: number
-          format: double
-          description: Transaction amount in Turkish Lira
-          example: 1000.50
-        currencyRate:
-          type: number
-          format: double
-          description: Currency exchange rate
-          example: 1.0
-        currencyType:
-          type: string
-          description: Currency type
-          example: "LOCAL"
-        rateType:
-          type: string
-          description: Rate type
-          example: "BUYING"
-        channelCode:
-          type: string
-          description: Channel code
-          example: "BRANCH"
-        channelType:
-          type: string
-          description: Channel type
-          example: "PHYSICAL"
-        channelDetailText:
-          type: string
-          description: Channel detail text
-          example: "Branch counter"
-        financialDomainCode:
-          type: string
-          description: Financial domain code
-          example: "FD01"
-        financialFamilyCode:
-          type: string
-          description: Financial family code
-          example: "FF01"
-        financialSubFamilyCode:
-          type: string
-          description: Financial sub-family code
-          example: "FSF01"
-        purposeValueCode:
-          type: string
-          description: Purpose value code
-          example: "PV01"
-        receiptInfoId:
-          type: string
-          description: Receipt information identifier
-          example: "RCP001"
-        contractInfoId:
-          type: string
-          description: Contract information identifier
-          example: "CNT001"
-        accountingGuid:
-          type: string
-          description: Accounting GUID
-          example: "ACC-GUID-001"
-        priceInqueryId:
-          type: string
-          description: Price inquiry identifier
-          example: "PRC001"
-        surveyInfoId:
-          type: string
-          description: Survey information identifier
-          example: "SRV001"
-        gmaticId:
-          type: string
-          description: Gmatic identifier
-          example: "GMT001"
-        commisionAmount:
-          type: number
-          format: double
-          description: Commission amount
-          example: 25.00
-        commisionCurrencyCode:
-          type: string
-          description: Commission currency code
-          example: "TRY"
-        chargeAmount:
-          type: number
-          format: double
-          description: Charge amount
-          example: 5.00
-        chargeCurrencyCode:
-          type: string
-          description: Charge currency code
-          example: "TRY"
-        taxAmount:
-          type: number
-          format: double
-          description: Tax amount
-          example: 10.00
-        taxCurrencyCode:
-          type: string
-          description: Tax currency code
-          example: "TRY"
-        statusCode:
-          type: string
-          description: Status code
-          example: "COMPLETED"
-        cicsTxnId:
-          type: string
-          description: CICS transaction identifier
-          example: "CICS001"
-        checkNumber:
-          type: string
-          description: Check number
-          example: "CHK123456"
-        goldValuationId:
-          type: string
-          description: Gold valuation identifier
-          example: "GOLD001"
-        prosecutorNotificationInfo:
-          type: string
-          description: Prosecutor notification information
-          example: "Not applicable"
-        transactionRelationType:
-          type: string
-          description: Transaction relation type
-          example: "SINGLE"
-        transactionExplanationText:
-          type: string
-          description: Transaction explanation text
-          example: "Customer withdrawal"
-        requestText:
-          type: string
-          description: Request text
-          example: "Withdrawal request"
-      example: {"operationType": "WITHDRAWAL", "customerNumber": 123456, "transactionAmount": 1000.50, "currencyCode": "TRY"}
-
-    TrnxCompleteWithdrawalRequestDto:
-      type: object
-      description: Request for completing withdrawal transaction
-      properties:
-        operationType:
-          type: string
-          description: Type of operation
-          example: "WITHDRAWAL"
-        customerNumber:
-          type: integer
-          format: int32
-          description: Customer number
-          example: 123456
-        accountBranchCode:
-          type: integer
-          format: int32
-          description: Account branch code
-          example: 100
-        customerAccountNum:
-          type: integer
-          format: int32
-          description: Customer account number
-          example: 987654
-        transactionAmount:
-          type: number
-          format: double
-          description: Transaction amount
-          example: 1000.50
-        createUserId:
-          type: string
-          description: Creator user identifier
-          example: "USER001"
-        channelCode:
-          type: string
-          description: Channel code
-          example: "BRANCH"
-        channelDetailText:
-          type: string
-          description: Channel detail text
-          example: "Branch counter"
-        operation1Code:
-          type: string
-          description: Operation code 1
-          example: "01"
-        operation2Code:
-          type: string
-          description: Operation code 2
-          example: "02"
-        relatedProductCode:
-          type: string
-          description: Related product code
-          example: "PROD001"
-        purposeValueCode:
-          type: string
-          description: Purpose value code
-          example: "PV01"
-        surveyIfoId:
-          type: string
-          description: Survey info identifier
-          example: "SRV001"
-        commissionAmount:
-          type: number
-          format: double
-          description: Commission amount
-          example: 25.00
-        commissionCurrencyCode:
-          type: string
-          description: Commission currency code
-          example: "TRY"
-        priceInqueryId:
-          type: string
-          description: Price inquiry identifier
-          example: "PRC001"
-        chargeAmount:
-          type: number
-          format: double
-          description: Charge amount
-          example: 5.00
-        chargeCurrencyCode:
-          type: string
-          description: Charge currency code
-          example: "TRY"
-        requestText:
-          type: string
-          description: Request text
-          example: "Withdrawal request"
-        transactionExplanationText:
-          type: string
-          description: Transaction explanation
-          example: "Customer withdrawal"
-        checkNumber:
-          type: string
-          description: Check number
-          example: "CHK123456"
-        goldValuationId:
-          type: string
-          description: Gold valuation identifier
-          example: "GOLD001"
-        prosecutorNotificationInfo:
-          type: string
-          description: Prosecutor notification info
-          example: "Not applicable"
-        transactionRelationType:
-          type: string
-          description: Transaction relation type
-          example: "SINGLE"
-        gmaticId:
-          type: string
-          description: Gmatic identifier
-          example: "GMT001"
-        currencyCode:
-          type: string
-          description: Currency code
-          example: "TRY"
-        tcNumber:
-          type: string
-          description: Turkish citizenship number
-          example: "12345678901"
-        birthDate:
-          type: string
-          description: Birth date
-          example: "1990-01-01"
-        isCheck:
-          type: boolean
-          description: Indicates if this is a check transaction
-          example: false
-        atmInfo:
-          $ref: '#/components/schemas/AtmInfoRequest'
-        processingPersonInfo:
-          type: array
-          description: Processing person information list
-          items:
-            $ref: '#/components/schemas/ProcessingPersonInfoRequest'
-        customerName:
-          type: string
-          description: Customer name
-          example: "Ahmet"
-        customerSurname:
-          type: string
-          description: Customer surname
-          example: "Yılmaz"
-        accountBalanceAmount:
-          type: number
-          format: double
-          description: Account balance amount
-          example: 5000.00
-        addressLine1:
-          type: string
-          description: Address line 1
-          example: "Atatürk Cad. No:123"
-        addressLine2:
-          type: string
-          description: Address line 2
-          example: "Daire 5"
-        regionName:
-          type: string
-          description: Region name
-          example: "Marmara"
-        districtName:
-          type: string
-          description: District name
-          example: "Kadıköy"
-        cityName:
-          type: string
-          description: City name
-          example: "İstanbul"
-        postalCode:
-          type: string
-          description: Postal code
-          example: "34700"
-        phoneNumber:
-          type: string
-          description: Phone number
-          example: "+905551234567"
-        cicsTxnId:
-          type: string
-          description: CICS transaction identifier
-          example: "CICS001"
-        sourceId:
-          type: string
-          description: Source identifier
-          example: "SRC001"
-        kpsValidationBypass:
-          type: boolean
-          description: KPS validation bypass flag
-          example: false
-      example: {"operationType": "WITHDRAWAL", "customerNumber": 123456, "transactionAmount": 1000.50, "currencyCode": "TRY"}
-
-    AtmInfoRequest:
-      type: object
-      description: ATM information for transaction
-      properties:
-        cardNo:
-          type: string
-          description: Card number
-          example: "1234****5678"
-        isQr:
-          type: boolean
-          description: QR code usage flag
-          example: false
-        qrId:
-          type: string
-          description: QR identifier
-          example: "QR123456"
-        atmNumber:
-          type: string
-          description: ATM number
-          example: "ATM001"
-        isCommission:
-          type: boolean
-          description: Commission flag
-          example: true
-      example: {"cardNo": "1234****5678", "isQr": false, "atmNumber": "ATM001", "isCommission": true}
-
-    ProcessingPersonInfoRequest:
-      type: object
-      description: Processing person information
-      properties:
-        statusCode:
-          type: string
-          description: Status code
-          example: "ACTIVE"
-        processCustomerNum:
-          type: string
-          description: Process customer number
-          example: "654321"
-      example: {"statusCode": "ACTIVE", "processCustomerNum": "654321"}
-
-    TrnxCompleteWithdrawalResponseDto:
-      type: object
-      description: Response after completing withdrawal transaction
-      properties:
-        instanceId:
-          type: string
-          description: Transaction instance identifier
-          example: "INST123456"
-        approvalRequired:
-          type: boolean
-          description: Indicates if approval is required
-          example: true
-      example: {"instanceId": "INST123456", "approvalRequired": true}
-
-    TransactionStatusUpdateRequestDto:
-      type: object
-      description: Request for updating transaction status
-      properties:
-        instanceId:
-          type: string
-          description: Transaction instance identifier
-          example: "INST123456"
-        status:
-          type: string
-          description: New status
-          example: "COMPLETED"
-        approveInstanceId:
-          type: string
-          description: Approval instance identifier
-          example: "APPR001"
-      example: {"instanceId": "INST123456", "status": "COMPLETED", "approveInstanceId": "APPR001"}
-
-    TransactionStatusUpdateResponseDto:
-      type: object
-      description: Response after transaction status update
-      properties:
-        success:
-          type: boolean
-          description: Indicates if update was successful
-          example: true
-      example: {"success": true}
-
-    TransactionFilterRequestDto:
-      type: object
-      description: Request for filtering transactions
-      properties:
-        statusCode:
-          type: string
-          description: Status code filter
-          example: "COMPLETED"
-        ownerUnitNum:
-          type: string
-          description: Owner unit number filter
-          example: "100"
-        moneyTransactionIdStart:
-          type: string
-          description: Starting transaction ID range
-          example: "TXN001"
-        moneyTransactionIdEnd:
-          type: string
-          description: Ending transaction ID range
-          example: "TXN999"
-        approveType:
-          type: string
-          description: Approval type filter
-          example: "SINGLE"
-        financialSubFamilyCode:
-          type: string
-          description: Financial sub-family code filter
-          example: "FSF01"
-        financialFamilyCode:
-          type: string
-          description: Financial family code filter
-          example: "FF01"
-        transactionAmountMin:
-          type: number
-          format: double
-          description: Minimum transaction amount
-          example: 100.00
-        transactionAmountMax:
-          type: number
-          format: double
-          description: Maximum transaction amount
-          example: 50000.00
-      example: {"statusCode": "COMPLETED", "transactionAmountMin": 100.00, "transactionAmountMax": 50000.00}
-
-    TransactionFilterResponseDto:
-      type: object
-      description: Filtered transaction response
-      properties:
-        instanceId:
-          type: string
-          description: Transaction instance identifier
-          example: "INST123456"
-        customerNameAndSurname:
-          type: string
-          description: Customer full name
-          example: "Ahmet Yılmaz"
-        processDate:
-          type: string
-          description: Process date
-          example: "2024-10-07"
-        approveType:
-          type: string
-          description: Approval type
-          example: "SINGLE"
-        transactionAmount:
-          type: number
-          format: double
-          description: Transaction amount
-          example: 1000.50
-        status:
-          type: string
-          description: Transaction status
-          example: "COMPLETED"
-        createUserId:
-          type: string
-          description: Creator user identifier
-          example: "USER001"
-        approveUserId:
-          type: string
-          description: Approver user identifier
-          example: "USER002"
-      example: {"instanceId": "INST123456", "customerNameAndSurname": "Ahmet Yılmaz", "transactionAmount": 1000.50}
-
-    AccountTransactionRulesRequestDto:
-      type: object
-      description: Request for account transaction rules validation
-      properties:
-        debitUnitNum:
-          type: integer
-          format: int32
-          description: Debit unit number
-          example: 100
-        debitAccountNum:
-          type: integer
-          format: int32
-          description: Debit account number
-          example: 987654
-        transactionAmount:
-          type: string
-          description: Transaction amount
-          example: "1000.50"
-        currencyCode:
-          type: string
-          description: Currency code
-          example: "TRY"
-        transactionDate:
-          type: string
-          description: Transaction date
-          example: "2024-10-07"
-        oprtnCustList:
-          type: array
-          description: Operator customer list
-          items:
-            type: string
-          example: ["654321", "654322"]
-      example: {"debitUnitNum": 100, "debitAccountNum": 987654, "transactionAmount": "1000.50", "currencyCode": "TRY"}
-
-    AccountTransactionRulesResponseDto:
-      type: object
-      description: Response containing account transaction rules validation results
-      properties:
-        messages:
-          type: array
-          description: Validation messages
-          items:
-            type: string
-          example: ["Validation successful", "Account has sufficient balance"]
-        accountUsableBalanceAmount:
-          type: number
-          format: double
-          description: Account usable balance amount
-          example: 5000.00
-        debitUnitNum:
-          type: integer
-          format: int32
-          description: Debit unit number
-          example: 100
-        debitAccountNum:
-          type: integer
-          format: int32
-          description: Debit account number
-          example: 987654
-        debitCustomerFirstName:
-          type: string
-          description: Debit customer first name
-          example: "Ahmet"
-        debitCustomerLastName:
-          type: string
-          description: Debit customer last name
-          example: "Yılmaz"
-        debitAccountCurrCode:
-          type: string
-          description: Debit account currency code
-          example: "TRY"
-        debitAccountCustomerNum:
-          type: integer
-          format: int32
-          description: Debit account customer number
-          example: 123456
-        debitCustomerType:
-          type: string
-          description: Debit customer type
-          example: "INDIVIDUAL"
-        checkRelatedAccount:
-          type: string
-          description: Check related account information
-          example: "No related account"
-      example: {"messages": ["Validation successful"], "accountUsableBalanceAmount": 5000.00, "debitCustomerFirstName": "Ahmet"}
-
-    # Transaction Customer Schemas
-    RepresentativePersonRequestDto:
-      type: object
-      description: Request for representative person information
-      properties:
-        customerNum:
-          type: string
-          description: Customer number
-          example: "123456"
-        customerNum2:
-          type: string
-          description: Second customer number
-          example: "654321"
-        relationTypeText:
-          type: string
-          description: Relation type text
-          example: "REPRESENTATIVE"
-        acceptableLatency:
-          type: string
-          description: Acceptable latency
-          example: "5000"
-        shareRate:
-          type: string
-          description: Share rate
-          example: "50"
-        shareAmount:
-          type: string
-          description: Share amount
-          example: "1000.00"
-        confirmationDate:
-          type: string
-          description: Confirmation date
-          example: "2024-10-07"
-        headerInfo:
-          $ref: '#/components/schemas/HeaderInfo'
-        serverData:
-          $ref: '#/components/schemas/ServerData'
-      example: {"customerNum": "123456", "relationTypeText": "REPRESENTATIVE", "shareRate": "50"}
-
-    HeaderInfo:
-      type: object
-      description: Header information for request
-      properties:
-        command:
-          type: string
-          description: Command type
-          example: "LIST"
-        sourceProgramId:
-          type: string
-          description: Source program identifier
-          example: "PROG001"
-        unitNum:
-          type: string
-          description: Unit number
-          example: "100"
-        channelCode:
-          type: string
-          description: Channel code
-          example: "BRANCH"
-        moduleCode:
-          type: string
-          description: Module code
-          example: "MOD01"
-        submoduleCode:
-          type: string
-          description: Submodule code
-          example: "SUBMOD01"
-      example: {"command": "LIST", "sourceProgramId": "PROG001", "unitNum": "100"}
-
-    ServerData:
-      type: object
-      description: Server data for processing
-      properties:
-        userId:
-          type: string
-          description: User identifier
-          example: "USER001"
-        referenceId:
-          type: string
-          description: Reference identifier
-          example: "REF123"
-      example: {"userId": "USER001", "referenceId": "REF123"}
-
-    RepresentativePersonDto:
-      type: object
-      description: Representative person information
-      properties:
-        name:
-          type: string
-          description: Representative person's name
-          example: "Mehmet"
-        surname:
-          type: string
-          description: Representative person's surname
-          example: "Demir"
-        customerNum:
-          type: string
-          description: Customer number
-          example: "654321"
-      example: {"name": "Mehmet", "surname": "Demir", "customerNum": "654321"}
-
-    SaveRepresentativePersonRequestDto:
-      type: object
-      description: Request for saving representative person
-      properties:
-        customerNum:
-          type: string
-          description: Customer number
-          example: "123456"
-        opnDefinedKey:
-          type: string
-          description: Operation defined key
-          example: "OPN001"
-        partyType:
-          type: string
-          description: Party type
-          example: "REPRESENTATIVE"
-        recordStatus:
-          type: string
-          description: Record status
-          example: "ACTIVE"
-        serverData:
-          $ref: '#/components/schemas/ServerData'
-      example: {"customerNum": "123456", "partyType": "REPRESENTATIVE", "recordStatus": "ACTIVE"}
-
-    SaveRepresentativePersonDto:
-      type: object
-      description: Response after saving representative person
-      properties:
-        customerNum:
-          type: string
-          description: Customer number
-          example: "654321"
-        name:
-          type: string
-          description: Representative person's name
-          example: "Mehmet"
-        surname:
-          type: string
-          description: Representative person's surname
-          example: "Demir"
-        citizenText:
-          type: string
-          description: Citizenship text
-          example: "TC"
-        mernisNum:
-          type: string
-          description: MERNIS number
-          example: "12345678901"
-        birthDate:
-          type: string
-          description: Birth date
-          example: "1985-05-15"
-        otherNationalityId:
-          type: string
-          description: Other nationality identifier
-          example: "N/A"
-      example: {"customerNum": "654321", "name": "Mehmet", "surname": "Demir", "mernisNum": "12345678901"}
-
-    CustomerInfoRequestDto:
-      type: object
-      description: Request for customer information
-      properties:
-        customerNum:
-          type: string
-          description: Customer number
-          example: "123456"
-      example: {"customerNum": "123456"}
-
-    CustomerInfoResponseDto:
-      type: object
-      description: Response containing customer information
-      properties:
-        customerNum:
-          type: string
-          description: Customer number
-          example: "123456"
-        name:
-          type: string
-          description: Customer's first name
-          example: "Ahmet"
-        surname:
-          type: string
-          description: Customer's surname
-          example: "Yılmaz"
-        citizen:
-          type: string
-          description: Citizenship information
-          example: "TC"
-        mernisNum:
-          type: string
-          description: MERNIS number
-          example: "12345678901"
-        birthDate:
-          type: string
-          description: Birth date
-          example: "1990-01-01"
-        otherNationalityId:
-          type: string
-          description: Other nationality identifier
-          example: "N/A"
-        customerType:
-          type: string
-          description: Customer type
-          example: "INDIVIDUAL"
-        isOperant:
-          type: boolean
-          description: Indicates if customer is operant
-          example: true
-        operantMessages:
-          type: array
-          description: Operant messages
-          items:
-            type: string
-          example: ["Customer is active", "No restrictions"]
-        isActivePerson:
-          type: boolean
-          description: Indicates if person is active
-          example: true
-        customerSubType:
-          type: string
-          description: Customer sub-type
-          example: "STANDARD"
-        customerSubType2:
-          type: string
-          description: Customer sub-type 2
-          example: "REGULAR"
-      example: {"customerNum": "123456", "name": "Ahmet", "surname": "Yılmaz", "isOperant": true}
-
-    ExtendedCustomerInfoDto:
-      type: object
-      description: Extended customer information
-      properties:
-        customerNum:
-          type: string
-          description: Customer number
-          example: "123456"
-        name:
-          type: string
-          description: Customer's first name
-          example: "Ahmet"
-        surname:
-          type: string
-          description: Customer's surname
-          example: "Yılmaz"
-        citizenText:
-          type: string
-          description: Citizenship text
-          example: "TC"
-        mernisNum:
-          type: string
-          description: MERNIS number
-          example: "12345678901"
-        birthDate:
-          type: string
-          description: Birth date
-          example: "1990-01-01"
-        otherNationalityId:
-          type: string
-          description: Other nationality identifier
-          example: "N/A"
-        settledCountryCode:
-          type: string
-          description: Settled country code
-          example: "TR"
-        birthPlace:
-          type: string
-          description: Birth place
-          example: "İstanbul"
-        motherName:
-          type: string
-          description: Mother's name
-          example: "Ayşe"
-        fatherName:
-          type: string
-          description: Father's name
-          example: "Mustafa"
-        phoneNumCountryCode:
-          type: string
-          description: Phone number country code
-          example: "+90"
-        phoneNum:
-          type: string
-          description: Phone number
-          example: "5551234567"
-        pasaportNumText:
-          type: string
-          description: Passport number
-          example: "U12345678"
-        addressType:
-          type: string
-          description: Address type
-          example: "HOME"
-        countryCode:
-          type: string
-          description: Country code
-          example: "TR"
-        cityCode:
-          type: string
-          description: City code
-          example: "34"
-        addressLine:
-          type: string
-          description: Address line
-          example: "Atatürk Cad. No:123 Daire 5"
-        postalCode:
-          type: string
-          description: Postal code
-          example: "34700"
-        regionName:
-          type: string
-          description: Region name
-          example: "Marmara"
-        workingStyle:
-          type: string
-          description: Working style
-          example: "FULL_TIME"
-        jobTitle:
-          type: string
-          description: Job title
-          example: "Engineer"
-      example: {"customerNum": "123456", "name": "Ahmet", "surname": "Yılmaz", "birthPlace": "İstanbul"}
-
-    GetKpsInfoRequestDto:
-      type: object
-      description: Request for KPS (Turkish identity verification system) information
-      properties:
-        nationalId:
-          type: string
-          description: National identity number
-          example: "12345678901"
-        birthDate:
-          type: string
-          description: Birth date
-          example: "1990-01-01"
-        inquiryDateMargin:
-          type: integer
-          format: int32
-          description: Inquiry date margin in days
-          example: 7
-      example: {"nationalId": "12345678901", "birthDate": "1990-01-01", "inquiryDateMargin": 7}
-
-    GetKpsInfoResponseDto:
-      type: object
-      description: Response containing KPS information
-      properties:
-        nationalIdNum:
-          type: string
-          description: National identity number
-          example: "12345678901"
-        name:
-          type: string
-          description: Person's name
-          example: "Ahmet"
-        surname:
-          type: string
-          description: Person's surname
-          example: "Yılmaz"
-        birthDate:
-          type: string
-          description: Birth date
-          example: "1990-01-01"
-        birthPlace:
-          type: string
-          description: Birth place
-          example: "İstanbul"
-        fatherName:
-          type: string
-          description: Father's name
-          example: "Mustafa"
-        motherName:
-          type: string
-          description: Mother's name
-          example: "Ayşe"
-        serialCode:
-          type: string
-          description: Serial code of identity card
-          example: "A01"
-        sequenceNumber:
-          type: integer
-          format: int64
-          description: Sequence number
-          example: 123456
-        newIdentityCard:
-          type: boolean
-          description: Indicates if this is a new identity card
-          example: true
-      example: {"nationalIdNum": "12345678901", "name": "Ahmet", "surname": "Yılmaz", "newIdentityCard": true}
-
-    SaveTransactionCustomerRequestDto:
-      type: object
-      description: Request for saving transaction customer
-      properties:
-        nationalIdNum:
-          type: string
-          description: National identity number
-          example: "12345678901"
-        name:
-          type: string
-          description: Customer's first name
-          example: "Ahmet"
-        surname:
-          type: string
-          description: Customer's surname
-          example: "Yılmaz"
-        birthDate:
-          type: string
-          description: Birth date
-          example: "1990-01-01"
-        nationalityCode:
-          type: string
-          description: Nationality code
-          example: "TR"
-        kktcNationalId:
-          type: string
-          description: KKTC (Turkish Republic of Northern Cyprus) national ID
-          example: "N/A"
-        passportId:
-          type: string
-          description: Passport identifier
-          example: "U12345678"
-        countryCode:
-          type: string
-          description: Country code
-          example: "TR"
-        birthPlace:
-          type: string
-          description: Birth place
-          example: "İstanbul"
-        fatherName:
-          type: string
-          description: Father's name
-          example: "Mustafa"
-        motherName:
-          type: string
-          description: Mother's name
-          example: "Ayşe"
-        workingType:
-          type: string
-          description: Working type
-          example: "FULL_TIME"
-        jobTitle:
-          type: string
-          description: Job title
-          example: "Engineer"
-        cityCode:
-          type: string
-          description: City code
-          example: "34"
-        cityName:
-          type: string
-          description: City name
-          example: "İstanbul"
-        countyName:
-          type: string
-          description: County name
-          example: "Kadıköy"
-        phoneCountryCode:
-          type: string
-          description: Phone country code
-          example: "+90"
-        phoneNum:
-          type: string
-          description: Phone number
-          example: "5551234567"
-        postcode:
-          type: string
-          description: Postal code
-          example: "34700"
-        address:
-          type: string
-          description: Full address
-          example: "Atatürk Cad. No:123 Daire 5"
-        addressType:
-          type: string
-          description: Address type
-          example: "HOME"
-        customerNum:
-          type: string
-          description: Customer number
-          example: "123456"
-      example: {"nationalIdNum": "12345678901", "name": "Ahmet", "surname": "Yılmaz", "cityName": "İstanbul"}
-
-    TransactionMessageResponseDto:
-      type: object
-      description: Response containing transaction message
-      properties:
-        message:
-          type: string
-          description: Result message
-          example: "Transaction customer saved successfully"
-        customerNum:
-          type: integer
-          format: int32
-          description: Customer number
-          example: 123456
-      example: {"message": "Transaction customer saved successfully", "customerNum": 123456}
-
-  parameters:
-    AuthorizationTokenHeader:
-      name: Authorization
-      in: header
-      description: Oauth Access token information
-      example: Bearer 4c4f8643-29e1-4b7f-b62c-03ea78dad48e
-      required: false
-      schema:
-        type: string
-    ContentTypeHeader:
-      name: Content-Type
-      in: header
-      description: application/json , application/xml
-      example: application/json
-      required: true
-      schema:
-        type: string
-    AcceptHeader:
-      name: Accept
-      in: header
-      description: application/json , application/xml
-      example: application/json
-      required: true
-      schema:
-        type: string
-    ChannelHeader:
-      name: channel
-      in: header
-      description: Information on which channel the request comes
-      example: ATM
-      required: true
-      schema:
-        type: string
-    IpHeader:
-      name: ip
-      in: header
-      description: End User Client IP
-      example: 127.0.0.1
-      required: true
-      schema:
-        type: string
-    DialectHeader:
-      name: dialect
-      in: header
-      description: TR (Turkish) , EN (English) , RO (Romanca)
-      example: TR
-      required: true
-      schema:
-        maxLength: 2
-        type: string
-    TenantCompanyHeader:
-      name: tenant-company-id
-      in: header
-      description: The id of the company from where the request is originated from (GAR, GFC, GES)
-      example: GAR
-      required: true
-      schema:
-        maxLength: 3
-        type: string
-    TenantGeolocationHeader:
-      name: tenant-geolocation
-      description: Location of where the request originated from.
-      example: TUR
-      in: header
-      required: false
-      schema:
-        maxLength: 3
-        type: string
-    TenantAppIdHeader:
-      name: tenant-app-id
-      description: Application or Service identdification number
-      example: 7e6584354f5e6624518686f6eb124265
-      in: header
-      required: false
-      schema:
-        type: string
-    ApiKeyHeader:
-      name: api-key
-      description: It is needed for Customer and Third-Party Services
-      example: l7xx766d3fc85ca74b4bbe582e529e62747a
-      in: header
-      required: false
-      schema:
-        type: string
-    GuidHeader:
-      name: guid
-      in: header
-      description: It is used to process trace. The GUID must be a unique value for each request
-      example: '123456789012345678901234567'
-      required: true
-      schema:
-        type: string
-    UserIdHeader:
-      name: user-id
-      description: 'User Id '
-      example: ME07684
-      in: header
-      required: false
-      schema:
-        type: string
-    ClientIdHeader:
-      name: client-id
-      description: The client Id is defined by access manager for getting authorization code and access token
-      example: QqWCRHVzntITMgBoa61f
-      in: header
-      required: false
-      schema:
-        type: string
-    RequestTraceFlagHeader:
-      name: request-trace-flag
-      description: 'true: log the request-response paylod in backend application.false: DO NOT log the request-response paylod in backend application.'
-      example: 'true'
-      in: header
-      required: false
-      schema:
-        type: string
-    ClientTraceIdlHeader:
-      name: x-client-trace-id
-      description: It is used to process trace. It must be a unique value for each request
-      example: a03debf792229fdbc6bc8a6e9b9df464
-      in: header
-      required: true
-      schema:
-        type: string
-    ForwardedForHeader:
-      name: x-forwareded-for
-      description: It is used to inform the originated IP address of a client
-      example: 203.0.113.195
-      in: header
-      required: true
-      schema:
-        type: string
