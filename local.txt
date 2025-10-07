@@ -86,7 +86,18 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/PaginationResultDto_ProcessResponseDto'
+                type: object
+                properties:
+                  totalCount:
+                    type: integer
+                    format: int32
+                    description: Total number of records
+                    example: 150
+                  records:
+                    type: array
+                    description: List of process records
+                    items:
+                      $ref: '#/components/schemas/ProcessResponseDto'
         '400':
           description: Bad Request
         '401':
@@ -803,9 +814,9 @@ components:
           example: "SORT_DIRECTION_DESC"
       example: {"field": "createDate", "direction": "SORT_DIRECTION_DESC"}
 
-    ProcessFilterRequestDto:
+    ProcessResponseDto:
       type: object
-      description: Filter criteria for process list
+      description: Process response information
       properties:
         status:
           type: string
@@ -851,23 +862,9 @@ components:
           example: "F01"
       example: {"status": "PENDING", "approveType": "SINGLE", "approvalUnitNum": 100, "transactionAmountMin": "1000.00", "transactionAmountMax": "50000.00"}
 
-    PaginationResultDto_ProcessResponseDto:
+    ProcessFilterRequestDto:
       type: object
-      description: Paginated result for process list
-      properties:
-        totalCount:
-          type: integer
-          format: int32
-          description: Total number of records
-          example: 150
-        records:
-          type: array
-          description: List of process records
-          items:
-            $ref: '#/components/schemas/ProcessResponseDto'
-      example: {"totalCount": 150, "records": [{"moneyTransactionId": "TXN001", "status": "PENDING", "approveType": "SINGLE"}]}
-
-    ProcessResponseDto:
+      description: Filter criteria for process list
       type: object
       description: Process response information
       properties:
