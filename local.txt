@@ -1,17 +1,17 @@
-// src/features/documents/DocumentScannerComponent.tsx
-
-import React, { JSX, useEffect, useMemo, useState } from "react";
-import { useAppSelector } from "../../store";
-import { EfaCollapseDocumentScannerMultiCustomer } from "@efa-web-components-multi-cust-doc/efa-collapse-document-scanner-multi-customer";
-import type { TransactionMaker } from "../../store/transactionInfoSlice";
+import React, { JSX, useEffect, useMemo, useState } from 'react';
 import {
-  parseDebitSets,
+  EfaCollapseDocumentScannerMultiCustomer
+} from '@efa-web-components-multi-cust-doc/efa-collapse-document-scanner-multi-customer';
+import { useAppSelector } from '../../store';
+import { TransactionMaker } from '../../store/slices/transactionSlice';
+import {
+  DocumentInfo,
   makeDocumentInfoFromCode,
-  toStr,
-  type DocumentInfo,
-} from "./utils/documentSets";
+  parseDebitSets,
+  toStr
+} from '../../utils/DocumentScanner/documentScannerUtils';
 
-// --- Local tipler ---
+// Local tipler
 type Person = {
   customerNum: string;
   mernisNum: string;
@@ -33,61 +33,61 @@ type CustomerData = {
   customerNum: string;
   fullName: string;
   documentScannerData: {
-    personListJson: Person[];         // inner array
-    documentListJson: DocumentInfo[]; // inner array (çoklu set olabilir)
+    personListJson: Person[];         // iç array (tek Person objesi)
+    documentListJson: DocumentInfo[]; // iç array (birden fazla doküman seti olabilir)
     documentScanInfoJson: DocumentScanInfo;
   };
 };
 
 const DocumentScannerComponent = (): JSX.Element => {
-  // transactionInfo'dan gerekli alanlar
-  const {
-    opCode,
-    transactionMaker,
-    documentSetDebit,
-    extraDocSetsByCustomer,
-  } = useAppSelector((s) => s.transactionInfo);
+  // transactionInfo slice
+  const { transactionMaker, documentSetDebit, extraDocSetsByCustomer, opCode } =
+    useAppSelector((s) => s.transactionInfo);
 
-  // Diğer slice: customerInfo –> bu müşteri her zaman listede olmalı
-  const primaryCustomerNumberRaw = useAppSelector(
-    (s) => s.customerInfo?.customerNumber as string | number | undefined
+  // diğer slice: customerInfoReducer — primary müşteri bilgisi
+  // Not: İsim acting olsa da burada "primary" müşteri olarak kullanacağız
+  const actingCustomerNumberRaw = useAppSelector(
+    (state) => state.customerInfoReducer.customerNumber as string | number | undefined
   );
   const primaryCustomerNumber = useMemo(
-    () => String(primaryCustomerNumberRaw ?? ""),
-    [primaryCustomerNumberRaw]
+    () => String(actingCustomerNumberRaw ?? ''),
+    [actingCustomerNumberRaw]
   );
 
   const primaryCustomerTcknRaw = useAppSelector(
-    (s) => s.customerInfo?.tckn as string | number | undefined
+    (state) => state.customerInfoReducer.tckn as string | number | undefined
   );
   const primaryCustomerTckn = useMemo(
-    () => String(primaryCustomerTcknRaw ?? ""),
+    () => String(primaryCustomerTcknRaw ?? ''),
     [primaryCustomerTcknRaw]
   );
 
-  // maker listesini normalize et + primary müşteriyi garanti dahil et (duplicate'siz)
+  // makers: transactionMaker normalize + primary müşteriyi (listede değilse) ekle + duplicate temizle
   const makers = useMemo(() => {
+    // normalize
     const normalized = transactionMaker.map((tm: TransactionMaker) => ({
       ...tm,
       customerNumber: toStr(tm.customerNumber),
       mernisNum: toStr(tm.mernisNum),
     }));
 
+    // primary listede mi?
     const exists =
-      primaryCustomerNumber !== "" &&
+      primaryCustomerNumber !== '' &&
       normalized.some((m) => m.customerNumber === primaryCustomerNumber);
 
-    if (!exists && primaryCustomerNumber !== "") {
+    // yoksa ekle (minimum alanlarla)
+    if (!exists && primaryCustomerNumber !== '') {
       normalized.unshift({
-        name: "",
-        surname: "",
-        address: "",
+        name: '',
+        surname: '',
+        address: '',
         customerNumber: primaryCustomerNumber,
-        mernisNum: primaryCustomerTckn, // tckn ile doldur
+        mernisNum: primaryCustomerTckn, // mernis boş ise tckn ile besleyeceğiz
       } as TransactionMaker);
     }
 
-    // aynı customerNumber'ı tekrar etme
+    // duplicate güvenliği (aynı customerNumber birden fazla ise)
     const seen = new Set<string>();
     const dedup = normalized.filter((m) => {
       if (seen.has(m.customerNumber)) return false;
@@ -98,25 +98,25 @@ const DocumentScannerComponent = (): JSX.Element => {
     return dedup;
   }, [transactionMaker, primaryCustomerNumber, primaryCustomerTckn]);
 
-  // PersonListJson (outer: maker index, inner: [Person])
+  // PersonListJson: outer = müşteri, inner = [Person]
   const [personListJson, setPersonListJson] = useState<Person[][]>([]);
   useEffect(() => {
     const next: Person[][] = makers.map((tm) => [
       {
         customerNum: tm.customerNumber,
-        mernisNum: tm.mernisNum || primaryCustomerTckn,
+        mernisNum: tm.mernisNum || primaryCustomerTckn, // boşsa tckn ile doldur
         taxNum: 0,
-        docPersonType: "01",
-        transferableDocClass: "",
+        docPersonType: '01',
+        transferableDocClass: '',
       },
     ]);
     setPersonListJson(next);
   }, [makers, primaryCustomerTckn]);
 
-  // I/B setlerini ayrıştır + özel opCode için tekilleştirme
+  // I/B setlerini ayrıştır + özel opCode (PR-HES-KAS-FIS-T) için tekilleştirme
   const baseSets = useMemo(() => {
     const parsed = parseDebitSets(documentSetDebit);
-    if (opCode === "PR-HES-KAS-FIS-T") {
+    if (opCode === 'PR-HES-KAS-FIS-T') {
       const uniq = <T extends string>(arr: T[]) => Array.from(new Set(arr));
       return { I: uniq(parsed.I), B: uniq(parsed.B) };
     }
@@ -126,37 +126,36 @@ const DocumentScannerComponent = (): JSX.Element => {
   // sabit scan info
   const documentScanInfoJson: DocumentScanInfo = useMemo(
     () => ({
-      processCode: "GENELADRES",
-      processId: "MN000000045003398",
-      processLevelNum: "0",
-      processText: "",
-      useMaxDisplay: "false",
-      maxDisplayPerSet: "0",
+      processCode: 'GENELADRES',
+      processId: 'MN000000045003398',
+      processLevelNum: '0',
+      processText: '',
+      useMaxDisplay: 'false',
+      maxDisplayPerSet: '0',
     }),
     []
   );
 
   /**
-   * Yeni dağıtım mantığı:
-   *  - Kural #2: Tüm müşterilere I set(ler)i ver.
-   *  - Kural #3: Eğer B set(ler)i varsa, sadece primary müşteri için ayrıca B set(ler)ini de ekle (primary = I + B).
-   *  - extraDocSetsByCustomer: butonla gelen ek setler ayrıca eklenir.
+   * Set dağıtımı:
+   *  - Herkese I set(ler)i
+   *  - Primary müşteriye ayrıca B set(ler)i (varsa)
+   *  - extraDocSetsByCustomer ile butondan/aksiyondan gelen ilave setler
    */
   const compData = useMemo<CustomerData[]>(() => {
     return makers.map((tm, i) => {
       const isPrimary =
-        primaryCustomerNumber !== "" &&
-        tm.customerNumber === primaryCustomerNumber;
+        primaryCustomerNumber !== '' && tm.customerNumber === primaryCustomerNumber;
 
-      // Herkese I setleri
+      // Herkese I
       let codes = [...baseSets.I];
 
-      // Primary müşteriye B setlerini de ekle (varsa)
+      // Primary'ye B de ekle (varsa)
       if (isPrimary && baseSets.B.length > 0) {
         codes = [...codes, ...baseSets.B];
       }
 
-      // butonla eklenen ekstra setler
+      // Butonla eklenen ek setler
       const extraCodes = extraDocSetsByCustomer[tm.customerNumber] ?? [];
       const allCodes = [...codes, ...extraCodes];
 
@@ -167,14 +166,14 @@ const DocumentScannerComponent = (): JSX.Element => {
 
       const personArr = personListJson[i] ?? [];
       const fullName =
-        `${tm.name ?? ""} ${tm.surname ?? ""}`.trim() || `User ${i + 1}`;
+        `${tm.name ?? ''} ${tm.surname ?? ''}`.trim() || `User ${i + 1}`;
 
       return {
         customerNum: tm.customerNumber,
         fullName,
         documentScannerData: {
-          personListJson: personArr,
-          documentListJson,
+          personListJson: personArr, // Person[]
+          documentListJson,          // DocumentInfo[]
           documentScanInfoJson,
         },
       };
@@ -188,8 +187,8 @@ const DocumentScannerComponent = (): JSX.Element => {
     documentScanInfoJson,
   ]);
 
-  // debug istersen:
-  // useEffect(() => { console.log("compData", compData); }, [compData]);
+  // Debug istersen:
+  // useEffect(() => { console.log('compData', compData); }, [compData]);
 
   return <EfaCollapseDocumentScannerMultiCustomer data={compData} />;
 };
