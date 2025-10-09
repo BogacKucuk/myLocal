@@ -1,43 +1,197 @@
-public static final String FIND_BY_CUSTOMER_NUMBER = """
-      SELECT * FROM T_MONEY_WITHDRAWAL_DEPOSIT 
-      WHERE PROCESS_DATE >= ADD_MONTHS(TRUNC(SYSDATE), ?) 
-      AND CUSTOMER_NUMBER = ? 
-      AND (
-          (FINANCIAL_FAMILY_CODE = ? AND FINANCIAL_SUB_FAMILY_CODE = ?)
-          OR
-          (FINANCIAL_FAMILY_CODE = ? AND FINANCIAL_SUB_FAMILY_CODE = ?)
-      )
-      ORDER BY PROCESS_DATE DESC 
-      FETCH FIRST ? ROWS ONLY
-      """;
+// src/features/documents/DocumentScannerComponent.tsx
 
+import React, { JSX, useEffect, useMemo, useState } from "react";
+import { useAppSelector } from "../../store";
+import { EfaCollapseDocumentScannerMultiCustomer } from "@efa-web-components-multi-cust-doc/efa-collapse-document-scanner-multi-customer";
+import type { TransactionMaker } from "../../store/transactionInfoSlice";
+import {
+  parseDebitSets,
+  makeDocumentInfoFromCode,
+  toStr,
+  type DocumentInfo,
+} from "./utils/documentSets";
 
+// --- Local tipler ---
+type Person = {
+  customerNum: string;
+  mernisNum: string;
+  taxNum: number;
+  docPersonType: string;
+  transferableDocClass: string;
+};
 
+type DocumentScanInfo = {
+  processCode: string;
+  processId: string;
+  processLevelNum: string;
+  processText: string;
+  useMaxDisplay: string;
+  maxDisplayPerSet: string;
+};
 
-@Override
-public Optional<List<TransactionEntity>> findByCustomerNumber(Integer customerNumber) throws BusinessException {
-    try {
-        Integer queryMonths = -12;
-        Integer fetchRows = 10;
-        String familyCode1 = "PC";
-        String subFamilyCode1 = "KAS-KEN";
-        String familyCode2 = "PR";
-        String subFamilyCode2 = "HES-KAS-KEN";
-        
-        List<TransactionEntity> entityList = jdbcAccessor.query(
-            TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER, 
-            new ArkEntityBeanPropertyRowMapper<>(TransactionEntity.class), 
-            queryMonths, 
-            customerNumber, 
-            familyCode1, 
-            subFamilyCode1, 
-            familyCode2, 
-            subFamilyCode2, 
-            fetchRows
-        );
-        return Optional.ofNullable(entityList);
+type CustomerData = {
+  customerNum: string;
+  fullName: string;
+  documentScannerData: {
+    personListJson: Person[];         // inner array
+    documentListJson: DocumentInfo[]; // inner array (çoklu set olabilir)
+    documentScanInfoJson: DocumentScanInfo;
+  };
+};
+
+const DocumentScannerComponent = (): JSX.Element => {
+  // transactionInfo'dan gerekli alanlar
+  const {
+    opCode,
+    transactionMaker,
+    documentSetDebit,
+    extraDocSetsByCustomer,
+  } = useAppSelector((s) => s.transactionInfo);
+
+  // Diğer slice: customerInfo –> bu müşteri her zaman listede olmalı
+  const primaryCustomerNumberRaw = useAppSelector(
+    (s) => s.customerInfo?.customerNumber as string | number | undefined
+  );
+  const primaryCustomerNumber = useMemo(
+    () => String(primaryCustomerNumberRaw ?? ""),
+    [primaryCustomerNumberRaw]
+  );
+
+  const primaryCustomerTcknRaw = useAppSelector(
+    (s) => s.customerInfo?.tckn as string | number | undefined
+  );
+  const primaryCustomerTckn = useMemo(
+    () => String(primaryCustomerTcknRaw ?? ""),
+    [primaryCustomerTcknRaw]
+  );
+
+  // maker listesini normalize et + primary müşteriyi garanti dahil et (duplicate'siz)
+  const makers = useMemo(() => {
+    const normalized = transactionMaker.map((tm: TransactionMaker) => ({
+      ...tm,
+      customerNumber: toStr(tm.customerNumber),
+      mernisNum: toStr(tm.mernisNum),
+    }));
+
+    const exists =
+      primaryCustomerNumber !== "" &&
+      normalized.some((m) => m.customerNumber === primaryCustomerNumber);
+
+    if (!exists && primaryCustomerNumber !== "") {
+      normalized.unshift({
+        name: "",
+        surname: "",
+        address: "",
+        customerNumber: primaryCustomerNumber,
+        mernisNum: primaryCustomerTckn, // tckn ile doldur
+      } as TransactionMaker);
     }
-    catch (Exception e) {
-        throw new BusinessException(ApplicationConstants.MWB300241001, e);
+
+    // aynı customerNumber'ı tekrar etme
+    const seen = new Set<string>();
+    const dedup = normalized.filter((m) => {
+      if (seen.has(m.customerNumber)) return false;
+      seen.add(m.customerNumber);
+      return true;
+    });
+
+    return dedup;
+  }, [transactionMaker, primaryCustomerNumber, primaryCustomerTckn]);
+
+  // PersonListJson (outer: maker index, inner: [Person])
+  const [personListJson, setPersonListJson] = useState<Person[][]>([]);
+  useEffect(() => {
+    const next: Person[][] = makers.map((tm) => [
+      {
+        customerNum: tm.customerNumber,
+        mernisNum: tm.mernisNum || primaryCustomerTckn,
+        taxNum: 0,
+        docPersonType: "01",
+        transferableDocClass: "",
+      },
+    ]);
+    setPersonListJson(next);
+  }, [makers, primaryCustomerTckn]);
+
+  // I/B setlerini ayrıştır + özel opCode için tekilleştirme
+  const baseSets = useMemo(() => {
+    const parsed = parseDebitSets(documentSetDebit);
+    if (opCode === "PR-HES-KAS-FIS-T") {
+      const uniq = <T extends string>(arr: T[]) => Array.from(new Set(arr));
+      return { I: uniq(parsed.I), B: uniq(parsed.B) };
     }
-}
+    return parsed;
+  }, [documentSetDebit, opCode]);
+
+  // sabit scan info
+  const documentScanInfoJson: DocumentScanInfo = useMemo(
+    () => ({
+      processCode: "GENELADRES",
+      processId: "MN000000045003398",
+      processLevelNum: "0",
+      processText: "",
+      useMaxDisplay: "false",
+      maxDisplayPerSet: "0",
+    }),
+    []
+  );
+
+  /**
+   * Yeni dağıtım mantığı:
+   *  - Kural #2: Tüm müşterilere I set(ler)i ver.
+   *  - Kural #3: Eğer B set(ler)i varsa, sadece primary müşteri için ayrıca B set(ler)ini de ekle (primary = I + B).
+   *  - extraDocSetsByCustomer: butonla gelen ek setler ayrıca eklenir.
+   */
+  const compData = useMemo<CustomerData[]>(() => {
+    return makers.map((tm, i) => {
+      const isPrimary =
+        primaryCustomerNumber !== "" &&
+        tm.customerNumber === primaryCustomerNumber;
+
+      // Herkese I setleri
+      let codes = [...baseSets.I];
+
+      // Primary müşteriye B setlerini de ekle (varsa)
+      if (isPrimary && baseSets.B.length > 0) {
+        codes = [...codes, ...baseSets.B];
+      }
+
+      // butonla eklenen ekstra setler
+      const extraCodes = extraDocSetsByCustomer[tm.customerNumber] ?? [];
+      const allCodes = [...codes, ...extraCodes];
+
+      // DocumentInfo'ya çevir
+      const documentListJson: DocumentInfo[] = allCodes.map((c) =>
+        makeDocumentInfoFromCode(c)
+      );
+
+      const personArr = personListJson[i] ?? [];
+      const fullName =
+        `${tm.name ?? ""} ${tm.surname ?? ""}`.trim() || `User ${i + 1}`;
+
+      return {
+        customerNum: tm.customerNumber,
+        fullName,
+        documentScannerData: {
+          personListJson: personArr,
+          documentListJson,
+          documentScanInfoJson,
+        },
+      };
+    });
+  }, [
+    makers,
+    primaryCustomerNumber,
+    baseSets,
+    extraDocSetsByCustomer,
+    personListJson,
+    documentScanInfoJson,
+  ]);
+
+  // debug istersen:
+  // useEffect(() => { console.log("compData", compData); }, [compData]);
+
+  return <EfaCollapseDocumentScannerMultiCustomer data={compData} />;
+};
+
+export default DocumentScannerComponent;
