@@ -1,7 +1,43 @@
-public static final String FIND_BY_CUSTOMER_NUMBER = 
-      "SELECT * FROM T_MONEY_WITHDRAWAL_DEPOSIT " +
-      "WHERE PROCESS_DATE >= ADD_MONTHS(TRUNC(SYSDATE), ?) " +
-      "AND CUSTOMER_NUMBER = ? " +
-      "AND (FINANCIAL_FAMILY_CODE = 'PC' AND FINANCIAL_SUB_FAMILY_CODE = 'KAS-KEN' " +
-      "OR FINANCIAL_FAMILY_CODE = 'PR' AND FINANCIAL_SUB_FAMILY_CODE = 'HES-KAS-KEN') " +
-      "ORDER BY PROCESS_DATE DESC FETCH FIRST ? ROWS ONLY";
+public static final String FIND_BY_CUSTOMER_NUMBER = """
+      SELECT * FROM T_MONEY_WITHDRAWAL_DEPOSIT 
+      WHERE PROCESS_DATE >= ADD_MONTHS(TRUNC(SYSDATE), ?) 
+      AND CUSTOMER_NUMBER = ? 
+      AND (
+          (FINANCIAL_FAMILY_CODE = ? AND FINANCIAL_SUB_FAMILY_CODE = ?)
+          OR
+          (FINANCIAL_FAMILY_CODE = ? AND FINANCIAL_SUB_FAMILY_CODE = ?)
+      )
+      ORDER BY PROCESS_DATE DESC 
+      FETCH FIRST ? ROWS ONLY
+      """;
+
+
+
+
+@Override
+public Optional<List<TransactionEntity>> findByCustomerNumber(Integer customerNumber) throws BusinessException {
+    try {
+        Integer queryMonths = -12;
+        Integer fetchRows = 10;
+        String familyCode1 = "PC";
+        String subFamilyCode1 = "KAS-KEN";
+        String familyCode2 = "PR";
+        String subFamilyCode2 = "HES-KAS-KEN";
+        
+        List<TransactionEntity> entityList = jdbcAccessor.query(
+            TransactionQueryConstant.FIND_BY_CUSTOMER_NUMBER, 
+            new ArkEntityBeanPropertyRowMapper<>(TransactionEntity.class), 
+            queryMonths, 
+            customerNumber, 
+            familyCode1, 
+            subFamilyCode1, 
+            familyCode2, 
+            subFamilyCode2, 
+            fetchRows
+        );
+        return Optional.ofNullable(entityList);
+    }
+    catch (Exception e) {
+        throw new BusinessException(ApplicationConstants.MWB300241001, e);
+    }
+}
