@@ -1,22 +1,35 @@
-// Örn: src/features/money-withdraw/MainMoneyWithdraw.tsx (veya dispatch'i nereye koyuyorsan)
-import { useAppDispatch, useAppSelector } from '../../store';
-import { transactionInfoActions } from '../../store/slices/transactionSlice';
+// FIX: currency ALT ise eklenecek !!!!!!
+if (actingCustomerNumber) {
+  // kıbrıs şube
+  if (branchInfo.type === 'C') {
+    if (`${customerType}${customerSubType}${customerSubType2}` === 'TGO') {
+      documentSet = 'PYPCKAT';
+    } else if (customerType === 'G') {
+      documentSet = 'PYPCKAL';
+    }
+  }
 
-// ...
-const dispatch = useAppDispatch();
+  // ortak hesap
+  if (customerInfo.isJointForDoc) {
+    if (branchType === 'C') {
+      if (`${customerType}${customerSubType}${customerSubType2}` === 'TGO') {
+        documentSet = 'PYPCKOH';
+      } else if (customerType === 'G') {
+        documentSet = 'PYPCKAO';
+      }
+    } else if (`${customerType}${customerSubType}${customerSubType2}` === 'TGO') {
+      documentSet = 'PYPCAMO';
+    } else if (customerType === 'G') {
+      documentSet = 'PYPCAMS';
+    }
+  }
 
-// Hesap sahibi müşteri numarası (primary) — her zaman string'e çek
-const primaryCustomerNumberRaw = useAppSelector(
-  (s) => s.customerInfoReducer.customerNumber as string | number | undefined
-);
-const primaryCustomerNumber = String(primaryCustomerNumberRaw ?? '');
-
-// ... PDF başarıyla indirildikten sonra:
-if (primaryCustomerNumber) {
-  dispatch(
-    transactionInfoActions.addExtraDocSet({
-      customerNumber: primaryCustomerNumber,
-      setCode: 'GISESET9',
-    })
-  );
+  // todo iletisim dili yerine uyruga bakiyor
+  if (preferredLanguage === 'TUR') {
+    switch (`${customerType}${customerSubType}${customerSubType2}`) {
+      case 'TGO':
+        documentSet = 'PYPCFAS';
+        break;
+    }
+  }
 }
