@@ -1,78 +1,263 @@
-syntax = "proto3";
+package com.garanti.ark.channel.dto.document;
 
-package document.db2;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
 
-option java_multiple_files = true;
-option java_package = "com.example.document.db2";
-option java_outer_classname = "DocumentDB2Proto";
-
-// Service tanımı
-service DocumentDB2Service {
-  rpc CreateDocumentDB2Record(CreateDocumentDB2Request) returns (CreateDocumentDB2Response);
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class CreateDocumentDB2RequestDto {
+    
+    private ReferenceIdServerDataDto referenceIdServerData;
+    private IdCardTxnDto idCardTxn;
+    private GroupListDto groupList;
+    private String companyCode;
 }
 
-// Request mesajı
-message CreateDocumentDB2Request {
-  ReferenceIdServerData referenceIdServerData = 1;
-  IdCardTxn idCardTxn = 2;
-  GroupList groupList = 3;
-  string companyCode = 4;
+package com.garanti.ark.channel.dto.document;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class ReferenceIdServerDataDto {
+    
+    private String userId;
+    private String referenceId;
 }
 
-// Response mesajı
-message CreateDocumentDB2Response {
-  string instanceId = 1;
-  ErrorComponent errorComponent = 2;
-  ContextString contextString = 3;
-  string messageTxt = 4;
-  int32 returnCode = 5;
-  int32 reasonCode = 6;
-  string checksum = 7;
+package com.garanti.ark.channel.dto.document;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class IdCardTxnDto {
+    
+    private String txnId;
+    private String sourceText;
+    private Integer unitNum;
+    private String productCode;
+    private String productId;
+    private String processId;
+    private String processCode;
 }
 
-// ErrorComponent mesajı
-message ErrorComponent {
-  string severityCode = 1;
-  string rollbackIndicator = 2;
-  string originServId = 3;
+package com.garanti.ark.channel.dto.document;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+import java.util.List;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class GroupListDto {
+    
+    private List<GroupListItemDto> groupListItems;
 }
 
-// ContextString mesajı
-message ContextString {
-  int32 contextLength = 1;
-  string contextValue = 2;
+package com.garanti.ark.channel.dto.document;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class GroupListItemDto {
+    
+    private IdCardTxnDetailDto idCardTxn;
+    private Integer customerNum;
 }
 
-// ReferenceIdServerData mesajı
-message ReferenceIdServerData {
-  string userId = 1;
-  string referenceId = 2;
+package com.garanti.ark.channel.dto.document;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class IdCardTxnDetailDto {
+    
+    private String documentId;
+    private String docPersonType;
 }
 
-// IdCardTxn mesajı
-message IdCardTxn {
-  string txnId = 1;
-  string sourceText = 2;
-  int32 unitNum = 3;
-  string productCode = 4;
-  string productId = 5;
-  string processId = 6;
-  string processCode = 7;
+
+-------------------------response------------------------
+
+package com.garanti.ark.channel.dto.document;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class CreateDocumentDB2ResponseDto {
+    
+    private String instanceId;
+    private ErrorComponentDto errorComponent;
+    private ContextStringDto contextString;
+    private String messageTxt;
+    private Integer returnCode;
+    private Integer reasonCode;
+    private String checksum;
 }
 
-// GroupList mesajı
-message GroupList {
-  repeated GroupListItem groupListItems = 1;
+package com.garanti.ark.channel.dto.document;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class ErrorComponentDto {
+    
+    private String severityCode;
+    private String rollbackIndicator;
+    private String originServId;
 }
 
-// GroupListItem mesajı
-message GroupListItem {
-  IdCardTxnDetail idCardTxn = 1;
-  int32 customerNum = 2;
+package com.garanti.ark.channel.dto.document;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class ContextStringDto {
+    
+    private Integer contextLength;
+    private String contextValue;
 }
 
-// IdCardTxnDetail mesajı (groupList içindeki idCardTxn için)
-message IdCardTxnDetail {
-  string documentId = 1;
-  string docPersonType = 2;
+
+
+----------------------------mapper---------------------------------------
+
+package com.garanti.ark.channel.mapper;
+
+import com.example.document.db2.*;
+import com.garanti.ark.channel.dto.document.*;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.factory.Mappers;
+
+@Mapper(config = GrpcMapperConfig.class)
+public interface DocumentDB2GrpcMapper {
+    
+    DocumentDB2GrpcMapper INSTANCE = Mappers.getMapper(DocumentDB2GrpcMapper.class);
+    
+    // ==================== Request Mappings ====================
+    
+    /**
+     * DTO'dan gRPC Request'e dönüşüm
+     */
+    @Mapping(target = "referenceIdServerData", source = "referenceIdServerData")
+    @Mapping(target = "idCardTxn", source = "idCardTxn")
+    @Mapping(target = "groupList", source = "groupList")
+    @Mapping(target = "companyCode", source = "companyCode")
+    CreateDocumentDB2Request toGrpcRequest(CreateDocumentDB2RequestDto dto);
+    
+    /**
+     * gRPC Request'ten DTO'ya dönüşüm
+     */
+    @Mapping(target = "referenceIdServerData", source = "referenceIdServerData")
+    @Mapping(target = "idCardTxn", source = "idCardTxn")
+    @Mapping(target = "groupList", source = "groupList")
+    @Mapping(target = "companyCode", source = "companyCode")
+    CreateDocumentDB2RequestDto toDto(CreateDocumentDB2Request grpcRequest);
+    
+    // ReferenceIdServerData mappings
+    ReferenceIdServerData toGrpcReferenceIdServerData(ReferenceIdServerDataDto dto);
+    ReferenceIdServerDataDto toReferenceIdServerDataDto(ReferenceIdServerData grpc);
+    
+    // IdCardTxn mappings
+    IdCardTxn toGrpcIdCardTxn(IdCardTxnDto dto);
+    IdCardTxnDto toIdCardTxnDto(IdCardTxn grpc);
+    
+    // GroupList mappings
+    GroupList toGrpcGroupList(GroupListDto dto);
+    GroupListDto toGroupListDto(GroupList grpc);
+    
+    // GroupListItem mappings
+    GroupListItem toGrpcGroupListItem(GroupListItemDto dto);
+    GroupListItemDto toGroupListItemDto(GroupListItem grpc);
+    
+    // IdCardTxnDetail mappings
+    IdCardTxnDetail toGrpcIdCardTxnDetail(IdCardTxnDetailDto dto);
+    IdCardTxnDetailDto toIdCardTxnDetailDto(IdCardTxnDetail grpc);
+    
+    // ==================== Response Mappings ====================
+    
+    /**
+     * gRPC Response'tan DTO'ya dönüşüm
+     */
+    @Mapping(target = "instanceId", source = "instanceId")
+    @Mapping(target = "errorComponent", source = "errorComponent")
+    @Mapping(target = "contextString", source = "contextString")
+    @Mapping(target = "messageTxt", source = "messageTxt")
+    @Mapping(target = "returnCode", source = "returnCode")
+    @Mapping(target = "reasonCode", source = "reasonCode")
+    @Mapping(target = "checksum", source = "checksum")
+    CreateDocumentDB2ResponseDto toResponseDto(CreateDocumentDB2Response grpcResponse);
+    
+    /**
+     * DTO'dan gRPC Response'a dönüşüm
+     */
+    @Mapping(target = "instanceId", source = "instanceId")
+    @Mapping(target = "errorComponent", source = "errorComponent")
+    @Mapping(target = "contextString", source = "contextString")
+    @Mapping(target = "messageTxt", source = "messageTxt")
+    @Mapping(target = "returnCode", source = "returnCode")
+    @Mapping(target = "reasonCode", source = "reasonCode")
+    @Mapping(target = "checksum", source = "checksum")
+    CreateDocumentDB2Response toGrpcResponse(CreateDocumentDB2ResponseDto dto);
+    
+    // ErrorComponent mappings
+    ErrorComponent toGrpcErrorComponent(ErrorComponentDto dto);
+    ErrorComponentDto toErrorComponentDto(ErrorComponent grpc);
+    
+    // ContextString mappings
+    ContextString toGrpcContextString(ContextStringDto dto);
+    ContextStringDto toContextStringDto(ContextString grpc);
 }
+
+
