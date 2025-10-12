@@ -1,35 +1,78 @@
-// FIX: currency ALT ise eklenecek !!!!!!
-if (actingCustomerNumber) {
-  // kıbrıs şube
-  if (branchInfo.type === 'C') {
-    if (`${customerType}${customerSubType}${customerSubType2}` === 'TGO') {
-      documentSet = 'PYPCKAT';
-    } else if (customerType === 'G') {
-      documentSet = 'PYPCKAL';
-    }
-  }
+syntax = "proto3";
 
-  // ortak hesap
-  if (customerInfo.isJointForDoc) {
-    if (branchType === 'C') {
-      if (`${customerType}${customerSubType}${customerSubType2}` === 'TGO') {
-        documentSet = 'PYPCKOH';
-      } else if (customerType === 'G') {
-        documentSet = 'PYPCKAO';
-      }
-    } else if (`${customerType}${customerSubType}${customerSubType2}` === 'TGO') {
-      documentSet = 'PYPCAMO';
-    } else if (customerType === 'G') {
-      documentSet = 'PYPCAMS';
-    }
-  }
+package document.db2;
 
-  // todo iletisim dili yerine uyruga bakiyor
-  if (preferredLanguage === 'TUR') {
-    switch (`${customerType}${customerSubType}${customerSubType2}`) {
-      case 'TGO':
-        documentSet = 'PYPCFAS';
-        break;
-    }
-  }
+option java_multiple_files = true;
+option java_package = "com.example.document.db2";
+option java_outer_classname = "DocumentDB2Proto";
+
+// Service tanımı
+service DocumentDB2Service {
+  rpc CreateDocumentDB2Record(CreateDocumentDB2Request) returns (CreateDocumentDB2Response);
+}
+
+// Request mesajı
+message CreateDocumentDB2Request {
+  ReferenceIdServerData referenceIdServerData = 1;
+  IdCardTxn idCardTxn = 2;
+  GroupList groupList = 3;
+  string companyCode = 4;
+}
+
+// Response mesajı
+message CreateDocumentDB2Response {
+  string instanceId = 1;
+  ErrorComponent errorComponent = 2;
+  ContextString contextString = 3;
+  string messageTxt = 4;
+  int32 returnCode = 5;
+  int32 reasonCode = 6;
+  string checksum = 7;
+}
+
+// ErrorComponent mesajı
+message ErrorComponent {
+  string severityCode = 1;
+  string rollbackIndicator = 2;
+  string originServId = 3;
+}
+
+// ContextString mesajı
+message ContextString {
+  int32 contextLength = 1;
+  string contextValue = 2;
+}
+
+// ReferenceIdServerData mesajı
+message ReferenceIdServerData {
+  string userId = 1;
+  string referenceId = 2;
+}
+
+// IdCardTxn mesajı
+message IdCardTxn {
+  string txnId = 1;
+  string sourceText = 2;
+  int32 unitNum = 3;
+  string productCode = 4;
+  string productId = 5;
+  string processId = 6;
+  string processCode = 7;
+}
+
+// GroupList mesajı
+message GroupList {
+  repeated GroupListItem groupListItems = 1;
+}
+
+// GroupListItem mesajı
+message GroupListItem {
+  IdCardTxnDetail idCardTxn = 1;
+  int32 customerNum = 2;
+}
+
+// IdCardTxnDetail mesajı (groupList içindeki idCardTxn için)
+message IdCardTxnDetail {
+  string documentId = 1;
+  string docPersonType = 2;
 }
