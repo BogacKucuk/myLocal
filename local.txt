@@ -15,6 +15,9 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 @Mapper(config = GrpcMapperConfig.class)
 public interface DocumentProcessMapper {
 
@@ -25,52 +28,112 @@ public interface DocumentProcessMapper {
   /**
    * Business DTO'dan External Service gRPC Request'e dönüşüm
    */
-  @Mapping(target = "referenceIdServerData", source = "referenceIdServerData")
-  @Mapping(target = "idCardTxn", source = "idCardTxn")
-  @Mapping(target = "groupList", source = "groupList")
-  @Mapping(target = "companyCode", source = "companyCode")
-  ProcessCreateGrpcRequest toProcessCreateGrpcRequest(CreateDocumentDB2RequestDto dto);
-
-  /**
-   * External Service gRPC Request'ten Business DTO'ya dönüşüm
-   */
-  @Mapping(target = "referenceIdServerData", source = "referenceIdServerData")
-  @Mapping(target = "idCardTxn", source = "idCardTxn")
-  @Mapping(target = "groupList", source = "groupList")
-  @Mapping(target = "companyCode", source = "companyCode")
-  CreateDocumentDB2RequestDto toDto(ProcessCreateGrpcRequest grpcRequest);
+  default ProcessCreateGrpcRequest toProcessCreateGrpcRequest(CreateDocumentDB2RequestDto dto) {
+    if (dto == null) {
+      return null;
+    }
+    
+    ProcessCreateGrpcRequest.Builder builder = ProcessCreateGrpcRequest.newBuilder();
+    
+    if (dto.getReferenceIdServerData() != null) {
+      builder.setReferenceIdServerData(toProcessCreateReferenceIdServerData(dto.getReferenceIdServerData()));
+    }
+    
+    if (dto.getIdCardTxn() != null) {
+      builder.setIdCardTxn(toProcessCreateIdCardTxn(dto.getIdCardTxn()));
+    }
+    
+    if (dto.getGroupList() != null) {
+      builder.setGroupList(toProcessCreateGroupList(dto.getGroupList()));
+    }
+    
+    if (dto.getCompanyCode() != null) {
+      builder.setCompanyCode(dto.getCompanyCode());
+    }
+    
+    return builder.build();
+  }
 
   // ReferenceIdServerData mappings
-  ReferenceIdServerData toProcessCreateReferenceIdServerData(ReferenceIdServerDataDto dto);
+  default ReferenceIdServerData toProcessCreateReferenceIdServerData(ReferenceIdServerDataDto dto) {
+    if (dto == null) {
+      return null;
+    }
+    return ReferenceIdServerData.newBuilder()
+            .setUserId(dto.getUserId() != null ? dto.getUserId() : "")
+            .setReferenceId(dto.getReferenceId() != null ? dto.getReferenceId() : "")
+            .build();
+  }
+  
   ReferenceIdServerDataDto toReferenceIdServerDataDto(ReferenceIdServerData grpc);
 
   // ProcessCreateIdCardTxn mappings
-  ProcessCreateIdCardTxn toProcessCreateIdCardTxn(IdCardTxnDto dto);
+  default ProcessCreateIdCardTxn toProcessCreateIdCardTxn(IdCardTxnDto dto) {
+    if (dto == null) {
+      return null;
+    }
+    return ProcessCreateIdCardTxn.newBuilder()
+            .setTxnId(dto.getTxnId() != null ? dto.getTxnId() : "")
+            .setSourceText(dto.getSourceText() != null ? dto.getSourceText() : "")
+            .setUnitNum(dto.getUnitNum() != null ? dto.getUnitNum() : 0)
+            .setProductCode(dto.getProductCode() != null ? dto.getProductCode() : "")
+            .setProductId(dto.getProductId() != null ? dto.getProductId() : "")
+            .setProcessId(dto.getProcessId() != null ? dto.getProcessId() : "")
+            .setProcessCode(dto.getProcessCode() != null ? dto.getProcessCode() : "")
+            .build();
+  }
+  
   IdCardTxnDto toIdCardTxnDto(ProcessCreateIdCardTxn grpc);
 
   // ProcessCreateGroupList mappings
-  @Mapping(target = "groupListItemsList", source = "groupListItems")
-  ProcessCreateGroupList toProcessCreateGroupList(GroupListDto dto);
+  default ProcessCreateGroupList toProcessCreateGroupList(GroupListDto dto) {
+    if (dto == null || dto.getGroupListItems() == null) {
+      return ProcessCreateGroupList.newBuilder().build();
+    }
+    
+    List<ProcessCreateGroupListItem> items = dto.getGroupListItems().stream()
+            .map(this::toProcessCreateGroupListItem)
+            .collect(Collectors.toList());
+    
+    return ProcessCreateGroupList.newBuilder()
+            .addAllGroupListItems(items)
+            .build();
+  }
   
-  @Mapping(target = "groupListItems", source = "groupListItemsList")
   GroupListDto toGroupListDto(ProcessCreateGroupList grpc);
 
   // ProcessCreateGroupListItem mappings
-  @Mapping(target = "idCardTxn", source = "idCardTxn")
-  @Mapping(target = "customerNum", source = "customerNum")
-  ProcessCreateGroupListItem toProcessCreateGroupListItem(GroupListItemDto dto);
+  default ProcessCreateGroupListItem toProcessCreateGroupListItem(GroupListItemDto dto) {
+    if (dto == null) {
+      return null;
+    }
+    
+    ProcessCreateGroupListItem.Builder builder = ProcessCreateGroupListItem.newBuilder();
+    
+    if (dto.getIdCardTxn() != null) {
+      builder.setIdCardTxn(toProcessCreateGroupListIdCardTxn(dto.getIdCardTxn()));
+    }
+    
+    if (dto.getCustomerNum() != null) {
+      builder.setCustomerNum(dto.getCustomerNum());
+    }
+    
+    return builder.build();
+  }
   
-  @Mapping(target = "idCardTxn", source = "idCardTxn")
-  @Mapping(target = "customerNum", source = "customerNum")
   GroupListItemDto toGroupListItemDto(ProcessCreateGroupListItem grpc);
 
   // ProcessCreateGroupListIdCardTxn mappings
-  @Mapping(target = "documentId", source = "documentId")
-  @Mapping(target = "docPersonType", source = "docPersonType")
-  ProcessCreateGroupListIdCardTxn toProcessCreateGroupListIdCardTxn(IdCardTxnDetailDto dto);
+  default ProcessCreateGroupListIdCardTxn toProcessCreateGroupListIdCardTxn(IdCardTxnDetailDto dto) {
+    if (dto == null) {
+      return null;
+    }
+    return ProcessCreateGroupListIdCardTxn.newBuilder()
+            .setDocumentId(dto.getDocumentId() != null ? dto.getDocumentId() : "")
+            .setDocPersonType(dto.getDocPersonType() != null ? dto.getDocPersonType() : "")
+            .build();
+  }
   
-  @Mapping(target = "documentId", source = "documentId")
-  @Mapping(target = "docPersonType", source = "docPersonType")
   IdCardTxnDetailDto toIdCardTxnDetailDto(ProcessCreateGroupListIdCardTxn grpc);
 
   // ==================== Response Mappings ====================
@@ -82,23 +145,7 @@ public interface DocumentProcessMapper {
   @Mapping(target = "errorComponent", source = "errorComponent")
   CreateDocumentDB2ResponseDto toResponseDto(ProcessCreateGrpcResponse grpcResponse);
 
-  /**
-   * Business DTO'dan External Service gRPC Response'a dönüşüm
-   */
-  @Mapping(target = "instanceId", source = "instanceId")
-  @Mapping(target = "errorComponent", source = "errorComponent")
-  ProcessCreateGrpcResponse toProcessCreateGrpcResponse(CreateDocumentDB2ResponseDto dto);
-
-  // ErrorComponent mappings (messageTxt ignore edildi)
-  @Mapping(target = "severityCode", source = "severityCode")
-  @Mapping(target = "rollbackIndicator", source = "rollbackIndicator")
-  @Mapping(target = "originServId", source = "originServId")
-  @Mapping(target = "contextString", source = "contextString")
-  @Mapping(target = "returnCode", source = "returnCode")
-  @Mapping(target = "reasonCode", source = "reasonCode")
-  @Mapping(target = "checksum", source = "checksum")
-  ErrorComponent toProcessCreateErrorComponent(ErrorComponentDto dto);
-  
+  // ErrorComponent mappings
   @Mapping(target = "severityCode", source = "severityCode")
   @Mapping(target = "rollbackIndicator", source = "rollbackIndicator")
   @Mapping(target = "originServId", source = "originServId")
