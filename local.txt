@@ -1,95 +1,114 @@
-package com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.mapper;
+package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.mapper;
 
-import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.GoldDocumentProto.*;
-import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.model.common.*;
-import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.model.request.CreateDocumentDB2RequestDto;
-import com.garantibbva.depositwithdrawalmngt.depositwithdrawalchannel.service.model.response.CreateDocumentDB2ResponseDto;
+import com.garantibbva.customerdossiermng.customerdocumentsbusiness.proto.DocumentScanServiceProto.*;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.grpc.mapper.config.GrpcMapperConfig;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.CreateDocumentDB2RequestDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.GroupListDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.GroupListItemDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.IdCardTxnDetailDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.IdCardTxnDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.ReferenceIdServerDataDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response.ContextStringDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response.CreateDocumentDB2ResponseDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response.ErrorComponentDto;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
 
 @Mapper(config = GrpcMapperConfig.class)
-public interface DocumentDB2GrpcMapper {
-    
-    DocumentDB2GrpcMapper INSTANCE = Mappers.getMapper(DocumentDB2GrpcMapper.class);
-    
-    // ==================== Request Mappings ====================
-    
-    @Mapping(target = "referenceIdServerData", source = "referenceIdServerData")
-    @Mapping(target = "idCardTxn", source = "idCardTxn")
-    @Mapping(target = "groupList", source = "groupList")
-    @Mapping(target = "companyCode", source = "companyCode")
-    CreateDocumentDB2Request toGrpcRequest(CreateDocumentDB2RequestDto dto);
-    
-    @Mapping(target = "referenceIdServerData", source = "referenceIdServerData")
-    @Mapping(target = "idCardTxn", source = "idCardTxn")
-    @Mapping(target = "groupList", source = "groupList")
-    @Mapping(target = "companyCode", source = "companyCode")
-    CreateDocumentDB2RequestDto toDto(CreateDocumentDB2Request grpcRequest);
-    
-    // ReferenceIdServerData mappings
-    ReferenceIdServerData toGrpcReferenceIdServerData(ReferenceIdServerDataDto dto);
-    ReferenceIdServerDataDto toReferenceIdServerDataDto(ReferenceIdServerData grpc);
-    
-    // IdCardTxn mappings
-    IdCardTxn toGrpcIdCardTxn(IdCardTxnDto dto);
-    IdCardTxnDto toIdCardTxnDto(IdCardTxn grpc);
-    
-    // GroupList mappings
-    @Mapping(target = "groupListItemsList", source = "groupListItems")
-    GroupList toGrpcGroupList(GroupListDto dto);
-    
-    @Mapping(target = "groupListItems", source = "groupListItemsList")
-    GroupListDto toGroupListDto(GroupList grpc);
-    
-    // GroupListItem mappings
-    @Mapping(target = "idCardTxn", source = "idCardTxn")
-    @Mapping(target = "customerNum", source = "customerNum")
-    GroupListItem toGrpcGroupListItem(GroupListItemDto dto);
-    
-    @Mapping(target = "idCardTxn", source = "idCardTxn")
-    @Mapping(target = "customerNum", source = "customerNum")
-    GroupListItemDto toGroupListItemDto(GroupListItem grpc);
-    
-    // IdCardTxnDetail mappings
-    @Mapping(target = "documentId", source = "documentId")
-    @Mapping(target = "docPersonType", source = "docPersonType")
-    IdCardTxnDetail toGrpcIdCardTxnDetail(IdCardTxnDetailDto dto);
-    
-    @Mapping(target = "documentId", source = "documentId")
-    @Mapping(target = "docPersonType", source = "docPersonType")
-    IdCardTxnDetailDto toIdCardTxnDetailDto(IdCardTxnDetail grpc);
-    
-    // ==================== Response Mappings ====================
-    
-    @Mapping(target = "instanceId", source = "instanceId")
-    @Mapping(target = "errorComponent", source = "errorComponent")
-    CreateDocumentDB2ResponseDto toResponseDto(CreateDocumentDB2Response grpcResponse);
-    
-    @Mapping(target = "instanceId", source = "instanceId")
-    @Mapping(target = "errorComponent", source = "errorComponent")
-    CreateDocumentDB2Response toGrpcResponse(CreateDocumentDB2ResponseDto dto);
-    
-    // ErrorComponent mappings (messageTxt ignore edildi)
-    @Mapping(target = "severityCode", source = "severityCode")
-    @Mapping(target = "rollbackIndicator", source = "rollbackIndicator")
-    @Mapping(target = "originServId", source = "originServId")
-    @Mapping(target = "contextString", source = "contextString")
-    @Mapping(target = "returnCode", source = "returnCode")
-    @Mapping(target = "reasonCode", source = "reasonCode")
-    @Mapping(target = "checksum", source = "checksum")
-    ErrorComponent toGrpcErrorComponent(ErrorComponentDto dto);
-    
-    @Mapping(target = "severityCode", source = "severityCode")
-    @Mapping(target = "rollbackIndicator", source = "rollbackIndicator")
-    @Mapping(target = "originServId", source = "originServId")
-    @Mapping(target = "contextString", source = "contextString")
-    @Mapping(target = "returnCode", source = "returnCode")
-    @Mapping(target = "reasonCode", source = "reasonCode")
-    @Mapping(target = "checksum", source = "checksum")
-    ErrorComponentDto toErrorComponentDto(ErrorComponent grpc);
-    
-    // ContextString mappings
-    ContextString toGrpcContextString(ContextStringDto dto);
-    ContextStringDto toContextStringDto(ContextString grpc);
+public interface DocumentProcessMapper {
+
+  DocumentProcessMapper INSTANCE = Mappers.getMapper(DocumentProcessMapper.class);
+
+  // ==================== Request Mappings ====================
+
+  /**
+   * Business DTO'dan External Service gRPC Request'e dönüşüm
+   */
+  @Mapping(target = "referenceIdServerData", source = "referenceIdServerData")
+  @Mapping(target = "idCardTxn", source = "idCardTxn")
+  @Mapping(target = "groupList", source = "groupList")
+  @Mapping(target = "companyCode", source = "companyCode")
+  ProcessCreateGrpcRequest toProcessCreateGrpcRequest(CreateDocumentDB2RequestDto dto);
+
+  /**
+   * External Service gRPC Request'ten Business DTO'ya dönüşüm
+   */
+  @Mapping(target = "referenceIdServerData", source = "referenceIdServerData")
+  @Mapping(target = "idCardTxn", source = "idCardTxn")
+  @Mapping(target = "groupList", source = "groupList")
+  @Mapping(target = "companyCode", source = "companyCode")
+  CreateDocumentDB2RequestDto toDto(ProcessCreateGrpcRequest grpcRequest);
+
+  // ReferenceIdServerData mappings
+  ReferenceIdServerData toProcessCreateReferenceIdServerData(ReferenceIdServerDataDto dto);
+  ReferenceIdServerDataDto toReferenceIdServerDataDto(ReferenceIdServerData grpc);
+
+  // ProcessCreateIdCardTxn mappings
+  ProcessCreateIdCardTxn toProcessCreateIdCardTxn(IdCardTxnDto dto);
+  IdCardTxnDto toIdCardTxnDto(ProcessCreateIdCardTxn grpc);
+
+  // ProcessCreateGroupList mappings
+  @Mapping(target = "groupListItemsList", source = "groupListItems")
+  ProcessCreateGroupList toProcessCreateGroupList(GroupListDto dto);
+  
+  @Mapping(target = "groupListItems", source = "groupListItemsList")
+  GroupListDto toGroupListDto(ProcessCreateGroupList grpc);
+
+  // ProcessCreateGroupListItem mappings
+  @Mapping(target = "idCardTxn", source = "idCardTxn")
+  @Mapping(target = "customerNum", source = "customerNum")
+  ProcessCreateGroupListItem toProcessCreateGroupListItem(GroupListItemDto dto);
+  
+  @Mapping(target = "idCardTxn", source = "idCardTxn")
+  @Mapping(target = "customerNum", source = "customerNum")
+  GroupListItemDto toGroupListItemDto(ProcessCreateGroupListItem grpc);
+
+  // ProcessCreateGroupListIdCardTxn mappings
+  @Mapping(target = "documentId", source = "documentId")
+  @Mapping(target = "docPersonType", source = "docPersonType")
+  ProcessCreateGroupListIdCardTxn toProcessCreateGroupListIdCardTxn(IdCardTxnDetailDto dto);
+  
+  @Mapping(target = "documentId", source = "documentId")
+  @Mapping(target = "docPersonType", source = "docPersonType")
+  IdCardTxnDetailDto toIdCardTxnDetailDto(ProcessCreateGroupListIdCardTxn grpc);
+
+  // ==================== Response Mappings ====================
+
+  /**
+   * External Service gRPC Response'tan Business DTO'ya dönüşüm
+   */
+  @Mapping(target = "instanceId", source = "instanceId")
+  @Mapping(target = "errorComponent", source = "errorComponent")
+  CreateDocumentDB2ResponseDto toResponseDto(ProcessCreateGrpcResponse grpcResponse);
+
+  /**
+   * Business DTO'dan External Service gRPC Response'a dönüşüm
+   */
+  @Mapping(target = "instanceId", source = "instanceId")
+  @Mapping(target = "errorComponent", source = "errorComponent")
+  ProcessCreateGrpcResponse toProcessCreateGrpcResponse(CreateDocumentDB2ResponseDto dto);
+
+  // ErrorComponent mappings (messageTxt ignore edildi)
+  @Mapping(target = "severityCode", source = "severityCode")
+  @Mapping(target = "rollbackIndicator", source = "rollbackIndicator")
+  @Mapping(target = "originServId", source = "originServId")
+  @Mapping(target = "contextString", source = "contextString")
+  @Mapping(target = "returnCode", source = "returnCode")
+  @Mapping(target = "reasonCode", source = "reasonCode")
+  @Mapping(target = "checksum", source = "checksum")
+  ErrorComponent toProcessCreateErrorComponent(ErrorComponentDto dto);
+  
+  @Mapping(target = "severityCode", source = "severityCode")
+  @Mapping(target = "rollbackIndicator", source = "rollbackIndicator")
+  @Mapping(target = "originServId", source = "originServId")
+  @Mapping(target = "contextString", source = "contextString")
+  @Mapping(target = "returnCode", source = "returnCode")
+  @Mapping(target = "reasonCode", source = "reasonCode")
+  @Mapping(target = "checksum", source = "checksum")
+  ErrorComponentDto toErrorComponentDto(ErrorComponent grpc);
+
+  // ContextString mappings
+  ContextString toProcessCreateContextString(ContextStringDto dto);
+  ContextStringDto toContextStringDto(ContextString grpc);
 }
