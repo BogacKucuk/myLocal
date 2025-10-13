@@ -63,7 +63,7 @@ class GoldDocumentServiceImplCreateDocumentDB2RecordTest {
                 .companyCode("GAR")
                 .build();
 
-        // gRPC Response hazırlama (YENİ YAPI)
+        // gRPC Response hazırlama - contextString artık ErrorComponent içinde
         grpcResponse = CreateDocumentDB2Response.newBuilder()
                 .setInstanceId("20240307135230397151")
                 .setErrorComponent(ErrorComponent.newBuilder()
