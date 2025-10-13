@@ -16,9 +16,9 @@ import org.mapstruct.Mapping;
 import org.mapstruct.factory.Mappers;
 
 @Mapper(config = GrpcMapperConfig.class)
-public interface ProcessCreateMapper {
+public interface DocumentProcessMapper {
 
-  ProcessCreateMapper INSTANCE = Mappers.getMapper(ProcessCreateMapper.class);
+  DocumentProcessMapper INSTANCE = Mappers.getMapper(DocumentProcessMapper.class);
 
   // ==================== Request Mappings ====================
 
@@ -93,23 +93,4 @@ public interface ProcessCreateMapper {
   // ContextString mappings
   ContextString toProcessCreateContextString(ContextStringDto dto);
   ContextStringDto toContextStringDto(ContextString grpc);
-}
-
-
-
-
-
-
-@Override
-public CreateDocumentDB2ResponseDto createDocumentDB2Record(CreateDocumentDB2RequestDto createDocumentDB2RequestDto) {
-  // Business DTO'yu External Service gRPC Request'e çevir
-  DocumentScanServiceProto.ProcessCreateGrpcRequest grpcRequest = 
-      ProcessCreateMapper.INSTANCE.toProcessCreateGrpcRequest(createDocumentDB2RequestDto);
-  
-  // External service'e gRPC call
-  DocumentScanServiceProto.ProcessCreateGrpcResponse grpcResponse = 
-      documentScanGrpcServiceBlockingStub.processCreate(grpcRequest);
-  
-  // External Service gRPC Response'u Business DTO'ya çevir
-  return ProcessCreateMapper.INSTANCE.toResponseDto(grpcResponse);
 }
