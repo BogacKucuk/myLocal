@@ -1,220 +1,115 @@
-/withdrawal/create-document-db2-record:
-    post:
-      summary: Create Document DB2 Record
-      tags: [GoldDocumentGrpcService]
-      description: Creates a document DB2 record
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CreateDocumentDB2RequestDto'
-      responses:
-        '200':
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/CreateDocumentDB2ResponseDto'
-        '400':
-          description: Bad Request
-        '401':
-          description: Unauthorized
-        '403':
-          description: Forbidden
-        '405':
-          description: Method Not Allowed
-        '500':
-          description: Internal Server Error
+package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.mapper;
+
+import com.garantibbva.customerdossiermng.customerdocumentsbusiness.proto.DocumentScanServiceProto.*;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.grpc.mapper.config.GrpcMapperConfig;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.CreateDocumentDB2RequestDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.GroupListDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.GroupListItemDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.IdCardTxnDetailDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.IdCardTxnDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.ReferenceIdServerDataDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response.ContextStringDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response.CreateDocumentDB2ResponseDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response.ErrorComponentDto;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.factory.Mappers;
+
+@Mapper(config = GrpcMapperConfig.class)
+public interface ProcessCreateMapper {
+
+  ProcessCreateMapper INSTANCE = Mappers.getMapper(ProcessCreateMapper.class);
+
+  // ==================== Request Mappings ====================
+
+  /**
+   * Business DTO'dan External Service gRPC Request'e dönüşüm
+   */
+  @Mapping(target = "referenceIdServerData", source = "referenceIdServerData")
+  @Mapping(target = "idCardTxn", source = "idCardTxn")
+  @Mapping(target = "groupList", source = "groupList")
+  @Mapping(target = "companyCode", source = "companyCode")
+  ProcessCreateGrpcRequest toProcessCreateGrpcRequest(CreateDocumentDB2RequestDto dto);
+
+  /**
+   * External Service gRPC Request'ten Business DTO'ya dönüşüm
+   */
+  @Mapping(target = "referenceIdServerData", source = "referenceIdServerData")
+  @Mapping(target = "idCardTxn", source = "idCardTxn")
+  @Mapping(target = "groupList", source = "groupList")
+  @Mapping(target = "companyCode", source = "companyCode")
+  CreateDocumentDB2RequestDto toDto(ProcessCreateGrpcRequest grpcRequest);
+
+  // ReferenceIdServerData mappings
+  ReferenceIdServerData toProcessCreateReferenceIdServerData(ReferenceIdServerDataDto dto);
+  ReferenceIdServerDataDto toReferenceIdServerDataDto(ReferenceIdServerData grpc);
+
+  // ProcessCreateIdCardTxn mappings
+  ProcessCreateIdCardTxn toProcessCreateIdCardTxn(IdCardTxnDto dto);
+  IdCardTxnDto toIdCardTxnDto(ProcessCreateIdCardTxn grpc);
+
+  // ProcessCreateGroupList mappings
+  ProcessCreateGroupList toProcessCreateGroupList(GroupListDto dto);
+  GroupListDto toGroupListDto(ProcessCreateGroupList grpc);
+
+  // ProcessCreateGroupListItem mappings
+  ProcessCreateGroupListItem toProcessCreateGroupListItem(GroupListItemDto dto);
+  GroupListItemDto toGroupListItemDto(ProcessCreateGroupListItem grpc);
+
+  // ProcessCreateIdCardTxnDetail mappings (groupList içindeki idCardTxn için)
+  ProcessCreateIdCardTxnDetail toProcessCreateIdCardTxnDetail(IdCardTxnDetailDto dto);
+  IdCardTxnDetailDto toIdCardTxnDetailDto(ProcessCreateIdCardTxnDetail grpc);
+
+  // ==================== Response Mappings ====================
+
+  /**
+   * External Service gRPC Response'tan Business DTO'ya dönüşüm
+   */
+  @Mapping(target = "instanceId", source = "instanceId")
+  @Mapping(target = "errorComponent", source = "errorComponent")
+  @Mapping(target = "contextString", source = "contextString")
+  @Mapping(target = "messageTxt", source = "messageTxt")
+  @Mapping(target = "returnCode", source = "returnCode")
+  @Mapping(target = "reasonCode", source = "reasonCode")
+  @Mapping(target = "checksum", source = "checksum")
+  CreateDocumentDB2ResponseDto toResponseDto(ProcessCreateGrpcResponse grpcResponse);
+
+  /**
+   * Business DTO'dan External Service gRPC Response'a dönüşüm
+   */
+  @Mapping(target = "instanceId", source = "instanceId")
+  @Mapping(target = "errorComponent", source = "errorComponent")
+  @Mapping(target = "contextString", source = "contextString")
+  @Mapping(target = "messageTxt", source = "messageTxt")
+  @Mapping(target = "returnCode", source = "returnCode")
+  @Mapping(target = "reasonCode", source = "reasonCode")
+  @Mapping(target = "checksum", source = "checksum")
+  ProcessCreateGrpcResponse toProcessCreateGrpcResponse(CreateDocumentDB2ResponseDto dto);
+
+  // ErrorComponent mappings
+  ErrorComponent toProcessCreateErrorComponent(ErrorComponentDto dto);
+  ErrorComponentDto toErrorComponentDto(ErrorComponent grpc);
+
+  // ContextString mappings
+  ContextString toProcessCreateContextString(ContextStringDto dto);
+  ContextStringDto toContextStringDto(ContextString grpc);
+}
 
 
 
 
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-CreateDocumentDB2RequestDto:
-      type: object
-      description: Request for creating document DB2 record
-      properties:
-        referenceIdServerData:
-          $ref: '#/components/schemas/ReferenceIdServerDataDto'
-        idCardTxn:
-          $ref: '#/components/schemas/IdCardTxnDto'
-        groupList:
-          $ref: '#/components/schemas/GroupListDto'
-        companyCode:
-          type: string
-          description: Company code
-          example: "GAR"
-      example: {"companyCode": "GAR"}
-
-    ReferenceIdServerDataDto:
-      type: object
-      description: Reference ID and server data
-      properties:
-        userId:
-          type: string
-          description: User identifier
-          example: "USER001"
-        referenceId:
-          type: string
-          description: Reference identifier
-          example: "REF123"
-      example: {"userId": "USER001", "referenceId": "REF123"}
-
-    IdCardTxnDto:
-      type: object
-      description: ID card transaction information
-      properties:
-        txnId:
-          type: string
-          description: Transaction identifier
-          example: "TXN123456"
-        sourceText:
-          type: string
-          description: Source text
-          example: "BRANCH"
-        unitNum:
-          type: integer
-          format: int32
-          description: Unit number
-          example: 100
-        productCode:
-          type: string
-          description: Product code
-          example: "PROD001"
-        productId:
-          type: string
-          description: Product identifier
-          example: "P123"
-        processId:
-          type: string
-          description: Process identifier
-          example: "PROC001"
-        processCode:
-          type: string
-          description: Process code
-          example: "01"
-      example: {"txnId": "TXN123456", "sourceText": "BRANCH", "unitNum": 100}
-
-    GroupListDto:
-      type: object
-      description: Group list containing group items
-      properties:
-        groupListItems:
-          type: array
-          description: List of group items
-          items:
-            $ref: '#/components/schemas/GroupListItemDto'
-      example: {"groupListItems": []}
-
-    GroupListItemDto:
-      type: object
-      description: Individual group list item
-      properties:
-        idCardTxn:
-          $ref: '#/components/schemas/IdCardTxnDetailDto'
-        customerNum:
-          type: integer
-          format: int32
-          description: Customer number
-          example: 123456
-      example: {"customerNum": 123456}
-
-    IdCardTxnDetailDto:
-      type: object
-      description: ID card transaction detail information
-      properties:
-        documentId:
-          type: string
-          description: Document identifier
-          example: "DOC123456"
-        docPersonType:
-          type: string
-          description: Document person type
-          example: "INDIVIDUAL"
-      example: {"documentId": "DOC123456", "docPersonType": "INDIVIDUAL"}
-
-    CreateDocumentDB2ResponseDto:
-      type: object
-      description: Response after creating document DB2 record
-      properties:
-        instanceId:
-          type: string
-          description: Instance identifier
-          example: "INST123456"
-        errorComponent:
-          $ref: '#/components/schemas/ErrorComponentDto'
-        contextString:
-          $ref: '#/components/schemas/ContextStringDto'
-        messageTxt:
-          type: string
-          description: Message text
-          example: "Document created successfully"
-        returnCode:
-          type: integer
-          format: int32
-          description: Return code
-          example: 0
-        reasonCode:
-          type: integer
-          format: int32
-          description: Reason code
-          example: 0
-        checksum:
-          type: string
-          description: Checksum value
-          example: "ABC123"
-      example: {"instanceId": "INST123456", "messageTxt": "Document created successfully", "returnCode": 0}
-
-    ErrorComponentDto:
-      type: object
-      description: Error component information
-      properties:
-        severityCode:
-          type: string
-          description: Severity code
-          example: "INFO"
-        rollbackIndicator:
-          type: string
-          description: Rollback indicator
-          example: "N"
-        originServId:
-          type: string
-          description: Origin service identifier
-          example: "SRV001"
-      example: {"severityCode": "INFO", "rollbackIndicator": "N", "originServId": "SRV001"}
-
-    ContextStringDto:
-      type: object
-      description: Context string information
-      properties:
-        contextLength:
-          type: integer
-          format: int32
-          description: Context length
-          example: 100
-        contextValue:
-          type: string
-          description: Context value
-          example: "Context information"
-      example: {"contextLength": 100, "contextValue": "Context information"}
+@Override
+public CreateDocumentDB2ResponseDto createDocumentDB2Record(CreateDocumentDB2RequestDto createDocumentDB2RequestDto) {
+  // Business DTO'yu External Service gRPC Request'e çevir
+  DocumentScanServiceProto.ProcessCreateGrpcRequest grpcRequest = 
+      ProcessCreateMapper.INSTANCE.toProcessCreateGrpcRequest(createDocumentDB2RequestDto);
+  
+  // External service'e gRPC call
+  DocumentScanServiceProto.ProcessCreateGrpcResponse grpcResponse = 
+      documentScanGrpcServiceBlockingStub.processCreate(grpcRequest);
+  
+  // External Service gRPC Response'u Business DTO'ya çevir
+  return ProcessCreateMapper.INSTANCE.toResponseDto(grpcResponse);
+}
