@@ -1,3 +1,123 @@
+package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class ErrorComponentDto {
+    
+    private String severityCode;
+    private String rollbackIndicator;
+    private String originServId;
+    private ContextStringDto contextString;
+    private String messageTxt;
+    private Integer returnCode;
+    private Integer reasonCode;
+    private String checksum;
+}
+
+
+package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response;
+
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Data;
+import lombok.NoArgsConstructor;
+
+@Data
+@Builder
+@NoArgsConstructor
+@AllArgsConstructor
+public class CreateDocumentDB2ResponseDto {
+    
+    private String instanceId;
+    private ErrorComponentDto errorComponent;
+}
+
+
+
+package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.grpc.mapper;
+
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.grpc.mapper.config.GrpcMapperConfig;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.GoldDocumentProto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.CreateDocumentDB2RequestDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.GroupListDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.GroupListItemDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.IdCardTxnDetailDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.IdCardTxnDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.ReferenceIdServerDataDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response.ContextStringDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response.CreateDocumentDB2ResponseDto;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response.ErrorComponentDto;
+import org.mapstruct.Mapper;
+import org.mapstruct.Mapping;
+import org.mapstruct.factory.Mappers;
+
+@Mapper(config = GrpcMapperConfig.class)
+public interface DocumentDB2GrpcMapper {
+
+  DocumentDB2GrpcMapper INSTANCE = Mappers.getMapper(DocumentDB2GrpcMapper.class);
+
+  // ==================== Request Mappings ====================
+
+  @Mapping(target = "referenceIdServerData", source = "referenceIdServerData")
+  @Mapping(target = "idCardTxn", source = "idCardTxn")
+  @Mapping(target = "groupList", source = "groupList")
+  @Mapping(target = "companyCode", source = "companyCode")
+  GoldDocumentProto.CreateDocumentDB2Request toGrpcRequest(CreateDocumentDB2RequestDto dto);
+
+  @Mapping(target = "referenceIdServerData", source = "referenceIdServerData")
+  @Mapping(target = "idCardTxn", source = "idCardTxn")
+  @Mapping(target = "groupList", source = "groupList")
+  @Mapping(target = "companyCode", source = "companyCode")
+  CreateDocumentDB2RequestDto toDto(GoldDocumentProto.CreateDocumentDB2Request grpcRequest);
+
+  // ReferenceIdServerData mappings
+  GoldDocumentProto.ReferenceIdServerData toGrpcReferenceIdServerData(ReferenceIdServerDataDto dto);
+  ReferenceIdServerDataDto toReferenceIdServerDataDto(GoldDocumentProto.ReferenceIdServerData grpc);
+
+  // IdCardTxn mappings
+  GoldDocumentProto.IdCardTxn toGrpcIdCardTxn(IdCardTxnDto dto);
+  IdCardTxnDto toIdCardTxnDto(GoldDocumentProto.IdCardTxn grpc);
+
+  // GroupList mappings
+  GoldDocumentProto.GroupList toGrpcGroupList(GroupListDto dto);
+  GroupListDto toGroupListDto(GoldDocumentProto.GroupList grpc);
+
+  // GroupListItem mappings
+  GoldDocumentProto.GroupListItem toGrpcGroupListItem(GroupListItemDto dto);
+  GroupListItemDto toGroupListItemDto(GoldDocumentProto.GroupListItem grpc);
+
+  // IdCardTxnDetail mappings
+  GoldDocumentProto.IdCardTxnDetail toGrpcIdCardTxnDetail(IdCardTxnDetailDto dto);
+  IdCardTxnDetailDto toIdCardTxnDetailDto(GoldDocumentProto.IdCardTxnDetail grpc);
+
+  // ==================== Response Mappings ====================
+
+  @Mapping(target = "instanceId", source = "instanceId")
+  @Mapping(target = "errorComponent", source = "errorComponent")
+  CreateDocumentDB2ResponseDto toResponseDto(GoldDocumentProto.CreateDocumentDB2Response grpcResponse);
+
+  @Mapping(target = "instanceId", source = "instanceId")
+  @Mapping(target = "errorComponent", source = "errorComponent")
+  GoldDocumentProto.CreateDocumentDB2Response toGrpcResponse(CreateDocumentDB2ResponseDto dto);
+
+  // ErrorComponent mappings
+  GoldDocumentProto.ErrorComponent toGrpcErrorComponent(ErrorComponentDto dto);
+  ErrorComponentDto toErrorComponentDto(GoldDocumentProto.ErrorComponent grpc);
+
+  // ContextString mappings
+  GoldDocumentProto.ContextString toGrpcContextString(ContextStringDto dto);
+  ContextStringDto toContextStringDto(GoldDocumentProto.ContextString grpc);
+}
+
+
+
 package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.mapper;
 
 import com.garantibbva.customerdossiermng.customerdocumentsbusiness.proto.DocumentScanServiceProto.*;
@@ -22,18 +142,12 @@ public interface DocumentProcessMapper {
 
   // ==================== Request Mappings ====================
 
-  /**
-   * Business DTO'dan External Service gRPC Request'e dönüşüm
-   */
   @Mapping(target = "referenceIdServerData", source = "referenceIdServerData")
   @Mapping(target = "idCardTxn", source = "idCardTxn")
   @Mapping(target = "groupList", source = "groupList")
   @Mapping(target = "companyCode", source = "companyCode")
   ProcessCreateGrpcRequest toProcessCreateGrpcRequest(CreateDocumentDB2RequestDto dto);
 
-  /**
-   * External Service gRPC Request'ten Business DTO'ya dönüşüm
-   */
   @Mapping(target = "referenceIdServerData", source = "referenceIdServerData")
   @Mapping(target = "idCardTxn", source = "idCardTxn")
   @Mapping(target = "groupList", source = "groupList")
@@ -56,37 +170,21 @@ public interface DocumentProcessMapper {
   ProcessCreateGroupListItem toProcessCreateGroupListItem(GroupListItemDto dto);
   GroupListItemDto toGroupListItemDto(ProcessCreateGroupListItem grpc);
 
-  // ProcessCreateIdCardTxnDetail mappings (groupList içindeki idCardTxn için)
-  ProcessCreateIdCardTxnDetail toProcessCreateIdCardTxnDetail(IdCardTxnDetailDto dto);
-  IdCardTxnDetailDto toIdCardTxnDetailDto(ProcessCreateIdCardTxnDetail grpc);
+  // ProcessCreateGroupListIdCardTxn mappings
+  ProcessCreateGroupListIdCardTxn toProcessCreateGroupListIdCardTxn(IdCardTxnDetailDto dto);
+  IdCardTxnDetailDto toIdCardTxnDetailDto(ProcessCreateGroupListIdCardTxn grpc);
 
   // ==================== Response Mappings ====================
 
-  /**
-   * External Service gRPC Response'tan Business DTO'ya dönüşüm
-   */
   @Mapping(target = "instanceId", source = "instanceId")
   @Mapping(target = "errorComponent", source = "errorComponent")
-  @Mapping(target = "contextString", source = "contextString")
-  @Mapping(target = "messageTxt", source = "messageTxt")
-  @Mapping(target = "returnCode", source = "returnCode")
-  @Mapping(target = "reasonCode", source = "reasonCode")
-  @Mapping(target = "checksum", source = "checksum")
   CreateDocumentDB2ResponseDto toResponseDto(ProcessCreateGrpcResponse grpcResponse);
 
-  /**
-   * Business DTO'dan External Service gRPC Response'a dönüşüm
-   */
   @Mapping(target = "instanceId", source = "instanceId")
   @Mapping(target = "errorComponent", source = "errorComponent")
-  @Mapping(target = "contextString", source = "contextString")
-  @Mapping(target = "messageTxt", source = "messageTxt")
-  @Mapping(target = "returnCode", source = "returnCode")
-  @Mapping(target = "reasonCode", source = "reasonCode")
-  @Mapping(target = "checksum", source = "checksum")
   ProcessCreateGrpcResponse toProcessCreateGrpcResponse(CreateDocumentDB2ResponseDto dto);
 
-  // ErrorComponent mappings
+  // ErrorComponent mappings (artık tüm alanlar burada)
   ErrorComponent toProcessCreateErrorComponent(ErrorComponentDto dto);
   ErrorComponentDto toErrorComponentDto(ErrorComponent grpc);
 
