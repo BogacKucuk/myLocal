@@ -415,3 +415,36 @@ class GoldDocumentControllerImplCreateDocumentDB2RecordTest {
                                 .contextLength(512)
                                 .contextValue("İşlem tamamlandı.")
                                 .build())
+.messageTxt("")
+                        .returnCode(1)
+                        .reasonCode(1)
+                        .checksum("")
+                        .build())
+                .build();
+
+        when(goldDocumentService.createDocumentDB2Record(any(CreateDocumentDB2RequestDto.class)))
+                .thenReturn(responseDto);
+
+        goldDocumentController.createDocumentDB2Record(requestDto);
+
+        verify(goldDocumentService).createDocumentDB2Record(
+                argThat(request -> {
+                    boolean referenceIdValid = request.getReferenceIdServerData() != null &&
+                            request.getReferenceIdServerData().getUserId() != null &&
+                            request.getReferenceIdServerData().getReferenceId() != null;
+                    
+                    boolean idCardTxnValid = request.getIdCardTxn() != null &&
+                            request.getIdCardTxn().getTxnId() != null &&
+                            request.getIdCardTxn().getProcessCode() != null;
+                    
+                    boolean groupListValid = request.getGroupList() != null &&
+                            request.getGroupList().getGroupListItems() != null &&
+                            !request.getGroupList().getGroupListItems().isEmpty();
+                    
+                    boolean companyCodeValid = request.getCompanyCode() != null;
+                    
+                    return referenceIdValid && idCardTxnValid && groupListValid && companyCodeValid;
+                })
+        );
+    }
+}
