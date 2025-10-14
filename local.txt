@@ -1,14 +1,15 @@
-package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.external;
+package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.grpc.impl;
 
-import com.garantibbva.customerdossiermng.customerdocumentsbusiness.proto.DocumentScanGrpcServiceGrpc;
-import com.garantibbva.customerdossiermng.customerdocumentsbusiness.proto.DocumentScanServiceProto.*;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.proto.GoldDocumentProto.*;
+import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.GoldDocumentService;
 import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.common.*;
 import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.request.CreateDocumentDB2RequestDto;
 import com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model.response.CreateDocumentDB2ResponseDto;
-import com.garanti.ark.base.core.exception.BusinessException;
+import io.grpc.stub.StreamObserver;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
+import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
@@ -16,323 +17,395 @@ import org.mockito.junit.jupiter.MockitoExtension;
 import java.util.List;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
-@DisplayName("DocumentServiceImpl - createDocumentDB2Record Tests")
-class DocumentServiceImplCreateDocumentDB2RecordTest {
+@DisplayName("GoldDocumentGrpcServiceImpl - createDocumentDB2Record Tests")
+class GoldDocumentGrpcServiceImplCreateDocumentDB2RecordTest {
 
     @Mock
-    private DocumentScanGrpcServiceGrpc.DocumentScanGrpcServiceBlockingStub documentScanGrpcServiceBlockingStub;
+    private GoldDocumentService goldDocumentService;
+
+    @Mock
+    private StreamObserver<CreateDocumentDB2Response> responseObserver;
 
     @InjectMocks
-    private DocumentServiceImpl documentService;
+    private GoldDocumentGrpcServiceImpl goldDocumentGrpcService;
 
     @Test
     @DisplayName("createDocumentDB2Record - Başarılı senaryo")
-    void givenValidRequest_whenCreateDocumentDB2Record_thenReturnSuccessResponse() {
+    void givenValidRequest_whenCreateDocumentDB2Record_thenResponseSentSuccessfully() {
         // Given
-        CreateDocumentDB2RequestDto requestDto = CreateDocumentDB2RequestDto.builder()
-                .referenceIdServerData(ReferenceIdServerDataDto.builder()
-                        .userId("TEST_USER")
-                        .referenceId("20240510104819081704")
+        CreateDocumentDB2Request grpcRequest = CreateDocumentDB2Request.newBuilder()
+                .setReferenceIdServerData(ReferenceIdServerData.newBuilder()
+                        .setUserId("TEST_USER")
+                        .setReferenceId("20240510104819081704")
                         .build())
-                .idCardTxn(IdCardTxnDto.builder()
-                        .txnId("00000000000000000000")
-                        .sourceText("Hello")
-                        .unitNum(0)
-                        .productCode("")
-                        .productId(" ")
-                        .processId("MN000000045003398")
-                        .processCode("GENELADRES")
+                .setIdCardTxn(IdCardTxn.newBuilder()
+                        .setTxnId("00000000000000000000")
+                        .setSourceText("Hello")
+                        .setUnitNum(0)
+                        .setProductCode("")
+                        .setProductId(" ")
+                        .setProcessId("MN000000045003398")
+                        .setProcessCode("GENELADRES")
                         .build())
-                .groupList(GroupListDto.builder()
-                        .groupListItems(List.of(
-                                GroupListItemDto.builder()
-                                        .idCardTxn(IdCardTxnDetailDto.builder()
-                                                .documentId("20240110104819081704")
-                                                .docPersonType("01")
-                                                .build())
-                                        .customerNum(45003398)
-                                        .build()
-                        ))
-                        .build())
-                .companyCode("GAR")
-                .build();
-
-        ProcessCreateGrpcResponse grpcResponse = ProcessCreateGrpcResponse.newBuilder()
-                .setInstanceId("20240307135230397151")
-                .setErrorComponent(ErrorComponent.newBuilder()
-                        .setSeverityCode("I")
-                        .setRollbackIndicator("")
-                        .setOriginServId(1102)
-                        .setContextString(ContextString.newBuilder()
-                                .setContextLength(512)
-                                .setContextValue("İşlem tamamlandı.")
+                .setGroupList(GroupList.newBuilder()
+                        .addGroupListItems(GroupListItem.newBuilder()
+                                .setIdCardTxn(IdCardTxnDetail.newBuilder()
+                                        .setDocumentId("20240110104819081704")
+                                        .setDocPersonType("01")
+                                        .build())
+                                .setCustomerNum(45003398)
                                 .build())
-                        .setReturnCode(1)
-                        .setReasonCode(1)
-                        .setChecksum("")
+                        .build())
+                .setCompanyCode("GAR")
+                .build();
+
+        CreateDocumentDB2ResponseDto responseDto = CreateDocumentDB2ResponseDto.builder()
+                .instanceId("20240307135230397151")
+                .errorComponent(ErrorComponentDto.builder()
+                        .severityCode("I")
+                        .rollbackIndicator("")
+                        .originServId("1102")
+                        .contextString(ContextStringDto.builder()
+                                .contextLength(512)
+                                .contextValue("İşlem tamamlandı.")
+                                .build())
+                        .returnCode(1)
+                        .reasonCode(1)
+                        .checksum("")
                         .build())
                 .build();
 
-        when(documentScanGrpcServiceBlockingStub.processCreate(any(ProcessCreateGrpcRequest.class)))
-                .thenReturn(grpcResponse);
+        when(goldDocumentService.createDocumentDB2Record(any(CreateDocumentDB2RequestDto.class)))
+                .thenReturn(responseDto);
 
         // When
-        CreateDocumentDB2ResponseDto response = documentService.createDocumentDB2Record(requestDto);
+        goldDocumentGrpcService.createDocumentDB2Record(grpcRequest, responseObserver);
 
         // Then
-        assertThat(response).isNotNull();
-        assertThat(response.getInstanceId()).isEqualTo("20240307135230397151");
-        assertThat(response.getErrorComponent()).isNotNull();
-        assertThat(response.getErrorComponent().getReturnCode()).isEqualTo(1);
-        assertThat(response.getErrorComponent().getReasonCode()).isEqualTo(1);
-        assertThat(response.getErrorComponent().getSeverityCode()).isEqualTo("I");
-        assertThat(response.getErrorComponent().getContextString()).isNotNull();
-        assertThat(response.getErrorComponent().getContextString().getContextValue()).isEqualTo("İşlem tamamlandı.");
+        ArgumentCaptor<CreateDocumentDB2Response> responseCaptor = ArgumentCaptor.forClass(CreateDocumentDB2Response.class);
+        verify(responseObserver, times(1)).onNext(responseCaptor.capture());
+        verify(responseObserver, times(1)).onCompleted();
+        verify(responseObserver, never()).onError(any());
 
-        verify(documentScanGrpcServiceBlockingStub, times(1))
-                .processCreate(any(ProcessCreateGrpcRequest.class));
+        CreateDocumentDB2Response capturedResponse = responseCaptor.getValue();
+        assertThat(capturedResponse).isNotNull();
+        assertThat(capturedResponse.getInstanceId()).isEqualTo("20240307135230397151");
+        assertThat(capturedResponse.getErrorComponent()).isNotNull();
+        assertThat(capturedResponse.getErrorComponent().getSeverityCode()).isEqualTo("I");
+        assertThat(capturedResponse.getErrorComponent().getReturnCode()).isEqualTo(1);
     }
 
     @Test
-    @DisplayName("createDocumentDB2Record - ReturnCode -10 ise BusinessException fırlatmalı")
-    void givenReturnCodeMinus10_whenCreateDocumentDB2Record_thenThrowBusinessException() {
+    @DisplayName("createDocumentDB2Record - Service çağrısı doğrulaması")
+    void givenValidRequest_whenCreateDocumentDB2Record_thenServiceInvokedWithCorrectDto() {
         // Given
-        CreateDocumentDB2RequestDto requestDto = CreateDocumentDB2RequestDto.builder()
-                .referenceIdServerData(ReferenceIdServerDataDto.builder()
-                        .userId("TEST_USER")
-                        .referenceId("20240510104819081704")
+        CreateDocumentDB2Request grpcRequest = CreateDocumentDB2Request.newBuilder()
+                .setReferenceIdServerData(ReferenceIdServerData.newBuilder()
+                        .setUserId("TEST_USER")
+                        .setReferenceId("20240510104819081704")
                         .build())
-                .idCardTxn(IdCardTxnDto.builder()
-                        .txnId("00000000000000000000")
-                        .sourceText("Hello")
-                        .unitNum(0)
-                        .productCode("")
-                        .productId(" ")
-                        .processId("MN000000045003398")
-                        .processCode("GENELADRES")
+                .setIdCardTxn(IdCardTxn.newBuilder()
+                        .setTxnId("00000000000000000000")
+                        .setSourceText("Hello")
+                        .setUnitNum(0)
+                        .setProductCode("")
+                        .setProductId(" ")
+                        .setProcessId("MN000000045003398")
+                        .setProcessCode("GENELADRES")
                         .build())
-                .groupList(GroupListDto.builder()
-                        .groupListItems(List.of(
-                                GroupListItemDto.builder()
-                                        .idCardTxn(IdCardTxnDetailDto.builder()
-                                                .documentId("20240110104819081704")
-                                                .docPersonType("01")
-                                                .build())
-                                        .customerNum(45003398)
-                                        .build()
-                        ))
-                        .build())
-                .companyCode("GAR")
-                .build();
-
-        ProcessCreateGrpcResponse errorResponse = ProcessCreateGrpcResponse.newBuilder()
-                .setInstanceId("20240307135230397152")
-                .setErrorComponent(ErrorComponent.newBuilder()
-                        .setSeverityCode("E")
-                        .setRollbackIndicator("Y")
-                        .setOriginServId(1102)
-                        .setContextString(ContextString.newBuilder()
-                                .setContextLength(512)
-                                .setContextValue("Hata oluştu.")
+                .setGroupList(GroupList.newBuilder()
+                        .addGroupListItems(GroupListItem.newBuilder()
+                                .setIdCardTxn(IdCardTxnDetail.newBuilder()
+                                        .setDocumentId("20240110104819081704")
+                                        .setDocPersonType("01")
+                                        .build())
+                                .setCustomerNum(45003398)
                                 .build())
-                        .setReturnCode(-10)
-                        .setReasonCode(0)
-                        .setChecksum("")
+                        .build())
+                .setCompanyCode("GAR")
+                .build();
+
+        CreateDocumentDB2ResponseDto responseDto = CreateDocumentDB2ResponseDto.builder()
+                .instanceId("20240307135230397151")
+                .errorComponent(ErrorComponentDto.builder()
+                        .severityCode("I")
+                        .rollbackIndicator("")
+                        .originServId("1102")
+                        .contextString(ContextStringDto.builder()
+                                .contextLength(512)
+                                .contextValue("İşlem tamamlandı.")
+                                .build())
+                        .returnCode(1)
+                        .reasonCode(1)
+                        .checksum("")
                         .build())
                 .build();
 
-        when(documentScanGrpcServiceBlockingStub.processCreate(any(ProcessCreateGrpcRequest.class)))
-                .thenReturn(errorResponse);
+        when(goldDocumentService.createDocumentDB2Record(any(CreateDocumentDB2RequestDto.class)))
+                .thenReturn(responseDto);
 
-        // When & Then
-        assertThatThrownBy(() -> documentService.createDocumentDB2Record(requestDto))
-                .isInstanceOf(BusinessException.class);
+        // When
+        goldDocumentGrpcService.createDocumentDB2Record(grpcRequest, responseObserver);
 
-        verify(documentScanGrpcServiceBlockingStub, times(1))
-                .processCreate(any(ProcessCreateGrpcRequest.class));
+        // Then
+        verify(goldDocumentService).createDocumentDB2Record(
+                argThat(dto ->
+                        dto != null &&
+                        dto.getReferenceIdServerData() != null &&
+                        dto.getReferenceIdServerData().getUserId().equals("TEST_USER") &&
+                        dto.getReferenceIdServerData().getReferenceId().equals("20240510104819081704") &&
+                        dto.getCompanyCode().equals("GAR") &&
+                        dto.getIdCardTxn() != null &&
+                        dto.getIdCardTxn().getProcessCode().equals("GENELADRES")
+                )
+        );
     }
 
     @Test
-    @DisplayName("createDocumentDB2Record - gRPC exception durumunda BusinessException fırlatmalı")
-    void givenGrpcException_whenCreateDocumentDB2Record_thenThrowBusinessException() {
+    @DisplayName("createDocumentDB2Record - Hata durumu response")
+    void givenErrorResponse_whenCreateDocumentDB2Record_thenErrorResponseSent() {
         // Given
-        CreateDocumentDB2RequestDto requestDto = CreateDocumentDB2RequestDto.builder()
-                .referenceIdServerData(ReferenceIdServerDataDto.builder()
-                        .userId("TEST_USER")
-                        .referenceId("20240510104819081704")
+        CreateDocumentDB2Request grpcRequest = CreateDocumentDB2Request.newBuilder()
+                .setReferenceIdServerData(ReferenceIdServerData.newBuilder()
+                        .setUserId("TEST_USER")
+                        .setReferenceId("20240510104819081704")
                         .build())
-                .idCardTxn(IdCardTxnDto.builder()
-                        .txnId("00000000000000000000")
-                        .sourceText("Hello")
-                        .unitNum(0)
-                        .productCode("")
-                        .productId(" ")
-                        .processId("MN000000045003398")
-                        .processCode("GENELADRES")
+                .setIdCardTxn(IdCardTxn.newBuilder()
+                        .setTxnId("00000000000000000000")
+                        .setSourceText("Hello")
+                        .setUnitNum(0)
+                        .setProductCode("")
+                        .setProductId(" ")
+                        .setProcessId("MN000000045003398")
+                        .setProcessCode("GENELADRES")
                         .build())
-                .groupList(GroupListDto.builder()
-                        .groupListItems(List.of(
-                                GroupListItemDto.builder()
-                                        .idCardTxn(IdCardTxnDetailDto.builder()
-                                                .documentId("20240110104819081704")
-                                                .docPersonType("01")
-                                                .build())
-                                        .customerNum(45003398)
-                                        .build()
-                        ))
+                .setGroupList(GroupList.newBuilder()
+                        .addGroupListItems(GroupListItem.newBuilder()
+                                .setIdCardTxn(IdCardTxnDetail.newBuilder()
+                                        .setDocumentId("20240110104819081704")
+                                        .setDocPersonType("01")
+                                        .build())
+                                .setCustomerNum(45003398)
+                                .build())
                         .build())
-                .companyCode("GAR")
+                .setCompanyCode("GAR")
                 .build();
 
-        when(documentScanGrpcServiceBlockingStub.processCreate(any(ProcessCreateGrpcRequest.class)))
-                .thenThrow(new RuntimeException("gRPC connection error"));
+        CreateDocumentDB2ResponseDto errorResponseDto = CreateDocumentDB2ResponseDto.builder()
+                .instanceId("20240307135230397152")
+                .errorComponent(ErrorComponentDto.builder()
+                        .severityCode("E")
+                        .rollbackIndicator("Y")
+                        .originServId("1102")
+                        .contextString(ContextStringDto.builder()
+                                .contextLength(512)
+                                .contextValue("Hata oluştu.")
+                                .build())
+                        .returnCode(0)
+                        .reasonCode(0)
+                        .checksum("")
+                        .build())
+                .build();
 
-        // When & Then
-        assertThatThrownBy(() -> documentService.createDocumentDB2Record(requestDto))
-                .isInstanceOf(BusinessException.class)
-                .hasCauseInstanceOf(RuntimeException.class);
+        when(goldDocumentService.createDocumentDB2Record(any(CreateDocumentDB2RequestDto.class)))
+                .thenReturn(errorResponseDto);
 
-        verify(documentScanGrpcServiceBlockingStub, times(1))
-                .processCreate(any(ProcessCreateGrpcRequest.class));
+        // When
+        goldDocumentGrpcService.createDocumentDB2Record(grpcRequest, responseObserver);
+
+        // Then
+        ArgumentCaptor<CreateDocumentDB2Response> responseCaptor = ArgumentCaptor.forClass(CreateDocumentDB2Response.class);
+        verify(responseObserver, times(1)).onNext(responseCaptor.capture());
+        verify(responseObserver, times(1)).onCompleted();
+
+        CreateDocumentDB2Response capturedResponse = responseCaptor.getValue();
+        assertThat(capturedResponse).isNotNull();
+        assertThat(capturedResponse.getErrorComponent().getSeverityCode()).isEqualTo("E");
+        assertThat(capturedResponse.getErrorComponent().getReturnCode()).isEqualTo(0);
+        assertThat(capturedResponse.getErrorComponent().getReasonCode()).isEqualTo(0);
+        assertThat(capturedResponse.getErrorComponent().getRollbackIndicator()).isEqualTo("Y");
     }
 
     @Test
     @DisplayName("createDocumentDB2Record - Mapper doğru çalışmalı")
-    void givenValidRequest_whenCreateDocumentDB2Record_thenMapperWorksCorrectly() {
+    void givenValidRequest_whenCreateDocumentDB2Record_thenMappersWorkCorrectly() {
         // Given
-        CreateDocumentDB2RequestDto requestDto = CreateDocumentDB2RequestDto.builder()
-                .referenceIdServerData(ReferenceIdServerDataDto.builder()
-                        .userId("TEST_USER")
-                        .referenceId("20240510104819081704")
+        CreateDocumentDB2Request grpcRequest = CreateDocumentDB2Request.newBuilder()
+                .setReferenceIdServerData(ReferenceIdServerData.newBuilder()
+                        .setUserId("TEST_USER")
+                        .setReferenceId("20240510104819081704")
                         .build())
-                .idCardTxn(IdCardTxnDto.builder()
-                        .txnId("00000000000000000000")
-                        .sourceText("Hello")
-                        .unitNum(0)
-                        .productCode("")
-                        .productId(" ")
-                        .processId("MN000000045003398")
-                        .processCode("GENELADRES")
+                .setIdCardTxn(IdCardTxn.newBuilder()
+                        .setTxnId("00000000000000000000")
+                        .setSourceText("Hello")
+                        .setUnitNum(0)
+                        .setProductCode("")
+                        .setProductId(" ")
+                        .setProcessId("MN000000045003398")
+                        .setProcessCode("GENELADRES")
                         .build())
-                .groupList(GroupListDto.builder()
-                        .groupListItems(List.of(
-                                GroupListItemDto.builder()
-                                        .idCardTxn(IdCardTxnDetailDto.builder()
-                                                .documentId("20240110104819081704")
-                                                .docPersonType("01")
-                                                .build())
-                                        .customerNum(45003398)
-                                        .build()
-                        ))
-                        .build())
-                .companyCode("GAR")
-                .build();
-
-        ProcessCreateGrpcResponse grpcResponse = ProcessCreateGrpcResponse.newBuilder()
-                .setInstanceId("20240307135230397151")
-                .setErrorComponent(ErrorComponent.newBuilder()
-                        .setSeverityCode("I")
-                        .setRollbackIndicator("")
-                        .setOriginServId(1102)
-                        .setContextString(ContextString.newBuilder()
-                                .setContextLength(512)
-                                .setContextValue("İşlem tamamlandı.")
+                .setGroupList(GroupList.newBuilder()
+                        .addGroupListItems(GroupListItem.newBuilder()
+                                .setIdCardTxn(IdCardTxnDetail.newBuilder()
+                                        .setDocumentId("20240110104819081704")
+                                        .setDocPersonType("01")
+                                        .build())
+                                .setCustomerNum(45003398)
                                 .build())
-                        .setReturnCode(1)
-                        .setReasonCode(1)
-                        .setChecksum("")
+                        .build())
+                .setCompanyCode("GAR")
+                .build();
+
+        CreateDocumentDB2ResponseDto responseDto = CreateDocumentDB2ResponseDto.builder()
+                .instanceId("20240307135230397151")
+                .errorComponent(ErrorComponentDto.builder()
+                        .severityCode("I")
+                        .rollbackIndicator("")
+                        .originServId("1102")
+                        .contextString(ContextStringDto.builder()
+                                .contextLength(512)
+                                .contextValue("İşlem tamamlandı.")
+                                .build())
+                        .returnCode(1)
+                        .reasonCode(1)
+                        .checksum("")
                         .build())
                 .build();
 
-        when(documentScanGrpcServiceBlockingStub.processCreate(any(ProcessCreateGrpcRequest.class)))
-                .thenReturn(grpcResponse);
+        when(goldDocumentService.createDocumentDB2Record(any(CreateDocumentDB2RequestDto.class)))
+                .thenReturn(responseDto);
 
         // When
-        documentService.createDocumentDB2Record(requestDto);
+        goldDocumentGrpcService.createDocumentDB2Record(grpcRequest, responseObserver);
 
         // Then
-        verify(documentScanGrpcServiceBlockingStub).processCreate(
-                argThat(request ->
-                        request.getReferenceIdServerData().getUserId().equals("TEST_USER") &&
-                        request.getReferenceIdServerData().getReferenceId().equals("20240510104819081704") &&
-                        request.getCompanyCode().equals("GAR") &&
-                        request.getIdCardTxn().getProcessCode().equals("GENELADRES") &&
-                        request.getGroupList().getGroupListItemsCount() == 1
-                )
-        );
+        verify(goldDocumentService, times(1)).createDocumentDB2Record(any(CreateDocumentDB2RequestDto.class));
+        verify(responseObserver, times(1)).onNext(any(CreateDocumentDB2Response.class));
+        verify(responseObserver, times(1)).onCompleted();
     }
 
     @Test
     @DisplayName("createDocumentDB2Record - GroupList mapping doğrulaması")
     void givenRequestWithGroupList_whenCreateDocumentDB2Record_thenGroupListMappedCorrectly() {
         // Given
-        CreateDocumentDB2RequestDto requestDto = CreateDocumentDB2RequestDto.builder()
-                .referenceIdServerData(ReferenceIdServerDataDto.builder()
-                        .userId("TEST_USER")
-                        .referenceId("20240510104819081704")
+        CreateDocumentDB2Request grpcRequest = CreateDocumentDB2Request.newBuilder()
+                .setReferenceIdServerData(ReferenceIdServerData.newBuilder()
+                        .setUserId("TEST_USER")
+                        .setReferenceId("20240510104819081704")
                         .build())
-                .idCardTxn(IdCardTxnDto.builder()
-                        .txnId("00000000000000000000")
-                        .sourceText("Hello")
-                        .unitNum(0)
-                        .productCode("")
-                        .productId(" ")
-                        .processId("MN000000045003398")
-                        .processCode("GENELADRES")
+                .setIdCardTxn(IdCardTxn.newBuilder()
+                        .setTxnId("00000000000000000000")
+                        .setSourceText("Hello")
+                        .setUnitNum(0)
+                        .setProductCode("")
+                        .setProductId(" ")
+                        .setProcessId("MN000000045003398")
+                        .setProcessCode("GENELADRES")
                         .build())
-                .groupList(GroupListDto.builder()
-                        .groupListItems(List.of(
-                                GroupListItemDto.builder()
-                                        .idCardTxn(IdCardTxnDetailDto.builder()
-                                                .documentId("20240110104819081704")
-                                                .docPersonType("01")
-                                                .build())
-                                        .customerNum(45003398)
-                                        .build()
-                        ))
-                        .build())
-                .companyCode("GAR")
-                .build();
-
-        ProcessCreateGrpcResponse grpcResponse = ProcessCreateGrpcResponse.newBuilder()
-                .setInstanceId("20240307135230397151")
-                .setErrorComponent(ErrorComponent.newBuilder()
-                        .setSeverityCode("I")
-                        .setRollbackIndicator("")
-                        .setOriginServId(1102)
-                        .setContextString(ContextString.newBuilder()
-                                .setContextLength(512)
-                                .setContextValue("İşlem tamamlandı.")
+                .setGroupList(GroupList.newBuilder()
+                        .addGroupListItems(GroupListItem.newBuilder()
+                                .setIdCardTxn(IdCardTxnDetail.newBuilder()
+                                        .setDocumentId("20240110104819081704")
+                                        .setDocPersonType("01")
+                                        .build())
+                                .setCustomerNum(45003398)
                                 .build())
-                        .setReturnCode(1)
-                        .setReasonCode(1)
-                        .setChecksum("")
+                        .build())
+                .setCompanyCode("GAR")
+                .build();
+
+        CreateDocumentDB2ResponseDto responseDto = CreateDocumentDB2ResponseDto.builder()
+                .instanceId("20240307135230397151")
+                .errorComponent(ErrorComponentDto.builder()
+                        .severityCode("I")
+                        .rollbackIndicator("")
+                        .originServId("1102")
+                        .contextString(ContextStringDto.builder()
+                                .contextLength(512)
+                                .contextValue("İşlem tamamlandı.")
+                                .build())
+                        .returnCode(1)
+                        .reasonCode(1)
+                        .checksum("")
                         .build())
                 .build();
 
-        when(documentScanGrpcServiceBlockingStub.processCreate(any(ProcessCreateGrpcRequest.class)))
-                .thenReturn(grpcResponse);
+        when(goldDocumentService.createDocumentDB2Record(any(CreateDocumentDB2RequestDto.class)))
+                .thenReturn(responseDto);
 
         // When
-        documentService.createDocumentDB2Record(requestDto);
+        goldDocumentGrpcService.createDocumentDB2Record(grpcRequest, responseObserver);
 
         // Then
-        verify(documentScanGrpcServiceBlockingStub).processCreate(
-                argThat(request -> {
-                    boolean hasGroupList = request.hasGroupList();
-                    boolean hasItems = request.getGroupList().getGroupListItemsCount() > 0;
-                    boolean documentIdValid = request.getGroupList().getGroupListItems(0)
-                            .getIdCardTxn().getDocumentId().equals("20240110104819081704");
-                    boolean customerNumValid = request.getGroupList().getGroupListItems(0)
-                            .getCustomerNum() == 45003398;
-
-                    return hasGroupList && hasItems && documentIdValid && customerNumValid;
-                })
+        verify(goldDocumentService).createDocumentDB2Record(
+                argThat(dto ->
+                        dto.getGroupList() != null &&
+                        dto.getGroupList().getGroupListItems() != null &&
+                        dto.getGroupList().getGroupListItems().size() == 1 &&
+                        dto.getGroupList().getGroupListItems().get(0).getCustomerNum().equals(45003398) &&
+                        dto.getGroupList().getGroupListItems().get(0).getIdCardTxn().getDocumentId().equals("20240110104819081704")
+                )
         );
+    }
+
+    @Test
+    @DisplayName("createDocumentDB2Record - onCompleted çağrılmalı")
+    void givenValidRequest_whenCreateDocumentDB2Record_thenOnCompletedCalled() {
+        // Given
+        CreateDocumentDB2Request grpcRequest = CreateDocumentDB2Request.newBuilder()
+                .setReferenceIdServerData(ReferenceIdServerData.newBuilder()
+                        .setUserId("TEST_USER")
+                        .setReferenceId("20240510104819081704")
+                        .build())
+                .setIdCardTxn(IdCardTxn.newBuilder()
+                        .setTxnId("00000000000000000000")
+                        .setSourceText("Hello")
+                        .setUnitNum(0)
+                        .setProductCode("")
+                        .setProductId(" ")
+                        .setProcessId("MN000000045003398")
+                        .setProcessCode("GENELADRES")
+                        .build())
+                .setGroupList(GroupList.newBuilder()
+                        .addGroupListItems(GroupListItem.newBuilder()
+                                .setIdCardTxn(IdCardTxnDetail.newBuilder()
+                                        .setDocumentId("20240110104819081704")
+                                        .setDocPersonType("01")
+                                        .build())
+                                .setCustomerNum(45003398)
+                                .build())
+                        .build())
+                .setCompanyCode("GAR")
+                .build();
+
+        CreateDocumentDB2ResponseDto responseDto = CreateDocumentDB2ResponseDto.builder()
+                .instanceId("20240307135230397151")
+                .errorComponent(ErrorComponentDto.builder()
+                        .severityCode("I")
+                        .rollbackIndicator("")
+                        .originServId("1102")
+                        .contextString(ContextStringDto.builder()
+                                .contextLength(512)
+                                .contextValue("İşlem tamamlandı.")
+                                .build())
+                        .returnCode(1)
+                        .reasonCode(1)
+                        .checksum("")
+                        .build())
+                .build();
+
+        when(goldDocumentService.createDocumentDB2Record(any(CreateDocumentDB2RequestDto.class)))
+                .thenReturn(responseDto);
+
+        // When
+        goldDocumentGrpcService.createDocumentDB2Record(grpcRequest, responseObserver);
+
+        // Then
+        verify(responseObserver, times(1)).onCompleted();
+        verify(responseObserver, never()).onError(any());
     }
 }
