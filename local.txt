@@ -1,79 +1,79 @@
-ErrorComponentDto:
-      type: object
-      description: Error component information
-      properties:
-        severityCode:
-          type: string
-          description: Severity code
-          example: "INFO"
-        rollbackIndicator:
-          type: string
-          description: Rollback indicator
-          example: "N"
-        originServId:
-          type: string
-          description: Origin service identifier
-          example: "SRV001"
-        contextString:
-          $ref: '#/components/schemas/ContextStringDto'
-        messageTxt:
-          type: string
-          description: Message text
-          example: "Operation completed successfully"
-        returnCode:
-          type: integer
-          format: int32
-          description: Return code
-          example: 0
-        reasonCode:
-          type: integer
-          format: int32
-          description: Reason code
-          example: 0
-        checksum:
-          type: string
-          description: Checksum value
-          example: "ABC123"
-      example: {"severityCode": "INFO", "rollbackIndicator": "N", "originServId": "SRV001", "messageTxt": "Operation completed successfully", "returnCode": 0}
+// types
+type Pagination = {
+  currentPage: number;
+  pageSize: number;   // o sayfada gösterilecek kayıt adedi
+  totalPages: number; // tüm sonuç için toplam sayfa
+  totalSize: number;  // toplam kayıt
+};
+
+// yardımcı: toplam 20'yi aşarsa clamp'liyoruz
+const clampTotal = (n: number) => Math.max(0, Math.min(n, 20));
+
+export function computePagination(totalSizeRaw: number, currentPageRaw: number): Pagination {
+  const totalSize = clampTotal(totalSizeRaw);
+
+  // toplam 0 ise: 0 sayfa boyu, 0/1 farkı tablona göre değişir; genelde 1 sayfa gösterip boş liste iyidir.
+  const totalPages = totalSize === 0 ? 1 : Math.ceil(totalSize / 10);
+
+  // currentPage'i güvene al
+  const currentPage = Math.min(Math.max(1, currentPageRaw), totalPages);
+
+  // o sayfada kaç kayıt gösterilecek?
+  let pageSize = 0;
+  if (totalSize <= 10) {
+    pageSize = totalSize; // tek sayfa
+  } else {
+    // 11–20 arası: ilk sayfa 10, son sayfa kalan
+    pageSize = currentPage < totalPages ? 10 : (totalSize - 10 * (totalPages - 1));
+  }
+
+  return { currentPage, pageSize, totalPages, totalSize };
+}
+
+
+
+----------------------------------------------------------------------------------------------------------------------
 
 
 
 
 
+const [currentPage, setCurrentPage] = useState(1);
 
+// örnek: backend'den gelen dizi
+const transactions: Transaction[] = dataFromApi ?? [];
 
+// toplamı 20 ile sınırla
+const totalSize = Math.min(transactions.length, 20);
 
+// sayfalama objesi
+const pagination = useMemo(
+  () => computePagination(totalSize, currentPage),
+  [totalSize, currentPage]
+);
 
+// veri dilimleme (datatable'a gidecek satırlar)
+const rowsForPage = useMemo(() => {
+  const start = (pagination.currentPage - 1) * 10;      // sayfa kapasitesi 10
+  const end = start + pagination.pageSize;              // o sayfada gösterilecek adet
+  return transactions.slice(0, 20).slice(start, end);   // güvenlik: max 20
+}, [transactions, pagination]);
 
+// veri değişince currentPage'i geçerli aralığa çek
+useEffect(() => {
+  const { totalPages } = computePagination(totalSize, currentPage);
+  if (currentPage > totalPages) setCurrentPage(totalPages);
+  if (totalPages < 1 && currentPage !== 1) setCurrentPage(1);
+}, [totalSize]);
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-CreateDocumentDB2ResponseDto:
-      type: object
-      description: Response after creating document DB2 record
-      properties:
-        instanceId:
-          type: string
-          description: Instance identifier
-          example: "INST123456"
-        errorComponent:
-          $ref: '#/components/schemas/ErrorComponentDto'
-      example: {"instanceId": "INST123456"}
-
+// datatable'a props
+<DataTable
+  data={rowsForPage}
+  pagination={{
+    currentPage: pagination.currentPage,
+    pageSize: pagination.pageSize,
+    totalPages: pagination.totalPages,
+    totalSize: pagination.totalSize,
+    onPageChange: setCurrentPage,
+  }}
+/>
