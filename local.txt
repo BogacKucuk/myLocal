@@ -1,79 +1,312 @@
-// types
-type Pagination = {
-  currentPage: number;
-  pageSize: number;   // o sayfada gösterilecek kayıt adedi
-  totalPages: number; // tüm sonuç için toplam sayfa
-  totalSize: number;  // toplam kayıt
+import React, { JSX, useEffect, useMemo, useRef, useState } from "react";
+import { EfaPopup } from "@efa-web-components/efa-popup";
+import { EfaButton } from "@efa-web-components/efa-button";
+import { t } from "@ark-technical-modules/ark-multilanguage";
+import { EfaLayoutRow, EfaLayoutColumn } from "@efa-web-components/efa-layout-liquid";
+import { EfaDatatable, EfaDatatableElement } from "@efa-web-components/efa-datatable";
+import styles from "./LastTransactionsPopupComponent.module.scss";
+
+import { useLazyGetLastTransactionsQuery } from "../../../store/apis/LastTransactionsApi";
+import { useLazyReadBranchQuery } from "../../../store/apis/BranchesApi";
+import { Transaction } from "../../../store/types/Transaction.type";
+import { useAppDispatch, useAppSelector } from "../../../store";
+import { StoredRequest } from "../../../types/StoredRequest.type";
+import { storedRequestActions } from "../../../store/slices/storedRequestSlice";
+import { EfaInfobox } from "@efa-web-components/efa-infobox";
+
+type Props = {
+  id: string;
+  onClose: () => void;
+  visible: boolean;
+  dataTestId: string;
+  onPageModeChange: (next: string) => void;
 };
 
-// yardımcı: toplam 20'yi aşarsa clamp'liyoruz
-const clampTotal = (n: number) => Math.max(0, Math.min(n, 20));
+type Pagination = {
+  currentPage: number;
+  pageSize: number;
+  totalPages: number;
+  totalSize: number;
+};
 
-export function computePagination(totalSizeRaw: number, currentPageRaw: number): Pagination {
-  const totalSize = clampTotal(totalSizeRaw);
+type Row = {
+  date: string;
+  uniqDate: string;
+  branch: string | number | null;
+  account: string | number | null;
+  amount: string | number | null;
+  type: string | number | null;
+};
 
-  // toplam 0 ise: 0 sayfa boyu, 0/1 farkı tablona göre değişir; genelde 1 sayfa gösterip boş liste iyidir.
-  const totalPages = totalSize === 0 ? 1 : Math.ceil(totalSize / 10);
+type BranchInfo = {
+  name?: string;
+  addressInfo?: Record<string, unknown>;
+};
 
-  // currentPage'i güvene al
-  const currentPage = Math.min(Math.max(1, currentPageRaw), totalPages);
+const LastTransactionsPopupComponent = ({
+  onClose,
+  dataTestId,
+  visible,
+  onPageModeChange,
+}: Props): JSX.Element => {
+  const dispatch = useAppDispatch();
+  const dataTableRef = useRef<EfaDatatableElement>(null);
 
-  // o sayfada kaç kayıt gösterilecek?
-  let pageSize = 0;
-  if (totalSize <= 10) {
-    pageSize = totalSize; // tek sayfa
-  } else {
-    // 11–20 arası: ilk sayfa 10, son sayfa kalan
-    pageSize = currentPage < totalPages ? 10 : (totalSize - 10 * (totalPages - 1));
+  const customerInfo = useAppSelector((state) => state.customerInfoReducer);
+
+  const [lastTransactions, setLastTransactions] = useState<Transaction[]>([]);
+  const [storedRequestState, setStoredRequestState] = useState<StoredRequest | null>(null);
+
+  const [triggerLastTrx, { data: responseList = [], isLoading: trxLoading, error: trxError }] =
+    useLazyGetLastTransactionsQuery();
+  const [readBranchTrigger] = useLazyReadBranchQuery();
+
+  const [branchInfoMap, setBranchInfoMap] = useState<Record<number, BranchInfo>>({});
+
+  const fetchedUnitsRef = useRef<Set<number>>(new Set());
+
+  const didFetchRef = useRef(false); // fetch one time
+  const [noHistoryAlertVisible, setNoHistoryAlertVisible] = useState<boolean>(false);
+  const [transactionCount, setTransactionCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
+
+  const getOpCodeText = (obj: Transaction): string | undefined => {
+    const mapping: Record<string, string> = {
+      "PC KAS-KEN": "Para Çekme Kendisi",
+      "PC KAS-FIS": "Para Çekme Fiş ile (3.şahıs)",
+      "PR HES-KAS-KEN": "Provizyon Kasadan Kendisi",
+      "PR HES-KAS-FIS": "Provizyon Fiş ile (3.şahıs)",
+    };
+    const key = `${obj.financialFamilyCode} ${obj.financialSubFamilyCode}`;
+
+    return mapping[key];
+  };
+
+  const formatDate = (input: string): string => {
+    const d = new Date(input);
+    const pad = (n: number) => String(n).padStart(2, "0");
+
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  };
+
+  // === Pagination helper (yalnızca pagination) ===
+  function computePagination(totalSizeRaw: number, currentPageRaw: number): Pagination {
+    const totalSize = totalSizeRaw; // backend max 20 garanti
+
+    // toplam 0 ise UI genelde 1 sayfa boş tablo gösterir
+    const totalPages = totalSize === 0 ? 1 : Math.ceil(totalSize / 10);
+
+    // currentPage'i güvene al
+    const safeCurrent = Math.min(Math.max(1, currentPageRaw), totalPages);
+
+    // o sayfada kaç kayıt gösterilecek?
+    let pageSize = 0;
+    if (totalSize <= 10) {
+      pageSize = totalSize; // tek sayfa (0..10)
+    } else {
+      // 11–20 arası: ilk sayfa 10, son sayfada kalan
+      pageSize = safeCurrent < totalPages ? 10 : totalSize - 10 * (totalPages - 1);
+    }
+
+    return { currentPage: safeCurrent, pageSize, totalPages, totalSize };
   }
 
-  return { currentPage, pageSize, totalPages, totalSize };
-}
+  const uniqueUnitNums = useMemo<number[]>(() => {
+    const set = new Set<number>();
+    for (const tx of lastTransactions) {
+      if (tx.ownerUnitNum != null) set.add(tx.ownerUnitNum);
+    }
+    return Array.from(set);
+  }, [lastTransactions]);
 
+  useEffect(() => {
+    if (!visible) return; // sadece görünürken başlat
+    if (didFetchRef.current) return;
 
+    if (customerInfo?.customerNumber) {
+      didFetchRef.current = true; // işaretle
+      triggerLastTrx({ customerNumber: customerInfo.customerNumber });
+    }
+  }, [visible, customerInfo?.customerNumber, triggerLastTrx]);
 
-----------------------------------------------------------------------------------------------------------------------
+  useEffect(() => {
+    if ((responseList as any)?.transactions) {
+      setLastTransactions((responseList as any).transactions);
+      console.log("transaction list ->", (responseList as any).transactions);
+      console.log("length:", (responseList as any).transactions.length);
+      setTransactionCount((responseList as any).transactions.length);
+    }
+  }, [responseList]);
 
+  // parallel fetch address information for branches
+  useEffect(() => {
+    if (!visible) return;
+    if (uniqueUnitNums.length === 0) return;
 
+    const toFetch = uniqueUnitNums.filter((u) => !fetchedUnitsRef.current.has(u));
+    if (toFetch.length === 0) return;
 
+    (async () => {
+      await Promise.all(
+        toFetch.map(async (unit) => {
+          try {
+            const res = await readBranchTrigger({ referenceNumber: unit }).unwrap();
 
+            console.log("branch info res", res);
 
-const [currentPage, setCurrentPage] = useState(1);
+            setBranchInfoMap((prev) => ({
+              ...prev,
+              [unit]: {
+                name: (res as any).branchName,
+                addressInfo: (res as any).addressInfo,
+              },
+            }));
+          } catch (e) {
+            // console.error("Branch read error:", e);
+          } finally {
+            fetchedUnitsRef.current.add(unit);
+            console.log("branch info map", branchInfoMap);
+          }
+        })
+      );
+    })();
+  }, [visible, uniqueUnitNums, readBranchTrigger]);
 
-// örnek: backend'den gelen dizi
-const transactions: Transaction[] = dataFromApi ?? [];
+  const rows: Row[] = useMemo(
+    () =>
+      lastTransactions.map((tx) => ({
+        date: formatDate(tx.processDate),
+        uniqDate: tx.processDate,
+        branch:
+          tx.ownerUnitNum != null ? branchInfoMap[tx.ownerUnitNum]?.name ?? tx.ownerUnitNum : "",
+        account: `${tx.accountBranchCode}-${tx.customerAccountNum}`,
+        amount: `${tx.transactionAmount} ${tx.currencyCode}`,
+        type: getOpCodeText(tx),
+      })),
+    [lastTransactions, branchInfoMap]
+  );
 
-// toplamı 20 ile sınırla
-const totalSize = Math.min(transactions.length, 20);
+  // === Pagination hesapları (yalnızca pagination) ===
+  const totalSize = useMemo(() => rows.length /* backend max 20 */, [rows]);
+  const pagination = useMemo(
+    () => computePagination(totalSize, currentPage),
+    [totalSize, currentPage]
+  );
 
-// sayfalama objesi
-const pagination = useMemo(
-  () => computePagination(totalSize, currentPage),
-  [totalSize, currentPage]
-);
+  // Veri değişince currentPage'i geçerli aralığa çek
+  useEffect(() => {
+    const { currentPage: safePage } = computePagination(totalSize, currentPage);
+    if (safePage !== currentPage) setCurrentPage(safePage);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [totalSize]);
 
-// veri dilimleme (datatable'a gidecek satırlar)
-const rowsForPage = useMemo(() => {
-  const start = (pagination.currentPage - 1) * 10;      // sayfa kapasitesi 10
-  const end = start + pagination.pageSize;              // o sayfada gösterilecek adet
-  return transactions.slice(0, 20).slice(start, end);   // güvenlik: max 20
-}, [transactions, pagination]);
+  // Datatable'a gidecek dilim (yalnızca pagination)
+  const rowsForPage: Row[] = useMemo(() => {
+    // Her sayfanın kapasitesi 10; fakat son sayfada pageSize kalan kadar
+    const start = (pagination.currentPage - 1) * 10;
+    const end = start + pagination.pageSize;
+    return rows.slice(start, end);
+  }, [rows, pagination]);
 
-// veri değişince currentPage'i geçerli aralığa çek
-useEffect(() => {
-  const { totalPages } = computePagination(totalSize, currentPage);
-  if (currentPage > totalPages) setCurrentPage(totalPages);
-  if (totalPages < 1 && currentPage !== 1) setCurrentPage(1);
-}, [totalSize]);
+  const header = [
+    { label: "İşlem Tarihi" },
+    { label: "Şube" },
+    { label: "Hesap" },
+    { label: "Tutar" },
+    { label: "İşlem Tipi" },
+  ];
 
-// datatable'a props
-<DataTable
-  data={rowsForPage}
-  pagination={{
-    currentPage: pagination.currentPage,
-    pageSize: pagination.pageSize,
-    totalPages: pagination.totalPages,
-    totalSize: pagination.totalSize,
-    onPageChange: setCurrentPage,
-  }}
-/>
+  const body = [
+    { property: "date" },
+    { property: "branch" },
+    { property: "account" },
+    { property: "amount" },
+    { property: "type" },
+  ];
+
+  const closeButtonClicked = (): void => {
+    onClose();
+  };
+
+  const changePageModeToHistory = (): void => {
+    if (storedRequestState !== null) {
+      onPageModeChange("H");
+      dispatch(storedRequestActions.setAll(storedRequestState));
+      closeButtonClicked();
+    } else {
+      console.log("Islem secilmeli");
+    }
+  };
+
+  const onRowSelected = (e: CustomEvent & { detail: { data: { _index: number } } }): void => {
+    const index = e.detail.data._index;
+
+    if (lastTransactions[index].requestText === "") {
+      setNoHistoryAlertVisible(true);
+    } else {
+      const storedRequest: StoredRequest = JSON.parse(lastTransactions[index].requestText);
+      // if (storedRequest?.transactionInfo) {
+      //   (storedRequest.transactionInfo as any).tableData = [];
+      // }
+      setStoredRequestState(storedRequest);
+    }
+  };
+
+  return (
+    <EfaPopup
+      header={t("last-transactions-popup|title")}
+      footer
+      visible={visible}
+      data-testid={dataTestId}
+      onClose={closeButtonClicked}
+      className={styles.lastTransactionsPopup}
+    >
+      <EfaLayoutRow>
+        {noHistoryAlertVisible && (
+          <EfaLayoutColumn gridWidth={24}>
+            <EfaInfobox type={"danger"}>
+              <span slot="title">{t("last-transactions|no-history-data")}</span>
+            </EfaInfobox>
+          </EfaLayoutColumn>
+        )}
+
+        <EfaLayoutColumn gridWidth={24}>
+          <EfaDatatable
+            ref={dataTableRef}
+            pagination={true}
+            paginationObject={{
+              currentPage: pagination.currentPage,
+              pageSize: pagination.pageSize,
+              totalPages: pagination.totalPages,
+              totalSize: pagination.totalSize,
+            }}
+            header={header}
+            body={body}
+            paramId="uniqDate"
+            data={rowsForPage} // <-- yalnızca o sayfanın satırları
+            loading={trxLoading}
+            selectable
+            selectable-row
+            selectableSelectOne
+            onSelect={onRowSelected as any}
+            // Eğer EfaDatatable sayfa değişim event'i destekliyorsa buraya bağlayın:
+            // onPageChange={(p: number) => setCurrentPage(p)}
+          />
+        </EfaLayoutColumn>
+      </EfaLayoutRow>
+
+      <EfaLayoutRow slot={"footer"}>
+        <EfaLayoutColumn css-display="flex" css-justify-content="space-between">
+          <EfaButton type={"default"} data-testid="last-transactions-closeBtn" onClick={closeButtonClicked}>
+            {t("button-back")}
+          </EfaButton>
+          <EfaButton type={"success"} disabled={noHistoryAlertVisible} onClick={changePageModeToHistory}>
+            {t("last-transactions-popup|use-info-button")}
+          </EfaButton>
+        </EfaLayoutColumn>
+      </EfaLayoutRow>
+    </EfaPopup>
+  );
+};
+
+export default LastTransactionsPopupComponent;
