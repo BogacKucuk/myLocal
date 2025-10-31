@@ -1,58 +1,7 @@
-const ref = useRef<any>(null);
-
-const isChecked =
-  props.pageMode === 'H' && !!storedRequest?.transactionInfo?.isReceiptInfo;
-
-useEffect(() => {
-  if (ref.current) {
-    // web component property’si olarak yaz
-    ref.current.selectedItems = isChecked ? ['active'] : [];
+items={[
+  {
+    label: 'İşlem Yapan Bilgisini Dekontta Göster',
+    value: 'active',
+    checked: props.pageMode === 'H' && storedRequest?.transactionInfo?.isReceiptInfo
   }
-}, [isChecked]);
-
-{!(
-  (operationCode.opCode1 === "PC" && operationCode.opCode2 === "KAS-FIS") ||
-  (operationCode.opCode1 === "PR" && operationCode.opCode2 === "HES-KAS-FIS")
-) && (
-  <EfaInputCheckCheckbox
-    ref={ref}
-    form-id="moneyWithDrawForm"
-    id="money-withDraw-receipt-active-id"
-    data-testid="money-withDraw-receipt-active"
-    label-position="top"
-    style={{ paddingTop: '10px' }}
-    items={[{ label: 'İşlem Yapan Bilgisini Dekontta Göster', value: 'active' }]}
-    horizontal
-    disabled={props.pageMode === 'A' || props.pageMode === 'C'}
-    onChange={(e) => {
-      dispatch(transactionInfoActions.patch({
-        isReceiptInfo: e.detail.selectedItems.length > 0
-      }));
-    }}
-  />
-)}
-
-
-
-
-const isChecked =
-  props.pageMode === 'H' && !!storedRequest?.transactionInfo?.isReceiptInfo;
-
-<EfaInputCheckCheckbox
-  form-id="moneyWithDrawForm"
-  id="money-withDraw-receipt-active-id"
-  data-testid="money-withDraw-receipt-active"
-  label-position="top"
-  style={{ paddingTop: '10px' }}
-  items={[{ label: 'İşlem Yapan Bilgisini Dekontta Göster', value: 'active' }]}
-  horizontal
-  disabled={props.pageMode === 'A' || props.pageMode === 'C'}
-  // attribute olarak yaz: seçili değer "active"
-  {...(isChecked ? { 'selected-items': 'active' } : {})}
-  onChange={(e) => {
-    dispatch(transactionInfoActions.patch({
-      isReceiptInfo: e.detail.selectedItems.length > 0
-    }));
-  }}
-/>
-
+]}
