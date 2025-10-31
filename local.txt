@@ -1,6 +1,39 @@
-const isChecked = props.pageMode === 'H' && storedRequest?.transactionInfo?.isReceiptInfo === true;
+import React, { useEffect, useState } from "react";
 
-<EfaInputCheckCheckbox
-  ...
-  {...(isChecked ? { checked: '' } : {})} // attribute presence
-/>
+const MyComponent = (props) => {
+  const [isReceiptInfoCheck, setIsReceiptInfoCheck] = useState(false);
+
+  useEffect(() => {
+    // Koşullar her değiştiğinde state’i güncelle
+    const shouldBeChecked =
+      props.pageMode === "H" && storedRequest?.transactionInfo?.isReceiptInfo === true;
+
+    setIsReceiptInfoCheck(shouldBeChecked);
+  }, [props.pageMode, storedRequest?.transactionInfo?.isReceiptInfo]);
+
+  return (
+    {!(
+      (operationCode.opCode1 === "PC" && operationCode.opCode2 === "KAS-FIS") ||
+      (operationCode.opCode1 === "PR" && operationCode.opCode2 === "HES-KAS-FIS")
+    ) && (
+      <EfaInputCheckCheckbox
+        form-id="moneyWithDrawForm"
+        id="money-withDraw-receipt-active-id"
+        data-testid="money-withDraw-receipt-active"
+        label-position="top"
+        style={{ paddingTop: "10px" }}
+        items={[{ label: "İşlem Yapan Bilgisini Dekontta Göster", value: "active" }]}
+        horizontal
+        disabled={props.pageMode === "A" || props.pageMode === "C"}
+        {...(isReceiptInfoCheck ? { checked: true } : {})}
+        onChange={(e) => {
+          dispatch(
+            transactionInfoActions.patch({
+              isReceiptInfo: e.detail.selectedItems.length > 0,
+            })
+          );
+        }}
+      />
+    )}
+  );
+};
