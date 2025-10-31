@@ -1,5 +1,25 @@
-<Component
-  {...(props.pageMode === 'H' && storedRequest.transactionInfo.isReceiptInfo
-    ? { checked: true }
-    : {})}
-/>
+{!(
+  (operationCode.opCode1 === "PC" && operationCode.opCode2 === "KAS-FIS") ||
+  (operationCode.opCode1 === "PR" && operationCode.opCode2 === "HES-KAS-FIS")
+) && (
+  <EfaInputCheckCheckbox
+    form-id="moneyWithDrawForm"
+    id="money-withDraw-receipt-active-id"
+    data-testid="money-withDraw-receipt-active"
+    label-position="top"
+    style={{ paddingTop: '10px' }}
+    items={[{ label: 'İşlem Yapan Bilgisini Dekontta Göster', value: 'active' }]}
+    horizontal={true}
+    disabled={props.pageMode === 'A' || props.pageMode === 'C'}
+    checked={
+      props.pageMode === 'H' && storedRequest?.transactionInfo?.isReceiptInfo === true
+    }
+    onChange={(e) => {
+      dispatch(
+        transactionInfoActions.patch({
+          isReceiptInfo: e.detail.selectedItems.length > 0,
+        })
+      );
+    }}
+  />
+)}
