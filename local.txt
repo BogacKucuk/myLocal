@@ -33,8 +33,8 @@ type CustomerData = {
   customerNum: string;
   fullName: string;
   documentScannerData: {
-    personListJson: Person[];         // inner array (tek Person objesi)
-    documentListJson: DocumentInfo[]; // inner array (çoklu set olabilir)
+    personListJson: Array<Person>;
+    documentListJson: Array<DocumentInfo>;
     documentScanInfoJson: DocumentScanInfo;
   };
 };
@@ -45,13 +45,13 @@ const cleanedOrUndef = (val: string | undefined): string | undefined => {
   return t === '' ? undefined : t;
 };
 
-// "0", "00000000000", "", whitespace → boş say
+// Treat "0", "000...", whitespace, or empty as blank
 const isBlankOrZero = (val?: string) => {
   const s = String(val ?? '').trim();
   return s === '' || /^0+$/.test(s);
 };
 
-// mernis boş/0 ise tckn'yi kullan (eslint-friendly)
+// Prefer TCKN when mernis is empty or zero-like
 const preferTckn = (mernis: string | undefined, tckn: string): string => {
   if (isBlankOrZero(mernis)) {
     return tckn;
@@ -59,7 +59,7 @@ const preferTckn = (mernis: string | undefined, tckn: string): string => {
   return String(mernis);
 };
 
-// "Ad" "Soyad" birleştir (boşları ele)
+// Combine name and surname while trimming blanks
 const joinName = (a?: string, b?: string): string | undefined => {
   const first = cleanedOrUndef(a);
   const last = cleanedOrUndef(b);
@@ -67,18 +67,18 @@ const joinName = (a?: string, b?: string): string | undefined => {
   return joined === '' ? undefined : joined;
 };
 
-// set kodlarını normalize et
+// Normalize set code: trim + uppercase + ignore blanks
 const normalizeCode = (c: unknown): string | undefined => {
   const s = String(c ?? '').trim().toUpperCase();
   return s === '' ? undefined : s;
 };
 
 const DocumentScannerComponent = (): JSX.Element => {
-  // ---------- Slices ----------
+  // ---------- Slice access ----------
   const { transactionMaker, documentSetDebit, extraDocSetsByCustomer, opCode } =
     useAppSelector((s) => s.transactionInfo);
 
-  // Hesap sahibi (primary) müşteri bilgileri
+  // Primary customer (account owner) info from customerInfoReducer
   const primaryCustomerNumberRaw = useAppSelector(
     (state) => state.customerInfoReducer.customerNumber as string | number | undefined
   );
@@ -87,7 +87,7 @@ const DocumentScannerComponent = (): JSX.Element => {
     [primaryCustomerNumberRaw]
   );
 
-  // Eğer slice bir an için boş/undefined gelirse, son bilinen primary'yi koru
+  // Maintain stable reference for primary number (in case reducer resets temporarily)
   const stablePrimaryRef = useRef<string>('');
   useEffect(() => {
     if ((primaryCustomerNumber ?? '') !== '') {
@@ -104,36 +104,45 @@ const DocumentScannerComponent = (): JSX.Element => {
     [primaryCustomerTcknRaw]
   );
 
+  // Read name and surname separately from customerInfoReducer
+  const primaryCustomerName = useAppSelector(
+    (state) => state.customerInfoReducer.customerName as string | undefined
+  );
+  const primaryCustomerSurname = useAppSelector(
+    (state) => state.customerInfoReducer.customerSurname as string | undefined
+  );
+
+  // Also keep raw "fullName" in case it's still populated in the slice
   const primaryCustomerFullNameRaw = useAppSelector(
     (state) => state.customerInfoReducer.customerFullName as string | undefined
   );
+
+  // Merge name and surname, fallback to fullNameRaw if missing
   const primaryCustomerFullName = useMemo(
-    () => cleanedOrUndef(primaryCustomerFullNameRaw),
-    [primaryCustomerFullNameRaw]
+    () =>
+      joinName(primaryCustomerName, primaryCustomerSurname) ??
+      cleanedOrUndef(primaryCustomerFullNameRaw),
+    [primaryCustomerName, primaryCustomerSurname, primaryCustomerFullNameRaw]
   );
 
   // ---------- opCode guard ----------
   const isOpCodeValid = useMemo(() => cleanedOrUndef(opCode) !== undefined, [opCode]);
 
-  // ---------- Makers: normalize + primary'yi (listede yoksa) ekle + duplicate temizle ----------
+  // ---------- Normalize maker list ----------
   const makers = useMemo(() => {
-    if (!isOpCodeValid) {
-      return [] as TransactionMaker[];
-    }
+    if (!isOpCodeValid) return [] as Array<TransactionMaker>;
 
-    // normalize & mernis'ı tckn ile düzelt
     const normalized = transactionMaker.map((tm: TransactionMaker) => ({
       ...tm,
       customerNumber: toStr(tm.customerNumber),
       mernisNum: preferTckn(toStr(tm.mernisNum), primaryCustomerTckn),
     }));
 
-    // primary listede mi?
+    // Ensure primary always exists (even if removed from transactionMaker)
     const exists =
       (stablePrimary ?? '') !== '' &&
       normalized.some((m) => m.customerNumber === stablePrimary);
 
-    // değilse ekle (placeholder)
     if (!exists && (stablePrimary ?? '') !== '') {
       normalized.unshift({
         name: '',
@@ -144,7 +153,7 @@ const DocumentScannerComponent = (): JSX.Element => {
       } as TransactionMaker);
     }
 
-    // duplicate temizle
+    // Remove duplicate entries
     const seen = new Set<string>();
     return normalized.filter((m) => {
       if (seen.has(m.customerNumber)) return false;
@@ -153,7 +162,7 @@ const DocumentScannerComponent = (): JSX.Element => {
     });
   }, [isOpCodeValid, transactionMaker, stablePrimary, primaryCustomerTckn]);
 
-  // ---------- Base sets: parse + opCode özel tekilleştirme ----------
+  // ---------- Parse document set ----------
   const baseSets = useMemo(() => {
     const parsed = parseDebitSets(documentSetDebit);
     if (opCode === 'PR-HES-KAS-FIS-T') {
@@ -163,7 +172,7 @@ const DocumentScannerComponent = (): JSX.Element => {
     return parsed;
   }, [documentSetDebit, opCode]);
 
-  // ---------- Document scan info (sabit) ----------
+  // ---------- Static Document Scan Info ----------
   const documentScanInfoJson = useMemo<DocumentScanInfo>(
     () => ({
       processCode: 'GENELADRES',
@@ -176,14 +185,15 @@ const DocumentScannerComponent = (): JSX.Element => {
     []
   );
 
-  // ---------- Referans TM seti (I setlerini sadece TM'de olanlara vereceğiz) ----------
-  const tmSet = useMemo<Set<string>>(() => {
-    return new Set(transactionMaker.map((tm) => toStr(tm.customerNumber)));
-  }, [transactionMaker]);
+  // ---------- Quick reference set of all TM customerNumbers ----------
+  const tmSet = useMemo<Set<string>>(
+    () => new Set(transactionMaker.map((tm) => toStr(tm.customerNumber))),
+    [transactionMaker]
+  );
 
-  // ---------- Person map: customerNumber -> [Person] (index'e bağımlılığı kaldırır) ----------
-  const personMap = useMemo<Record<string, Person[]>>(() => {
-    const map: Record<string, Person[]> = {};
+  // ---------- Person map (by customerNumber) ----------
+  const personMap = useMemo<Record<string, Array<Person>>>(() => {
+    const map: Record<string, Array<Person>> = {};
     makers.forEach((tm) => {
       const mernis = preferTckn(tm.mernisNum, primaryCustomerTckn);
       map[tm.customerNumber] = [
@@ -199,51 +209,47 @@ const DocumentScannerComponent = (): JSX.Element => {
     return map;
   }, [makers, primaryCustomerTckn]);
 
-  // ---------- Final data ----------
-  const compData = useMemo<CustomerData[]>(() => {
-    if (!isOpCodeValid) {
-      return [];
-    }
+  // ---------- Build final compData ----------
+  const compData = useMemo<Array<CustomerData>>(() => {
+    if (!isOpCodeValid) return [];
 
     return makers.map((tm, i) => {
       const isPrimary =
         (stablePrimary ?? '') !== '' && tm.customerNumber === stablePrimary;
 
-      // Başlangıçta kimseye set verme; kurallara göre ekle
-      const codesRaw: (string | undefined)[] = [];
+      const codesRaw: Array<string | undefined> = [];
 
-      // 1) Herkese I set(ler)i → SADECE transactionMaker listesinde olanlara
+      // 1. Add I sets only for customers present in transactionMaker
       if (tmSet.has(tm.customerNumber)) {
         codesRaw.push(...baseSets.I);
       }
 
-      // 2) Primary müşteri varsa → B set(ler)i de ekle (B varsa)
+      // 2. Add B sets for primary (account holder)
       if (isPrimary && baseSets.B.length > 0) {
         codesRaw.push(...baseSets.B);
       }
 
-      // 3) Buton/aksiyonla eklenen setler
+      // 3. Add extra document sets if appended externally
       const extraCodes = extraDocSetsByCustomer[tm.customerNumber] ?? [];
       codesRaw.push(...extraCodes);
 
-      // 4) Normalize + tekilleştir + boşları at
+      // 4. Normalize, filter blanks, and deduplicate
       const normalizedCodes = Array.from(
         new Set(
           codesRaw
-            .map(normalizeCode)      // trim + upper
-            .filter((c): c is string => !!c) // falsy temizle
+            .map(normalizeCode)
+            .filter((c): c is string => !!c)
         )
       );
 
-      // 5) DocumentInfo'ya çevir
-      const documentListJson: DocumentInfo[] = normalizedCodes.map((c) =>
+      // 5. Convert codes into DocumentInfo objects
+      const documentListJson: Array<DocumentInfo> = normalizedCodes.map((c) =>
         makeDocumentInfoFromCode(c)
       );
 
-      // Person list: index yerine customerNumber'a göre al
       const personArr = personMap[tm.customerNumber] ?? [];
 
-      // Full name: primary ise customerInfo.fullName > maker adı > "User X"
+      // 6. Determine display name
       const makerName = joinName(tm.name, tm.surname);
       const defaultName = `User ${i + 1}`;
       const fullName = isPrimary
@@ -272,7 +278,13 @@ const DocumentScannerComponent = (): JSX.Element => {
     tmSet,
   ]);
 
+  // ---------- Debugging log (optional) ----------
+  useEffect(() => {
+    console.log('📘 compData updated:', compData);
+  }, [compData]);
+
   return <EfaCollapseDocumentScannerMultiCustomer data={compData} />;
 };
 
 export default DocumentScannerComponent;
+
