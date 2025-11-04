@@ -33,8 +33,8 @@ type CustomerData = {
   customerNum: string;
   fullName: string;
   documentScannerData: {
-    personListJson: Array<Person>;
-    documentListJson: Array<DocumentInfo>;
+    personListJson: Person[];
+    documentListJson: DocumentInfo[];
     documentScanInfoJson: DocumentScanInfo;
   };
 };
@@ -130,7 +130,7 @@ const DocumentScannerComponent = (): JSX.Element => {
 
   // ---------- Normalize maker list ----------
   const makers = useMemo(() => {
-    if (!isOpCodeValid) return [] as Array<TransactionMaker>;
+    if (!isOpCodeValid) return [] as TransactionMaker[];
 
     const normalized = transactionMaker.map((tm: TransactionMaker) => ({
       ...tm,
@@ -192,8 +192,8 @@ const DocumentScannerComponent = (): JSX.Element => {
   );
 
   // ---------- Person map (by customerNumber) ----------
-  const personMap = useMemo<Record<string, Array<Person>>>(() => {
-    const map: Record<string, Array<Person>> = {};
+  const personMap = useMemo<Record<string, Person[]>>(() => {
+    const map: Record<string, Person[]> = {};
     makers.forEach((tm) => {
       const mernis = preferTckn(tm.mernisNum, primaryCustomerTckn);
       map[tm.customerNumber] = [
@@ -210,7 +210,7 @@ const DocumentScannerComponent = (): JSX.Element => {
   }, [makers, primaryCustomerTckn]);
 
   // ---------- Build final compData ----------
-  const compData = useMemo<Array<CustomerData>>(() => {
+  const compData = useMemo<CustomerData[]>(() => {
     if (!isOpCodeValid) return [];
 
     return makers.map((tm, i) => {
@@ -243,7 +243,7 @@ const DocumentScannerComponent = (): JSX.Element => {
       );
 
       // 5. Convert codes into DocumentInfo objects
-      const documentListJson: Array<DocumentInfo> = normalizedCodes.map((c) =>
+      const documentListJson: DocumentInfo[] = normalizedCodes.map((c) =>
         makeDocumentInfoFromCode(c)
       );
 
@@ -278,7 +278,7 @@ const DocumentScannerComponent = (): JSX.Element => {
     tmSet,
   ]);
 
-  // ---------- Debugging log (optional) ----------
+  // ---------- Debugging log ----------
   useEffect(() => {
     console.log('📘 compData updated:', compData);
   }, [compData]);
@@ -287,4 +287,3 @@ const DocumentScannerComponent = (): JSX.Element => {
 };
 
 export default DocumentScannerComponent;
-
