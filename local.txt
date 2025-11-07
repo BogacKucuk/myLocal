@@ -1,289 +1,88 @@
-import React, { JSX, useEffect, useMemo, useRef } from 'react';
-import {
-  EfaCollapseDocumentScannerMultiCustomer
-} from '@efa-web-components-multi-cust-doc/efa-collapse-document-scanner-multi-customer';
-import { useAppSelector } from '../../store';
-import { TransactionMaker } from '../../store/slices/transactionSlice';
-import {
-  DocumentInfo,
-  makeDocumentInfoFromCode,
-  parseDebitSets,
-  toStr
-} from '../../utils/DocumentScanner/documentScannerUtils';
+package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model;
 
-// ---------- Types ----------
-type Person = {
-  customerNum: string;
-  mernisNum: string;
-  taxNum: number;
-  docPersonType: string;
-  transferableDocClass: string;
-};
+import java.lang.reflect.Field;
+import java.util.StringJoiner;
 
-type DocumentScanInfo = {
-  processCode: string;
-  processId: string;
-  processLevelNum: string;
-  processText: string;
-  useMaxDisplay: string;
-  maxDisplayPerSet: string;
-};
-
-type CustomerData = {
-  customerNum: string;
-  fullName: string;
-  documentScannerData: {
-    personListJson: Person[];
-    documentListJson: DocumentInfo[];
-    documentScanInfoJson: DocumentScanInfo;
-  };
-};
-
-// ---------- Helpers ----------
-const cleanedOrUndef = (val: string | undefined): string | undefined => {
-  const t = (val ?? '').trim();
-  return t === '' ? undefined : t;
-};
-
-// Treat "0", "000...", whitespace, or empty as blank
-const isBlankOrZero = (val?: string) => {
-  const s = String(val ?? '').trim();
-  return s === '' || /^0+$/.test(s);
-};
-
-// Prefer TCKN when mernis is empty or zero-like
-const preferTckn = (mernis: string | undefined, tckn: string): string => {
-  if (isBlankOrZero(mernis)) {
-    return tckn;
-  }
-  return String(mernis);
-};
-
-// Combine name and surname while trimming blanks
-const joinName = (a?: string, b?: string): string | undefined => {
-  const first = cleanedOrUndef(a);
-  const last = cleanedOrUndef(b);
-  const joined = [first ?? '', last ?? ''].filter(Boolean).join(' ').trim();
-  return joined === '' ? undefined : joined;
-};
-
-// Normalize set code: trim + uppercase + ignore blanks
-const normalizeCode = (c: unknown): string | undefined => {
-  const s = String(c ?? '').trim().toUpperCase();
-  return s === '' ? undefined : s;
-};
-
-const DocumentScannerComponent = (): JSX.Element => {
-  // ---------- Slice access ----------
-  const { transactionMaker, documentSetDebit, extraDocSetsByCustomer, opCode } =
-    useAppSelector((s) => s.transactionInfo);
-
-  // Primary customer (account owner) info from customerInfoReducer
-  const primaryCustomerNumberRaw = useAppSelector(
-    (state) => state.customerInfoReducer.customerNumber as string | number | undefined
-  );
-  const primaryCustomerNumber = useMemo(
-    () => String(primaryCustomerNumberRaw ?? ''),
-    [primaryCustomerNumberRaw]
-  );
-
-  // Maintain stable reference for primary number (in case reducer resets temporarily)
-  const stablePrimaryRef = useRef<string>('');
-  useEffect(() => {
-    if ((primaryCustomerNumber ?? '') !== '') {
-      stablePrimaryRef.current = primaryCustomerNumber;
+@Data
+@Builder
+@AllArgsConstructor
+@NoArgsConstructor
+public class ReceiptCreateMfdcContainer {
+    ImpReferenceIdo1ServerData impReferenceIdo1ServerData;
+    ImpIdo1Interface impIdo1Interface;
+    Imp1Ido1Party imp1Ido1Party;
+    Imp2Ido1Address imp2Ido1Address;
+    ImpGroup impGroup;
+    Imp3Ido1Transaction imp3Ido1Transaction;
+    ImpOverdraftIdo1Transaction impOverdraftIdo1Transaction;
+    
+    @Override
+    public String toString() {
+        StringBuilder sb = new StringBuilder();
+        sb.append("ReceiptCreateMfdcContainer {\n");
+        
+        // Ana sınıfın field'larını döngüyle al
+        Field[] fields = this.getClass().getDeclaredFields();
+        for (Field field : fields) {
+            field.setAccessible(true);
+            try {
+                Object value = field.get(this);
+                sb.append("  ").append(field.getName()).append(": ");
+                
+                if (value == null) {
+                    sb.append("null");
+                } else {
+                    // Nested objenin detaylarını al
+                    sb.append("\n").append(objectToString(value, "    "));
+                }
+                sb.append("\n");
+            } catch (IllegalAccessException e) {
+                sb.append("Error accessing field: ").append(e.getMessage());
+            }
+        }
+        sb.append("}");
+        return sb.toString();
     }
-  }, [primaryCustomerNumber]);
-  const stablePrimary = stablePrimaryRef.current;
-
-  const primaryCustomerTcknRaw = useAppSelector(
-    (state) => state.customerInfoReducer.tckn as string | number | undefined
-  );
-  const primaryCustomerTckn = useMemo(
-    () => String(primaryCustomerTcknRaw ?? ''),
-    [primaryCustomerTcknRaw]
-  );
-
-  // Read name and surname separately from customerInfoReducer
-  const primaryCustomerName = useAppSelector(
-    (state) => state.customerInfoReducer.customerName as string | undefined
-  );
-  const primaryCustomerSurname = useAppSelector(
-    (state) => state.customerInfoReducer.customerSurname as string | undefined
-  );
-
-  // Also keep raw "fullName" in case it's still populated in the slice
-  const primaryCustomerFullNameRaw = useAppSelector(
-    (state) => state.customerInfoReducer.customerFullName as string | undefined
-  );
-
-  // Merge name and surname, fallback to fullNameRaw if missing
-  const primaryCustomerFullName = useMemo(
-    () =>
-      joinName(primaryCustomerName, primaryCustomerSurname) ??
-      cleanedOrUndef(primaryCustomerFullNameRaw),
-    [primaryCustomerName, primaryCustomerSurname, primaryCustomerFullNameRaw]
-  );
-
-  // ---------- opCode guard ----------
-  const isOpCodeValid = useMemo(() => cleanedOrUndef(opCode) !== undefined, [opCode]);
-
-  // ---------- Normalize maker list ----------
-  const makers = useMemo(() => {
-    if (!isOpCodeValid) return [] as TransactionMaker[];
-
-    const normalized = transactionMaker.map((tm: TransactionMaker) => ({
-      ...tm,
-      customerNumber: toStr(tm.customerNumber),
-      mernisNum: preferTckn(toStr(tm.mernisNum), primaryCustomerTckn),
-    }));
-
-    // Ensure primary always exists (even if removed from transactionMaker)
-    const exists =
-      (stablePrimary ?? '') !== '' &&
-      normalized.some((m) => m.customerNumber === stablePrimary);
-
-    if (!exists && (stablePrimary ?? '') !== '') {
-      normalized.unshift({
-        name: '',
-        surname: '',
-        address: '',
-        customerNumber: stablePrimary,
-        mernisNum: primaryCustomerTckn,
-      } as TransactionMaker);
+    
+    private String objectToString(Object obj, String indent) {
+        if (obj == null) return "null";
+        
+        StringBuilder sb = new StringBuilder();
+        sb.append(indent).append(obj.getClass().getSimpleName()).append(" {\n");
+        
+        Field[] fields = obj.getClass().getDeclaredFields();
+        for (Field field : fields) {
+            field.setAccessible(true);
+            try {
+                Object value = field.get(obj);
+                sb.append(indent).append("  ").append(field.getName()).append(": ");
+                
+                if (value == null) {
+                    sb.append("null");
+                } else if (isPrimitiveOrWrapper(value.getClass()) || value instanceof String) {
+                    sb.append(value.toString());
+                } else {
+                    // Daha derin nested objeler için recursion kullanmayın, sadece class adını yazın
+                    sb.append(value.getClass().getSimpleName()).append("@").append(Integer.toHexString(value.hashCode()));
+                }
+                sb.append("\n");
+            } catch (IllegalAccessException e) {
+                sb.append("Error: ").append(e.getMessage()).append("\n");
+            }
+        }
+        sb.append(indent).append("}");
+        return sb.toString();
     }
-
-    // Remove duplicate entries
-    const seen = new Set<string>();
-    return normalized.filter((m) => {
-      if (seen.has(m.customerNumber)) return false;
-      seen.add(m.customerNumber);
-      return true;
-    });
-  }, [isOpCodeValid, transactionMaker, stablePrimary, primaryCustomerTckn]);
-
-  // ---------- Parse document set ----------
-  const baseSets = useMemo(() => {
-    const parsed = parseDebitSets(documentSetDebit);
-    if (opCode === 'PR-HES-KAS-FIS-T') {
-      const uniq = <T extends string>(arr: T[]) => Array.from(new Set(arr));
-      return { I: uniq(parsed.I), B: uniq(parsed.B) };
+    
+    private boolean isPrimitiveOrWrapper(Class<?> type) {
+        return type.isPrimitive() || 
+               type == Boolean.class || 
+               type == Integer.class || 
+               type == Character.class || 
+               type == Byte.class || 
+               type == Short.class || 
+               type == Double.class || 
+               type == Long.class || 
+               type == Float.class;
     }
-    return parsed;
-  }, [documentSetDebit, opCode]);
-
-  // ---------- Static Document Scan Info ----------
-  const documentScanInfoJson = useMemo<DocumentScanInfo>(
-    () => ({
-      processCode: 'GENELADRES',
-      processId: 'MN000000045003398',
-      processLevelNum: '0',
-      processText: '',
-      useMaxDisplay: 'false',
-      maxDisplayPerSet: '0',
-    }),
-    []
-  );
-
-  // ---------- Quick reference set of all TM customerNumbers ----------
-  const tmSet = useMemo<Set<string>>(
-    () => new Set(transactionMaker.map((tm) => toStr(tm.customerNumber))),
-    [transactionMaker]
-  );
-
-  // ---------- Person map (by customerNumber) ----------
-  const personMap = useMemo<Record<string, Person[]>>(() => {
-    const map: Record<string, Person[]> = {};
-    makers.forEach((tm) => {
-      const mernis = preferTckn(tm.mernisNum, primaryCustomerTckn);
-      map[tm.customerNumber] = [
-        {
-          customerNum: tm.customerNumber,
-          mernisNum: mernis,
-          taxNum: 0,
-          docPersonType: '01',
-          transferableDocClass: '',
-        },
-      ];
-    });
-    return map;
-  }, [makers, primaryCustomerTckn]);
-
-  // ---------- Build final compData ----------
-  const compData = useMemo<CustomerData[]>(() => {
-    if (!isOpCodeValid) return [];
-
-    return makers.map((tm, i) => {
-      const isPrimary =
-        (stablePrimary ?? '') !== '' && tm.customerNumber === stablePrimary;
-
-      const codesRaw: Array<string | undefined> = [];
-
-      // 1. Add I sets only for customers present in transactionMaker
-      if (tmSet.has(tm.customerNumber)) {
-        codesRaw.push(...baseSets.I);
-      }
-
-      // 2. Add B sets for primary (account holder)
-      if (isPrimary && baseSets.B.length > 0) {
-        codesRaw.push(...baseSets.B);
-      }
-
-      // 3. Add extra document sets if appended externally
-      const extraCodes = extraDocSetsByCustomer[tm.customerNumber] ?? [];
-      codesRaw.push(...extraCodes);
-
-      // 4. Normalize, filter blanks, and deduplicate
-      const normalizedCodes = Array.from(
-        new Set(
-          codesRaw
-            .map(normalizeCode)
-            .filter((c): c is string => !!c)
-        )
-      );
-
-      // 5. Convert codes into DocumentInfo objects
-      const documentListJson: DocumentInfo[] = normalizedCodes.map((c) =>
-        makeDocumentInfoFromCode(c)
-      );
-
-      const personArr = personMap[tm.customerNumber] ?? [];
-
-      // 6. Determine display name
-      const makerName = joinName(tm.name, tm.surname);
-      const defaultName = `User ${i + 1}`;
-      const fullName = isPrimary
-        ? (primaryCustomerFullName ?? makerName ?? defaultName)
-        : (makerName ?? defaultName);
-
-      return {
-        customerNum: tm.customerNumber,
-        fullName,
-        documentScannerData: {
-          personListJson: personArr,
-          documentListJson,
-          documentScanInfoJson,
-        },
-      };
-    });
-  }, [
-    isOpCodeValid,
-    makers,
-    stablePrimary,
-    primaryCustomerFullName,
-    baseSets,
-    extraDocSetsByCustomer,
-    personMap,
-    documentScanInfoJson,
-    tmSet,
-  ]);
-
-  // ---------- Debugging log ----------
-  useEffect(() => {
-    console.log('📘 compData updated:', compData);
-  }, [compData]);
-
-  return <EfaCollapseDocumentScannerMultiCustomer data={compData} />;
-};
-
-export default DocumentScannerComponent;
+}
