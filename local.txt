@@ -1,6 +1,11 @@
 package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model;
 
 import java.lang.reflect.Field;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.util.Date;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.StringJoiner;
 
 @Data
@@ -59,7 +64,7 @@ public class ReceiptCreateMfdcContainer {
                 
                 if (value == null) {
                     sb.append("null");
-                } else if (isPrimitiveOrWrapper(value.getClass()) || value instanceof String) {
+                } else if (isSimpleType(value.getClass())) {
                     sb.append(value.toString());
                 } else {
                     // Daha derin nested objeler için recursion kullanmayın, sadece class adını yazın
@@ -74,7 +79,7 @@ public class ReceiptCreateMfdcContainer {
         return sb.toString();
     }
     
-    private boolean isPrimitiveOrWrapper(Class<?> type) {
+    private boolean isSimpleType(Class<?> type) {
         return type.isPrimitive() || 
                type == Boolean.class || 
                type == Integer.class || 
@@ -83,6 +88,13 @@ public class ReceiptCreateMfdcContainer {
                type == Short.class || 
                type == Double.class || 
                type == Long.class || 
-               type == Float.class;
+               type == Float.class ||
+               type == String.class ||
+               type == BigDecimal.class ||
+               type == BigInteger.class ||
+               type == Date.class ||
+               type == LocalDate.class ||
+               type == LocalDateTime.class ||
+               type.isEnum();
     }
 }
