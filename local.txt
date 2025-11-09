@@ -1,22 +1,18 @@
-    @Mapping(target = "txnDate", source = "txnDate", qualifiedByName = "stringDateToInt")
-    Imp3Idol1Transaction toMfdcImp3Idol1Transaction(CreateReceiptRequestDto createReceiptRequestDto);
 
     @Named("stringDateToInt")
-    default Integer stringDateToInt(String value) {
+    default int stringDateToInt(String value) {
         if (value == null || value.isBlank()) {
-            return null; // veya 0, COBOL tarafı ne istiyorsa
+            // null veya boşsa bugünün tarihini döndür (yyyyMMdd formatında)
+            String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
+            return Integer.parseInt(today);
         }
 
-        // 1) Sadece rakamları al (Timestamp toString geldiğinde de çalışsın)
-        String digits = value.replaceAll("\\D", ""); // 2025-11-09 15:37 -> 202511091537...
-
+        // Diğer durumlarda normal dönüşüm yap
+        String digits = value.replaceAll("\\D", ""); // sadece rakamları al
         if (digits.length() < 8) {
-            throw new IllegalArgumentException("Unexpected date format for txnDate: " + value);
+            throw new IllegalArgumentException("Unexpected txnDate format: " + value);
         }
 
-        // 2) yyyyMMdd'i al
         String yyyymmdd = digits.substring(0, 8);
-
-        // 3) int'e çevir
         return Integer.parseInt(yyyymmdd);
     }
