@@ -1,100 +1,22 @@
-package com.garantibbva.depositwithdrawalmngt.moneywithdrawbusiness.service.contract.model;
+    @Mapping(target = "txnDate", source = "txnDate", qualifiedByName = "stringDateToInt")
+    Imp3Idol1Transaction toMfdcImp3Idol1Transaction(CreateReceiptRequestDto createReceiptRequestDto);
 
-import java.lang.reflect.Field;
-import java.math.BigDecimal;
-import java.math.BigInteger;
-import java.util.Date;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.util.StringJoiner;
+    @Named("stringDateToInt")
+    default Integer stringDateToInt(String value) {
+        if (value == null || value.isBlank()) {
+            return null; // veya 0, COBOL tarafı ne istiyorsa
+        }
 
-@Data
-@Builder
-@AllArgsConstructor
-@NoArgsConstructor
-public class ReceiptCreateMfdcContainer {
-    ImpReferenceIdo1ServerData impReferenceIdo1ServerData;
-    ImpIdo1Interface impIdo1Interface;
-    Imp1Ido1Party imp1Ido1Party;
-    Imp2Ido1Address imp2Ido1Address;
-    ImpGroup impGroup;
-    Imp3Ido1Transaction imp3Ido1Transaction;
-    ImpOverdraftIdo1Transaction impOverdraftIdo1Transaction;
-    
-    @Override
-    public String toString() {
-        StringBuilder sb = new StringBuilder();
-        sb.append("ReceiptCreateMfdcContainer {\n");
-        
-        // Ana sınıfın field'larını döngüyle al
-        Field[] fields = this.getClass().getDeclaredFields();
-        for (Field field : fields) {
-            field.setAccessible(true);
-            try {
-                Object value = field.get(this);
-                sb.append("  ").append(field.getName()).append(": ");
-                
-                if (value == null) {
-                    sb.append("null");
-                } else {
-                    // Nested objenin detaylarını al
-                    sb.append("\n").append(objectToString(value, "    "));
-                }
-                sb.append("\n");
-            } catch (IllegalAccessException e) {
-                sb.append("Error accessing field: ").append(e.getMessage());
-            }
+        // 1) Sadece rakamları al (Timestamp toString geldiğinde de çalışsın)
+        String digits = value.replaceAll("\\D", ""); // 2025-11-09 15:37 -> 202511091537...
+
+        if (digits.length() < 8) {
+            throw new IllegalArgumentException("Unexpected date format for txnDate: " + value);
         }
-        sb.append("}");
-        return sb.toString();
+
+        // 2) yyyyMMdd'i al
+        String yyyymmdd = digits.substring(0, 8);
+
+        // 3) int'e çevir
+        return Integer.parseInt(yyyymmdd);
     }
-    
-    private String objectToString(Object obj, String indent) {
-        if (obj == null) return "null";
-        
-        StringBuilder sb = new StringBuilder();
-        sb.append(indent).append(obj.getClass().getSimpleName()).append(" {\n");
-        
-        Field[] fields = obj.getClass().getDeclaredFields();
-        for (Field field : fields) {
-            field.setAccessible(true);
-            try {
-                Object value = field.get(obj);
-                sb.append(indent).append("  ").append(field.getName()).append(": ");
-                
-                if (value == null) {
-                    sb.append("null");
-                } else if (isSimpleType(value.getClass())) {
-                    sb.append(value.toString());
-                } else {
-                    // Daha derin nested objeler için recursion kullanmayın, sadece class adını yazın
-                    sb.append(value.getClass().getSimpleName()).append("@").append(Integer.toHexString(value.hashCode()));
-                }
-                sb.append("\n");
-            } catch (IllegalAccessException e) {
-                sb.append("Error: ").append(e.getMessage()).append("\n");
-            }
-        }
-        sb.append(indent).append("}");
-        return sb.toString();
-    }
-    
-    private boolean isSimpleType(Class<?> type) {
-        return type.isPrimitive() || 
-               type == Boolean.class || 
-               type == Integer.class || 
-               type == Character.class || 
-               type == Byte.class || 
-               type == Short.class || 
-               type == Double.class || 
-               type == Long.class || 
-               type == Float.class ||
-               type == String.class ||
-               type == BigDecimal.class ||
-               type == BigInteger.class ||
-               type == Date.class ||
-               type == LocalDate.class ||
-               type == LocalDateTime.class ||
-               type.isEnum();
-    }
-}
