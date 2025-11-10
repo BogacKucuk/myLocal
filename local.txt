@@ -1,18 +1,11 @@
-
-    @Named("stringDateToInt")
-    default int stringDateToInt(String value) {
-        if (value == null || value.isBlank()) {
-            // null veya boşsa bugünün tarihini döndür (yyyyMMdd formatında)
-            String today = LocalDate.now().format(DateTimeFormatter.ofPattern("yyyyMMdd"));
-            return Integer.parseInt(today);
-        }
-
-        // Diğer durumlarda normal dönüşüm yap
-        String digits = value.replaceAll("\\D", ""); // sadece rakamları al
-        if (digits.length() < 8) {
-            throw new IllegalArgumentException("Unexpected txnDate format: " + value);
-        }
-
-        String yyyymmdd = digits.substring(0, 8);
-        return Integer.parseInt(yyyymmdd);
+useEffect(() => {
+  (async () => {
+    try {
+      const res = await dcpTokenTrigger(dcpTokenRequest).unwrap();
+      console.log("res********", res);
+      dispatch(setDcpToken(res));
+    } catch (e) {
+      console.error(e);
     }
+  })();
+}, []);
