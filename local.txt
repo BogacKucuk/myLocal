@@ -1,27 +1,19 @@
-import { useAppDispatch } from "../../store/hooks";
-import { setDcpToken } from "../../store/dcpSlice";
-import { useLazyGetDcpTokenQuery } from "../../store/apis/documentViewerApi";
+const [dcpTokenTrigger, { isLoading: dcpTokenLoading }] = useLazyGetDcpTokenQuery();
+const dispatch = useAppDispatch();
 
-const MyComponent = () => {
-  const dispatch = useAppDispatch();
-  const [getDcpToken, { isLoading }] = useLazyGetDcpTokenQuery();
+useEffect(() => {
+  // request hazır değilse boşuna çağırma
+  if (!dcpTokenRequest) return;
 
-  const handleGetToken = async () => {
+  (async () => {
     try {
-      const res = await getDcpToken({
-        // ...dcpTokenRequest içeriği
-      }).unwrap(); // burası çok önemli
+      const res = await dcpTokenTrigger(dcpTokenRequest).unwrap(); // <-- BURADA await ZORUNLU
 
-      console.log("res ********", res);
+      console.log("res ********", res); // <-- Artık gerçek response
+      // örnek: slice'a yaz
       dispatch(setDcpToken(res));
     } catch (err) {
-      console.error("DCP token alınamadı:", err);
+      console.error("getDcpToken failed:", err);
     }
-  };
-
-  return (
-    <button onClick={handleGetToken} disabled={isLoading}>
-      Get DCP Token
-    </button>
-  );
-};
+  })(); // <-- IIFE'yi gerçekten ÇAĞIRIYORUZ
+}, [dcpTokenRequest, dcpTokenTrigger, dispatch]);
