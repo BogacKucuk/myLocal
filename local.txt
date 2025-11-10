@@ -1,13 +1,19 @@
-// sabit request
 const dcpTokenRequest: GetDcpTokenRequest = {
-  // ...
+  // sabit request
 };
 
-const { data, isSuccess, isError } = useGetDcpTokenQuery(dcpTokenRequest);
-const dispatch = useAppDispatch();
+const {
+  data: dcpTokenData,
+  isSuccess: dcpTokenSuccess,
+  isError: dcpTokenError,
+  isLoading: dcpTokenLoading,
+} = useGetDcpTokenQuery(dcpTokenRequest, {
+  refetchOnMountOrArgChange: false, // aynı request ile ekstra çağrı yapmasın
+});
 
+// sadece success olduğunda ve data geldiğinde logla
 useEffect(() => {
-  if (isSuccess && data) {
-    dispatch(setDcpToken(data));
+  if (dcpTokenSuccess && dcpTokenData) {
+    console.log("dcpTokenData >>>", dcpTokenData);
   }
-}, [isSuccess, data, dispatch]);
+}, [dcpTokenSuccess, dcpTokenData]);
