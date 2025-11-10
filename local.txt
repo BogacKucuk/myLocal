@@ -1,19 +1,13 @@
-const [dcpTokenTrigger, { isLoading: dcpTokenLoading }] = useLazyGetDcpTokenQuery();
+// sabit request
+const dcpTokenRequest: GetDcpTokenRequest = {
+  // ...
+};
+
+const { data, isSuccess, isError } = useGetDcpTokenQuery(dcpTokenRequest);
 const dispatch = useAppDispatch();
 
 useEffect(() => {
-  // request hazır değilse boşuna çağırma
-  if (!dcpTokenRequest) return;
-
-  (async () => {
-    try {
-      const res = await dcpTokenTrigger(dcpTokenRequest).unwrap(); // <-- BURADA await ZORUNLU
-
-      console.log("res ********", res); // <-- Artık gerçek response
-      // örnek: slice'a yaz
-      dispatch(setDcpToken(res));
-    } catch (err) {
-      console.error("getDcpToken failed:", err);
-    }
-  })(); // <-- IIFE'yi gerçekten ÇAĞIRIYORUZ
-}, [dcpTokenRequest, dcpTokenTrigger, dispatch]);
+  if (isSuccess && data) {
+    dispatch(setDcpToken(data));
+  }
+}, [isSuccess, data, dispatch]);
