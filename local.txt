@@ -1,11 +1,27 @@
-useEffect(() => {
-  (async () => {
+import { useAppDispatch } from "../../store/hooks";
+import { setDcpToken } from "../../store/dcpSlice";
+import { useLazyGetDcpTokenQuery } from "../../store/apis/documentViewerApi";
+
+const MyComponent = () => {
+  const dispatch = useAppDispatch();
+  const [getDcpToken, { isLoading }] = useLazyGetDcpTokenQuery();
+
+  const handleGetToken = async () => {
     try {
-      const res = await dcpTokenTrigger(dcpTokenRequest).unwrap();
-      console.log("res********", res);
+      const res = await getDcpToken({
+        // ...dcpTokenRequest içeriği
+      }).unwrap(); // burası çok önemli
+
+      console.log("res ********", res);
       dispatch(setDcpToken(res));
-    } catch (e) {
-      console.error(e);
+    } catch (err) {
+      console.error("DCP token alınamadı:", err);
     }
-  })();
-}, []);
+  };
+
+  return (
+    <button onClick={handleGetToken} disabled={isLoading}>
+      Get DCP Token
+    </button>
+  );
+};
