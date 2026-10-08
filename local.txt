@@ -1,0 +1,28 @@
+	private static CSBag findReservationNoDetail(String orderPaymentPlanOid) throws CSException {
+		//String orderPaymentPlanOid = BagHelper.getString(inBag, "ORDER_PLAN_OID");
+		CSBag outBag = new CSBag();
+		// Varsayılan: rezervasyon no yok
+		outBag.put("HAS_RESERVATION_NO", IPAYUtilityConstants.FALSE_VALUE);
+		if (StringHelper.isEmptyString(orderPaymentPlanOid)) {
+			return outBag;
+		}
+		try {
+			DirectDebitOrderPaymentPlanDetail queryObject = new DirectDebitOrderPaymentPlanDetail();
+			queryObject.setOrderPaymentPlanOid(orderPaymentPlanOid);
+			List resultList = DirectDebitOrderPaymentPlanDetailManager.getInstance().getSelectiveObject(queryObject);
+			if (resultList != null && !resultList.isEmpty()) {
+				DirectDebitOrderPaymentPlanDetail orderPaymentPlanDetail = (DirectDebitOrderPaymentPlanDetail) resultList.get(0);
+				orderPaymentPlanDetail.toCSBag(outBag);
+				// toCSBag aynı key'i ezmesin diye en sonda set ediliyor
+				outBag.put("HAS_RESERVATION_NO", IPAYUtilityConstants.TRUE_VALUE);
+			}
+		}
+		catch (Exception e) {
+			throw new CSException(0, "Rezervasyon no kaydı sorgulanırken hata alındı. " + e.getMessage()); // TODO
+		}
+		return outBag;
+	}
+
+
+			CSBag orderPaymentPlanDetailBag = findReservationNoDetail(BagHelper.getString(inBag, "ORDER_PLAN_OID"));
+			boolean hasReservationNo = IPAYUtilityConstants.TRUE_VALUE.equals(BagHelper.getString(orderPaymentPlanDetailBag, "HAS_RESERVATION_NO"));   // <-- yeni satır
